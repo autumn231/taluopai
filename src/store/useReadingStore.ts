@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { DrawnCard, SpreadType, TarotCard } from '@/types';
-import { drawCards, shouldReverse } from '@/utils/shuffle';
+import { drawCards, shouldReverse, shouldReversedSeeded, drawCardsByQuestion } from '@/utils/shuffle';
 import { TAROT_CARDS } from '@/data/tarotCards';
 import { getSpread } from '@/data/spreads';
 import { generateId } from '@/lib/utils';
@@ -55,6 +55,7 @@ export const useReadingStore = create<ReadingState>()(
 
       startShuffle: () => {
         const spread = getSpread(get().spreadType!);
+        // 预览用的洗牌（用真随机让用户看到牌面在动）
         const shuffledDeck = drawCards(TAROT_CARDS, spread.cardCount);
         set({ stage: 'shuffle', deck: shuffledDeck });
       },
@@ -62,14 +63,24 @@ export const useReadingStore = create<ReadingState>()(
       startSelect: () => set({ stage: 'select' }),
 
       selectCards: (positions) => {
-        const { spreadType, deck } = get();
+        const { spreadType, question, deck } = get();
         if (!spreadType) return;
         const spread = getSpread(spreadType);
-        // 重新洗牌并抽取对应数量的牌
-        const newDeck = drawCards(TAROT_CARDS, spread.cardCount);
+
+        // 用问题作为种子抽牌 - 同样的问题会得到同样的牌
+        const newDeck = drawCardsByQuestion(
+          TAROT_CARDS,
+          spread.cardCount,
+          question,
+          spreadType,
+        );
+
+        const seedBase = `${spreadType}::${question.trim()}::${positions.join(',')}`;
         const drawn: DrawnCard[] = newDeck.map((card, idx) => ({
           card,
-          reversed: shouldReverse(),
+          reversed: question.trim()
+            ? shouldReversedSeeded(`${seedBase}::${card.id}`)
+            : shouldReverse(),
           position: positions[idx] ?? idx,
         }));
         set({ stage: 'reveal', drawnCards: drawn, deck: newDeck });

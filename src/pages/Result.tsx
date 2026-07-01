@@ -145,6 +145,7 @@ export default function Result() {
                 <SynthesisReading
                   spreadType={spreadType}
                   cards={drawnCards}
+                  question={question}
                 />
               </div>
             </div>
@@ -465,9 +466,11 @@ function Dimension({
 function SynthesisReading({
   spreadType,
   cards,
+  question,
 }: {
   spreadType: 'single' | 'three' | 'celtic';
   cards: any[];
+  question: string;
 }) {
   const reversedCount = cards.filter((c) => c.reversed).length;
   const elements = cards.map((c) => c.card.element);
@@ -475,8 +478,80 @@ function SynthesisReading({
     .map((el) => ({ el, count: elements.filter((e) => e === el).length }))
     .sort((a, b) => b.count - a.count)[0];
 
+  // 从问题中识别主题
+  const detectTheme = (q: string): { theme: 'love' | 'career' | 'wealth' | 'general'; label: string; keywords: string[] } => {
+    const trimmed = q.trim();
+    if (!trimmed) return { theme: 'general', label: '', keywords: [] };
+    const loveKW = ['爱', '感情', '恋爱', '喜欢', '他', '她', '伴侣', '对象', '婚姻', '分手', '复合', '桃花', '暗恋', '心动', '前任'];
+    const careerKW = ['工作', '事业', '职业', '升职', '跳槽', '面试', '创业', '项目', '同事', '老板', '求职', '岗位', '团队', 'offer'];
+    const wealthKW = ['钱', '财', '收入', '工资', '投资', '理财', '股票', '基金', '创业', '副业', '生意', '经济', '房贷', '还贷', '存款'];
+    if (loveKW.some((k) => trimmed.includes(k))) {
+      return { theme: 'love', label: '情感', keywords: loveKW };
+    }
+    if (careerKW.some((k) => trimmed.includes(k))) {
+      return { theme: 'career', label: '事业', keywords: careerKW };
+    }
+    if (wealthKW.some((k) => trimmed.includes(k))) {
+      return { theme: 'wealth', label: '财富', keywords: wealthKW };
+    }
+    return { theme: 'general', label: '人生', keywords: [] };
+  };
+
+  const questionTheme = detectTheme(question);
+
+  // 根据问题主题生成回应的引导
+  const questionResponse = (() => {
+    if (!question.trim()) return null;
+    const theme = questionTheme;
+    if (theme.theme === 'love') {
+      return (
+        <>
+          关于你在感情中提出的疑问，牌阵首先回应你最关心的部分：此刻关系中的能量状态与未来的走向，已在以下牌面中清晰呈现。
+        </>
+      );
+    }
+    if (theme.theme === 'career') {
+      return (
+        <>
+          关于你关于事业发展的提问，宇宙通过这组牌面为你揭示当前职业道路上的关键能量与转折点，请仔细感受每张牌的指引。
+        </>
+      );
+    }
+    if (theme.theme === 'wealth') {
+      return (
+        <>
+          关于你的财务提问，牌阵为你照亮了当前资金流动的方向与可能遇到的机遇，理性与直觉同样重要。
+        </>
+      );
+    }
+    return (
+      <>
+        关于你所问之事，牌阵以它独有的方式回应——既不直接给出答案，也非无关的暗示，而是将此刻与你相关的能量映射到这些符号之中。
+      </>
+    );
+  })();
+
   return (
     <div className="space-y-5 sm:space-y-6 font-body text-sm sm:text-base leading-relaxed text-midnight-100/90">
+      {questionResponse && (
+        <div className="glass-panel rounded-xl p-4 sm:p-5 border-l-2 border-mystic-gold/60">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-title text-mystic-gold/80 tracking-widest">
+              ✦ 关于你的提问
+            </span>
+            {questionTheme.label && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-mystic-gold/15 text-mystic-lightgold border border-mystic-gold/30">
+                {questionTheme.label}主题
+              </span>
+            )}
+          </div>
+          <p className="text-midnight-100/90 italic">"{question.trim()}"</p>
+          <p className="mt-3 text-sm sm:text-base text-midnight-100/80">
+            {questionResponse}
+          </p>
+        </div>
+      )}
+
       <p>
         {spreadType === 'single' && (
           <>
@@ -484,7 +559,26 @@ function SynthesisReading({
             {cards[0].reversed ? '逆位' : '正位'}
             的出现，邀请你将注意力转向
             {cards[0].reversed ? '内在的阴影面' : '当下能量的核心'}。
-            此刻宇宙通过这张牌传递的信息非常明确——{cards[0].reversed ? cards[0].card.reversed.general : cards[0].card.upright.general.split('。')[0]}。
+            此刻宇宙通过这张牌传递的信息非常明确——
+            {questionTheme.theme !== 'general' && questionTheme.theme === 'love' && cards[0].reversed
+              ? '在感情层面，这张逆位的牌提示你需要先看清关系中的真相。'
+              : questionTheme.theme !== 'general' && questionTheme.theme === 'career' && cards[0].reversed
+              ? '在事业层面，这张逆位的牌提示你需要重新评估当前的方向。'
+              : cards[0].reversed
+              ? cards[0].card.reversed.general.split('。')[0]
+              : cards[0].card.upright.general.split('。')[0]}
+            {questionTheme.theme === 'love' && (
+              <> 关于<span className="text-mystic-lightgold">爱情</span>，{cards[0].reversed ? cards[0].card.reversed.love : cards[0].card.upright.love}</>
+            )}
+            {questionTheme.theme === 'career' && (
+              <> 关于<span className="text-mystic-lightgold">事业</span>，{cards[0].reversed ? cards[0].card.reversed.career : cards[0].card.upright.career}</>
+            )}
+            {questionTheme.theme === 'wealth' && (
+              <> 关于<span className="text-mystic-lightgold">财务</span>，{cards[0].reversed ? cards[0].card.reversed.wealth : cards[0].card.upright.wealth}</>
+            )}
+            {questionTheme.theme === 'general' && (
+              <> 核心指引：{cards[0].reversed ? cards[0].card.reversed.general : cards[0].card.upright.general}</>
+            )}
           </>
         )}
 
@@ -498,6 +592,19 @@ function SynthesisReading({
             标志着当下的核心能量，{cards[1].reversed ? cards[1].card.reversed.general.split('。')[0] : cards[1].card.upright.general.split('。')[0]}；
             <span className="text-mystic-lightgold">{cards[2].card.name.cn}</span>
             则指向未来的走向，{cards[2].reversed ? '警示你需要在某些领域做出调整' : '预示着丰盛的可能性正在靠近'}。
+            {questionTheme.theme !== 'general' && (
+              <>
+                {' '}
+                针对你关于<span className="text-mystic-lightgold">{questionTheme.label}</span>的提问，
+                请特别留意第三张<span className="text-mystic-lightgold">{cards[2].card.name.cn}</span>
+                {cards[2].reversed ? '逆位' : '正位'}所传递的
+                <span className="text-mystic-lightgold">
+                  {questionTheme.theme === 'love' && (cards[2].reversed ? cards[2].card.reversed.love : cards[2].card.upright.love).split('。')[0]}
+                  {questionTheme.theme === 'career' && (cards[2].reversed ? cards[2].card.reversed.career : cards[2].card.upright.career).split('。')[0]}
+                  {questionTheme.theme === 'wealth' && (cards[2].reversed ? cards[2].card.reversed.wealth : cards[2].card.upright.wealth).split('。')[0]}
+                </span>。
+              </>
+            )}
           </>
         )}
 
@@ -521,6 +628,19 @@ function SynthesisReading({
             揭示了你内心深处的希望与恐惧，而
             <span className="text-mystic-lightgold">{cards[9].card.name.cn}</span>
             则是若沿此路径的最终走向。
+            {questionTheme.theme !== 'general' && (
+              <>
+                {' '}
+                关于你所关注的<span className="text-mystic-lightgold">{questionTheme.label}</span>议题，
+                请将注意力特别放在第 6 张
+                <span className="text-mystic-lightgold">{cards[5].card.name.cn}</span>
+                （近未来）、第 7 张
+                <span className="text-mystic-lightgold">{cards[6].card.name.cn}</span>
+                （自我状态）以及第 10 张
+                <span className="text-mystic-lightgold">{cards[9].card.name.cn}</span>
+                （最终结果）上。
+              </>
+            )}
           </>
         )}
       </p>
