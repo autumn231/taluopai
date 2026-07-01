@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ChevronRight, RotateCw, Eye } from 'lucide-react';
+import { Sparkles, ChevronRight, RotateCw, Eye, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import MysticRing from '@/components/effects/MysticRing';
 import BreathingOrb from '@/components/effects/BreathingOrb';
@@ -16,6 +16,58 @@ import { useHistoryStore } from '@/store/useHistoryStore';
 import { SPREADS } from '@/data/spreads';
 import { generateId } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+
+const PRESET_QUESTIONS: { key: string; icon: any; label: string; question: string; accent: string }[] = [
+  {
+    key: 'love',
+    icon: Heart,
+    label: '感情',
+    question: '我此刻的感情走向将会如何？',
+    accent: 'from-rose-400/20 to-rose-600/5',
+  },
+  {
+    key: 'career',
+    icon: Briefcase,
+    label: '事业',
+    question: '我事业的下一步该如何抉择？',
+    accent: 'from-amber-400/20 to-amber-600/5',
+  },
+  {
+    key: 'wealth',
+    icon: Coins,
+    label: '财富',
+    question: '我近期的财运与机遇在哪里？',
+    accent: 'from-yellow-400/20 to-yellow-600/5',
+  },
+  {
+    key: 'study',
+    icon: BookOpen,
+    label: '学业',
+    question: '在学业或自我精进上我该专注什么？',
+    accent: 'from-blue-400/20 to-blue-600/5',
+  },
+  {
+    key: 'people',
+    icon: Users,
+    label: '人际',
+    question: '我与身边人的关系将如何发展？',
+    accent: 'from-violet-400/20 to-violet-600/5',
+  },
+  {
+    key: 'self',
+    icon: Sprout,
+    label: '自我成长',
+    question: '当下我该如何成为更好的自己？',
+    accent: 'from-emerald-400/20 to-emerald-600/5',
+  },
+  {
+    key: 'open',
+    icon: Compass,
+    label: '让宇宙指引',
+    question: '',
+    accent: 'from-mystic-gold/20 to-mystic-gold/5',
+  },
+];
 
 export default function Reading() {
   const navigate = useNavigate();
@@ -294,7 +346,7 @@ function IntroStage({
           </div>
         </motion.div>
 
-        {/* 问题输入 */}
+        {/* 问题选择 - 预设问题 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -302,22 +354,86 @@ function IntroStage({
           className="mb-8 sm:mb-10"
         >
           <p className="text-center text-xs font-title text-mystic-gold/80 tracking-widest mb-4">
-            ✦ 心中所问 ✦
+            ✦ 选择你的问题 ✦
           </p>
-          <div className="glass-panel rounded-2xl p-4 sm:p-6">
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="此刻，宇宙想从你这里听到的问题……（可选）"
-              rows={3}
-              maxLength={200}
-              className="w-full bg-transparent text-midnight-100 placeholder:text-midnight-300/50 font-body text-sm sm:text-base italic focus:outline-none resize-none"
-            />
-            <div className="flex justify-between items-center mt-2 text-xs text-midnight-300/60">
-              <span>问题将作为洗牌种子，让"所问"真正影响牌面 ✦</span>
-              <span>{question.length} / 200</span>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {PRESET_QUESTIONS.map((preset) => {
+              const Icon = preset.icon;
+              const active = question === preset.question;
+              return (
+                <motion.button
+                  key={preset.key}
+                  type="button"
+                  onClick={() => setQuestion(preset.question)}
+                  whileHover={{ y: -3, scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  className={cn(
+                    'relative p-3 sm:p-4 rounded-xl border text-center transition-all duration-300 overflow-hidden group',
+                    active
+                      ? 'bg-mystic-gold/15 border-mystic-gold shadow-gold-glow'
+                      : 'bg-midnight-900/40 border-mystic-gold/15 hover:border-mystic-gold/40',
+                  )}
+                >
+                  {/* 背景渐变光晕 */}
+                  <div
+                    className={cn(
+                      'absolute inset-0 bg-gradient-to-br opacity-0 transition-opacity duration-500',
+                      preset.accent,
+                      active ? 'opacity-100' : 'group-hover:opacity-60',
+                    )}
+                  />
+                  <div className="relative z-10 flex flex-col items-center gap-2">
+                    <div
+                      className={cn(
+                        'w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all',
+                        active
+                          ? 'bg-mystic-gold/30 border border-mystic-gold'
+                          : 'bg-mystic-gold/10 border border-mystic-gold/30',
+                      )}
+                    >
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-mystic-gold" />
+                    </div>
+                    <span
+                      className={cn(
+                        'font-title text-xs sm:text-sm tracking-wider transition-colors',
+                        active ? 'text-mystic-lightgold' : 'text-midnight-100/90',
+                      )}
+                    >
+                      {preset.label}
+                    </span>
+                  </div>
+                  {/* 选中标记 */}
+                  {active && (
+                    <motion.div
+                      layoutId="preset-check"
+                      className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-mystic-gold shadow-gold-glow"
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    />
+                  )}
+                </motion.button>
+              );
+            })}
           </div>
+          {/* 当前问题预览 */}
+          <AnimatePresence mode="wait">
+            {question && (
+              <motion.div
+                key={question}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.3 }}
+                className="mt-4 text-center"
+              >
+                <div className="inline-block glass-panel rounded-full px-4 py-2 max-w-full">
+                  <span className="text-xs text-mystic-gold/70 mr-2">✦</span>
+                  <span className="font-body italic text-sm text-midnight-100/90">
+                    {question}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* 牌阵信息 */}
