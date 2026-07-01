@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ChevronRight, RotateCw, Eye } from 'lucide-react';
@@ -456,8 +456,27 @@ function SelectStage({
   const [selected, setSelected] = useState<number[]>([]);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-  // 模拟一摞牌，让用户点击抽取
-  const stackSize = 26; // 显示的牌数
+  // 14 张牌分两行扇形铺开，每张都可独立点击
+  const FAN_SIZE = 14;
+  const ROW_SIZE = 7;
+  const fanAngles = useMemo(
+    () =>
+      Array.from({ length: FAN_SIZE }, (_, i) => {
+        // 上排 7 张（0-6），下排 7 张（7-13）
+        const isTop = i < ROW_SIZE;
+        const posInRow = isTop ? i : i - ROW_SIZE;
+        const center = (ROW_SIZE - 1) / 2; // 3
+        // 横向偏移：每张牌 44px 间隔（牌宽 90px，露出 ~44px 可见区域）
+        const xOffset = (posInRow - center) * 44;
+        // 上排在上方，下排贴底
+        const yOffset = isTop ? -160 : 0;
+        // 旋转：左右两边的牌角度更大，形成扇形
+        const normalized = (posInRow - center) / center; // -1 to 1
+        const angle = normalized * (isTop ? 7 : -5);
+        return { xOffset, yOffset, angle, isTop, posInRow };
+      }),
+    [],
+  );
 
   const handleClick = (i: number) => {
     if (selected.includes(i)) return;
@@ -465,8 +484,20 @@ function SelectStage({
     const newSelected = [...selected, i];
     setSelected(newSelected);
     if (newSelected.length === cardCount) {
-      setTimeout(() => onSelect(newSelected), 600);
+      setTimeout(() => onSelect(newSelected), 700);
     }
+  };
+
+  // 选中牌的飞出位置（在顶部展示区横向排列）
+  const getSelectedFlyTarget = (order: number, total: number) => {
+    const totalWidth = Math.min(600, total * 70);
+    const spacing = totalWidth / Math.max(total - 1, 1);
+    const startX = -totalWidth / 2;
+    return {
+      x: startX + order * spacing,
+      y: -180,
+      rotate: 0,
+    };
   };
 
   return (
@@ -474,91 +505,125 @@ function SelectStage({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8"
+      className="flex-1 flex items-center justify-center px-2 sm:px-4 py-6 sm:py-8"
     >
-      <div className="max-w-4xl w-full">
-        <div className="text-center mb-6 sm:mb-10">
+      <div className="max-w-5xl w-full">
+        <div className="text-center mb-4 sm:mb-8">
           <h2 className="font-display text-2xl sm:text-3xl md:text-4xl text-gold-gradient glow-text">
             选择你的牌
           </h2>
-          <div className="rune-divider mt-3 max-w-xs mx-auto">
+          <div className="rune-divider mt-2 sm:mt-3 max-w-xs mx-auto">
             <span className="text-mystic-gold/60 text-xs">✦</span>
           </div>
-          <p className="mt-4 font-body italic text-sm sm:text-base text-midnight-200/80">
+          <p className="mt-3 sm:mt-4 font-body italic text-sm sm:text-base text-midnight-200/80">
             请凭直觉选择 {cardCount} 张牌
             <br />
             <span className="text-mystic-gold/80 text-xs">已选 {selected.length} / {cardCount}</span>
           </p>
         </div>
 
-        {/* 牌堆 - 居中堆叠 */}
-        <div className="relative h-72 sm:h-96 mb-8 flex items-center justify-center">
-          <div className="relative w-40 h-64 sm:w-48 sm:h-72">
-            {Array.from({ length: stackSize }).map((_, i) => {
-              const isSelected = selected.includes(i);
-              const randomRotate = ((i * 47) % 21) - 10;
-              const randomX = ((i * 13) % 11) - 5;
-              const randomY = ((i * 7) % 7) - 3;
-              const order = selected.indexOf(i);
-              // 选中的牌从牌堆中"飞"出
-              const angle = order >= 0 ? (order - (cardCount - 1) / 2) * 20 : 0;
-              const flyDistance = order >= 0 ? 180 + order * 20 : 0;
-
+        {/* 选中区 */}
+        <div className="relative h-20 sm:h-24 mb-2 sm:mb-4">
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center">
+            {Array.from({ length: cardCount }).map((_, slot) => {
+              const isFilled = selected.length > slot;
               return (
-                <motion.div
-                  key={i}
-                  className="absolute inset-0 cursor-pointer"
-                  style={{ zIndex: isSelected ? 100 + order : i }}
-                  initial={false}
-                  animate={
-                    isSelected
-                      ? {
-                          x: Math.cos((angle * Math.PI) / 180) * flyDistance,
-                          y: Math.sin((angle * Math.PI) / 180) * flyDistance - 100,
-                          rotate: angle,
-                          scale: 0.8,
-                        }
-                      : {
-                          x: hoveredIdx === i ? randomX * 1.5 : randomX,
-                          y: hoveredIdx === i ? randomY - 8 : randomY,
-                          rotate: randomRotate,
-                          scale: 1,
-                        }
-                  }
-                  transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-                  onClick={() => handleClick(i)}
-                  onMouseEnter={() => setHoveredIdx(i)}
-                  onMouseLeave={() => setHoveredIdx(null)}
+                <div
+                  key={slot}
+                  className="w-[52px] h-[80px] sm:w-[64px] sm:h-[100px] mx-1 sm:mx-2 rounded-lg border border-dashed border-mystic-gold/30 flex items-center justify-center text-mystic-gold/30 text-xs"
                 >
-                  <div className={cn('relative', hoveredIdx === i && !isSelected && 'z-50')}>
-                    <TarotCard
-                      showBack
-                      size="lg"
-                      interactive={false}
-                      className="rounded-xl shadow-2xl"
-                    />
-                    {isSelected && (
-                      <motion.div
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-mystic-gold text-midnight-950 flex items-center justify-center font-display text-sm font-bold shadow-gold-glow"
-                      >
-                        {order + 1}
-                      </motion.div>
-                    )}
-                    {hoveredIdx === i && !isSelected && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="absolute inset-0 rounded-xl pointer-events-none"
-                        style={{ boxShadow: '0 0 30px rgba(212, 175, 55, 0.8)' }}
-                      />
-                    )}
-                  </div>
-                </motion.div>
+                  {isFilled ? '✦' : slot + 1}
+                </div>
               );
             })}
           </div>
+        </div>
+
+        {/* 牌阵 - 两行扇形 */}
+        <div className="relative h-[340px] sm:h-[400px] mb-4 sm:mb-8 flex items-center justify-center">
+          {fanAngles.map((info, i) => {
+            const isSelected = selected.includes(i);
+            const order = selected.indexOf(i);
+            const target = order >= 0 ? getSelectedFlyTarget(order, cardCount) : null;
+
+            return (
+              <motion.button
+                key={i}
+                type="button"
+                className="absolute left-1/2 bottom-0 origin-bottom touch-manipulation"
+                style={{
+                  zIndex: isSelected ? 200 + order : hoveredIdx === i ? 150 : i,
+                }}
+                initial={false}
+                animate={
+                  isSelected && target
+                    ? {
+                        x: target.x,
+                        y: target.y,
+                        rotate: 0,
+                        scale: 0.55,
+                      }
+                    : {
+                        x: info.xOffset,
+                        y: info.yOffset,
+                        rotate: hoveredIdx === i ? 0 : info.angle,
+                        scale: hoveredIdx === i ? 1.1 : 1,
+                      }
+                }
+                transition={{ type: 'spring', stiffness: 220, damping: 24 }}
+                onClick={() => handleClick(i)}
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
+                onTouchStart={() => setHoveredIdx(i)}
+                aria-label={`第 ${i + 1} 张牌`}
+                disabled={selected.length >= cardCount && !isSelected}
+              >
+                {/* 牌本体 */}
+                <div
+                  className={cn(
+                    'relative transition-all duration-300',
+                    !isSelected && 'hover:drop-shadow-[0_0_20px_rgba(212,175,55,0.6)]',
+                    selected.length >= cardCount && !isSelected && 'opacity-40',
+                  )}
+                >
+                  <TarotCard
+                    showBack
+                    size="sm"
+                    interactive={false}
+                    className="rounded-lg shadow-xl"
+                  />
+                  {/* 序号水印 */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="text-mystic-gold/30 font-display text-xl sm:text-2xl select-none">
+                      {i + 1}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 选中徽章 */}
+                {isSelected && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, delay: 0.1 }}
+                    className="absolute -top-2 -right-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-mystic-gold text-midnight-950 flex items-center justify-center font-display text-xs sm:text-sm font-bold shadow-gold-glow pointer-events-none z-10"
+                  >
+                    {order + 1}
+                  </motion.div>
+                )}
+
+                {/* 悬停光晕 */}
+                {hoveredIdx === i && !isSelected && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute inset-0 rounded-lg pointer-events-none"
+                    style={{ boxShadow: '0 0 25px rgba(212, 175, 55, 0.7), inset 0 0 15px rgba(212, 175, 55, 0.3)' }}
+                  />
+                )}
+              </motion.button>
+            );
+          })}
         </div>
 
         {/* 进度点 */}
