@@ -42,8 +42,10 @@ export default function Reading() {
   }, []);
 
   // 选完所有牌后，延迟跳转到结果页
+  const savedRef = useRef(false);
   useEffect(() => {
-    if (stage === 'done' && drawnCards.length > 0) {
+    if (stage === 'done' && drawnCards.length > 0 && !savedRef.current) {
+      savedRef.current = true;
       // 保存到历史
       addRecord({
         id: generateId(),
@@ -54,6 +56,10 @@ export default function Reading() {
       });
       const t = setTimeout(() => navigate('/result'), 1500);
       return () => clearTimeout(t);
+    }
+    // stage 重置时允许重新保存
+    if (stage !== 'done') {
+      savedRef.current = false;
     }
   }, [stage, drawnCards, navigate, addRecord, spreadType, question]);
 
@@ -299,6 +305,7 @@ function ShuffleStage({ onComplete }: { onComplete: () => void }) {
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState<'thinking' | 'shuffling' | 'done'>('thinking');
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggeredRef = useRef(false);
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('shuffling'), 1500);
@@ -318,13 +325,21 @@ function ShuffleStage({ onComplete }: { onComplete: () => void }) {
     };
   }, []);
 
+  // 进度到 100% 时切换阶段（只触发一次）
   useEffect(() => {
-    if (progress >= 100 && phase === 'shuffling') {
+    if (progress >= 100 && phase === 'shuffling' && !triggeredRef.current) {
+      triggeredRef.current = true;
       setPhase('done');
-      const t = setTimeout(onComplete, 800);
+    }
+  }, [progress, phase]);
+
+  // 进入 done 阶段后延迟跳转到选牌
+  useEffect(() => {
+    if (phase === 'done') {
+      const t = setTimeout(onComplete, 1200);
       return () => clearTimeout(t);
     }
-  }, [progress, phase, onComplete]);
+  }, [phase, onComplete]);
 
   // 生成 12 张牌（视觉上的洗牌堆）
   const deckCards = Array.from({ length: 12 });
@@ -576,12 +591,19 @@ function RevealStage({
   onComplete: () => void;
 }) {
   const [revealedCount, setRevealedCount] = useState(0);
+  const completedRef = useRef(false);
 
   useEffect(() => {
     if (revealedCount < cards.length) {
       const t = setTimeout(() => setRevealedCount((c) => c + 1), 1200);
       return () => clearTimeout(t);
-    } else if (revealedCount === cards.length) {
+    }
+  }, [revealedCount, cards.length]);
+
+  // 全部翻开后延迟完成（独立 effect 避免 cleanup 清除）
+  useEffect(() => {
+    if (revealedCount === cards.length && !completedRef.current) {
+      completedRef.current = true;
       const t = setTimeout(onComplete, 1500);
       return () => clearTimeout(t);
     }
