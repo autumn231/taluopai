@@ -4,6 +4,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, RotateCw, History, Sparkles, Heart, Briefcase, Coins, BookOpen } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import TarotCard from '@/components/tarot/TarotCard';
+import EnergyVortex from '@/components/effects/EnergyVortex';
+import SparkleTrail from '@/components/effects/SparkleTrail';
 import { useReadingStore } from '@/store/useReadingStore';
 import { SPREADS } from '@/data/spreads';
 import { cn } from '@/lib/utils';
@@ -67,11 +69,16 @@ export default function Result() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="text-center mb-8 sm:mb-12"
+          className="text-center mb-8 sm:mb-12 relative"
         >
-          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl text-gold-gradient glow-text">
-            解读
-          </h1>
+          <div className="relative inline-block">
+            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl text-gold-gradient glow-text">
+              解读
+            </h1>
+            <div className="absolute inset-0 -m-8 pointer-events-none">
+              <SparkleTrail count={8} duration={3} />
+            </div>
+          </div>
           <div className="rune-divider mt-4 max-w-xs mx-auto">
             <span className="text-mystic-gold/60 text-xs">✦</span>
           </div>
@@ -131,8 +138,11 @@ export default function Result() {
             <div className="absolute -top-20 -right-20 w-60 h-60 bg-mystic-gold/10 rounded-full blur-3xl" />
 
             <div className="relative z-10">
-              <div className="text-center mb-6 sm:mb-8">
-                <Sparkles className="w-6 h-6 text-mystic-gold mx-auto mb-3" />
+              <div className="text-center mb-6 sm:mb-8 relative">
+                <div className="flex justify-center mb-3">
+                  <EnergyVortex size={80} rings={3} speed={1.5} />
+                </div>
+                <Sparkles className="w-6 h-6 text-mystic-gold mx-auto mb-3 relative z-10" />
                 <h2 className="font-display text-2xl sm:text-3xl text-mystic-lightgold glow-text">
                   综合解读
                 </h2>

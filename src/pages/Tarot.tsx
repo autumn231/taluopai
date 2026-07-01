@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Sparkles, Heart, Briefcase, Coins, BookOpen } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import TarotCard from '@/components/tarot/TarotCard';
+import RuneShower from '@/components/effects/RuneShower';
 import { TAROT_CARDS, ELEMENT_THEMES, SUIT_THEMES } from '@/data/tarotCards';
 import { cn } from '@/lib/utils';
 import type { Suit, TarotCard as TarotCardType } from '@/types';
@@ -44,7 +45,13 @@ export default function Tarot() {
 
   return (
     <PageLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 relative">
+        {/* 飘落的符文背景 */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none -z-0">
+          <RuneShower count={10} duration={10} />
+        </div>
+
+        <div className="relative z-10">
         {/* 标题 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -156,6 +163,7 @@ export default function Tarot() {
             <CardDetailModal card={selected} onClose={() => setSelected(null)} />
           )}
         </AnimatePresence>
+        </div>
       </div>
     </PageLayout>
   );

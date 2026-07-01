@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { Sparkles, Eye, Compass, BookOpen, History as HistoryIcon, ArrowRight } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import MysticRing from '@/components/effects/MysticRing';
+import RuneShower from '@/components/effects/RuneShower';
+import SparkleTrail from '@/components/effects/SparkleTrail';
 import TarotCard from '@/components/tarot/TarotCard';
 import { TAROT_CARDS } from '@/data/tarotCards';
 import { SPREADS } from '@/data/spreads';
@@ -68,6 +70,9 @@ export default function Home() {
           <MysticRing size={600} rings={3} />
         </div>
 
+        {/* 飘落的符文 */}
+        <RuneShower count={20} className="z-0" />
+
         <div className="relative z-10 max-w-6xl mx-auto w-full">
           <div className="text-center mb-12 sm:mb-16">
             {/* 顶部装饰 */}
@@ -126,10 +131,14 @@ export default function Home() {
             >
               <Link
                 to="/reading"
-                className="btn-mystic group"
+                className="btn-mystic group relative overflow-visible"
               >
-                <span>开始占卜</span>
-                <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                <span className="relative z-10 flex items-center">
+                  <span>开始占卜</span>
+                  <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                </span>
+                {/* 闪光粒子 */}
+                <SparkleTrail count={10} duration={2.5} />
               </Link>
               <Link to="/tarot" className="btn-ghost">
                 探索图鉴
