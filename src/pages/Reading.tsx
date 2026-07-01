@@ -260,7 +260,7 @@ function IntroStage({
               className="w-full bg-transparent text-midnight-100 placeholder:text-midnight-300/50 font-body text-sm sm:text-base italic focus:outline-none resize-none"
             />
             <div className="flex justify-between items-center mt-2 text-xs text-midnight-300/60">
-              <span>越具体的问题，得到更精准的指引</span>
+              <span>问题将作为洗牌种子，让"所问"真正影响牌面 ✦</span>
               <span>{question.length} / 200</span>
             </div>
           </div>
