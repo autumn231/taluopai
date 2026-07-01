@@ -4,6 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, ChevronRight, RotateCw, Eye } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import MysticRing from '@/components/effects/MysticRing';
+import BreathingOrb from '@/components/effects/BreathingOrb';
+import SweepBeam from '@/components/effects/SweepBeam';
+import ConstellationLines from '@/components/effects/ConstellationLines';
+import Portal from '@/components/effects/Portal';
+import RuneShower from '@/components/effects/RuneShower';
+import MysticFog from '@/components/effects/MysticFog';
 import TarotCard from '@/components/tarot/TarotCard';
 import { useReadingStore } from '@/store/useReadingStore';
 import { useHistoryStore } from '@/store/useHistoryStore';
@@ -41,8 +47,23 @@ export default function Reading() {
     }
   }, []);
 
-  // 选完所有牌后，延迟跳转到结果页
+  // 选完所有牌后，延迟跳转到结果页（带传送门过场）
+  const [portalActive, setPortalActive] = useState(false);
+  const [stageTransition, setStageTransition] = useState<string | null>(null);
   const savedRef = useRef(false);
+  const prevStageRef = useRef(stage);
+
+  // 阶段切换时显示过场遮罩
+  useEffect(() => {
+    if (prevStageRef.current !== stage && stage !== 'done') {
+      const prev = prevStageRef.current;
+      prevStageRef.current = stage;
+      setStageTransition(`${prev}->${stage}`);
+      const t = setTimeout(() => setStageTransition(null), 800);
+      return () => clearTimeout(t);
+    }
+    prevStageRef.current = stage;
+  }, [stage]);
   useEffect(() => {
     if (stage === 'done' && drawnCards.length > 0 && !savedRef.current) {
       savedRef.current = true;
@@ -54,8 +75,13 @@ export default function Reading() {
         question,
         cards: drawnCards,
       });
-      const t = setTimeout(() => navigate('/result'), 1500);
-      return () => clearTimeout(t);
+      // 先显示传送门 1.2s，再跳转
+      const portalTimer = setTimeout(() => setPortalActive(true), 400);
+      const navigateTimer = setTimeout(() => navigate('/result'), 1700);
+      return () => {
+        clearTimeout(portalTimer);
+        clearTimeout(navigateTimer);
+      };
     }
     // stage 重置时允许重新保存
     if (stage !== 'done') {
@@ -124,6 +150,24 @@ export default function Reading() {
             />
           )}
         </AnimatePresence>
+
+        {/* 传送门过场动画 - 跳转到结果页时 */}
+        <AnimatePresence>
+          {portalActive && (
+            <Portal
+              key="portal"
+              active={portalActive}
+              duration={1.3}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* 阶段切换过场 - 仪式感遮罩 */}
+        <AnimatePresence>
+          {stageTransition && (
+            <MysticFog key="stage-fog" variant="veil" duration={0.8} />
+          )}
+        </AnimatePresence>
       </div>
     </PageLayout>
   );
@@ -190,7 +234,7 @@ function IntroStage({
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-8 sm:mb-12"
+          className="text-center mb-6 sm:mb-10"
         >
           <h1 className="font-display text-3xl sm:text-4xl md:text-5xl text-gold-gradient glow-text">
             准备仪式
@@ -201,6 +245,16 @@ function IntroStage({
           <p className="mt-4 font-body text-sm sm:text-base text-midnight-200/80 italic">
             静心凝神 · 让问题浮现 · 跟随直觉
           </p>
+        </motion.div>
+
+        {/* 呼吸球冥想引导 */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.2, delay: 0.3 }}
+          className="flex justify-center mb-8 sm:mb-12"
+        >
+          <BreathingOrb size={120} duration={9} />
         </motion.div>
 
         {/* 牌阵切换 */}
@@ -352,7 +406,7 @@ function ShuffleStage({ onComplete }: { onComplete: () => void }) {
       exit={{ opacity: 0 }}
       className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8"
     >
-      <div className="max-w-2xl w-full text-center">
+      <div className="max-w-2xl w-full text-center relative">
         <h2 className="font-display text-2xl sm:text-3xl md:text-4xl text-gold-gradient glow-text mb-8">
           洗牌中
         </h2>
@@ -361,6 +415,23 @@ function ShuffleStage({ onComplete }: { onComplete: () => void }) {
         <div className="relative h-72 sm:h-96 mb-8 sm:mb-12 flex items-center justify-center">
           {/* 中心环 */}
           <MysticRing size={320} rings={2} speed={0.5} className="absolute opacity-50" />
+
+          {/* 能量波扫光 */}
+          <SweepBeam
+            direction="ltr"
+            color="rgba(212, 175, 55, 0.5)"
+            duration={2.5}
+            delay={0.5}
+          />
+          <SweepBeam
+            direction="rtl"
+            color="rgba(155, 89, 182, 0.35)"
+            duration={3}
+            delay={1.2}
+          />
+
+          {/* 飘落的符文 - 洗牌氛围 */}
+          <RuneShower count={12} duration={8} className="z-0" />
 
           {/* 牌堆 */}
           <div className="relative w-40 h-64 sm:w-48 sm:h-72">
@@ -657,6 +728,9 @@ function RevealStage({
 }) {
   const [revealedCount, setRevealedCount] = useState(0);
   const completedRef = useRef(false);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [constellationPoints, setConstellationPoints] = useState<{ x: number; y: number }[]>([]);
+  const [showConstellation, setShowConstellation] = useState(false);
 
   useEffect(() => {
     if (revealedCount < cards.length) {
@@ -665,12 +739,36 @@ function RevealStage({
     }
   }, [revealedCount, cards.length]);
 
-  // 全部翻开后延迟完成（独立 effect 避免 cleanup 清除）
+  // 全部翻开后：先绘制星座连线，再延迟完成
   useEffect(() => {
     if (revealedCount === cards.length && !completedRef.current) {
       completedRef.current = true;
-      const t = setTimeout(onComplete, 1500);
-      return () => clearTimeout(t);
+      // 等 0.4s 让最后一张牌的动画完成，然后开始绘制星座
+      const drawTimer = setTimeout(() => {
+        // 收集已翻开牌的屏幕坐标
+        const container = cardRefs.current[0]?.parentElement?.parentElement;
+        if (container) {
+          const containerRect = container.getBoundingClientRect();
+          const points = cardRefs.current
+            .filter(Boolean)
+            .map((el) => {
+              const rect = el!.getBoundingClientRect();
+              return {
+                x: rect.left + rect.width / 2 - containerRect.left,
+                y: rect.top + rect.height / 2 - containerRect.top,
+              };
+            });
+          setConstellationPoints(points);
+          setShowConstellation(true);
+        }
+      }, 400);
+
+      // 星座绘制完成后延迟跳转
+      const completeTimer = setTimeout(() => onComplete(), 2800);
+      return () => {
+        clearTimeout(drawTimer);
+        clearTimeout(completeTimer);
+      };
     }
   }, [revealedCount, cards.length, onComplete]);
 
@@ -679,7 +777,7 @@ function RevealStage({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8"
+      className="flex-1 flex items-center justify-center px-4 sm:px-6 py-8 relative"
     >
       <div className="max-w-5xl w-full">
         <div className="text-center mb-8 sm:mb-12">
@@ -697,51 +795,99 @@ function RevealStage({
         {/* 牌阵展示 */}
         <div
           className={cn(
-            'grid gap-6 sm:gap-8 justify-items-center mb-8',
+            'relative grid gap-6 sm:gap-8 justify-items-center mb-8',
             cards.length === 1 && 'grid-cols-1',
             cards.length === 3 && 'grid-cols-1 md:grid-cols-3',
             cards.length === 10 && 'grid-cols-2 md:grid-cols-5',
           )}
         >
-          {cards.map((drawn, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="flex flex-col items-center"
-            >
-              <TarotCard
-                card={drawn.card}
-                reversed={drawn.reversed}
-                flipped={idx < revealedCount}
-                size={cards.length > 5 ? 'md' : 'lg'}
-                interactive={false}
-              />
-              <AnimatePresence>
-                {idx < revealedCount && (
+          {/* 星座连线 */}
+          {showConstellation && constellationPoints.length > 1 && (
+            <ConstellationLines points={constellationPoints} drawDelay={0.4} />
+          )}
+
+          {cards.map((drawn, idx) => {
+            const isRevealed = idx < revealedCount;
+            const isCurrent = idx === revealedCount;
+            return (
+              <motion.div
+                key={idx}
+                ref={(el) => {
+                  cardRefs.current[idx] = el;
+                }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: idx * 0.1 }}
+                className="flex flex-col items-center relative"
+              >
+                {/* 即将翻开时的光环 */}
+                {isCurrent && (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-3 text-center"
-                  >
-                    <div className="font-title text-sm sm:text-base text-mystic-lightgold">
-                      {drawn.card.name.cn}
-                    </div>
-                    {drawn.reversed && (
-                      <div className="text-xs text-rose-400/80 font-title mt-1">
-                        · 逆位 ·
-                      </div>
-                    )}
-                  </motion.div>
+                    className="absolute -inset-8 sm:-inset-12 rounded-3xl pointer-events-none z-10"
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{
+                      opacity: [0, 0.8, 0.5, 0.8, 0.3],
+                      scale: [0.5, 1.1, 1, 1.2, 1.3],
+                    }}
+                    transition={{ duration: 1.2, ease: 'easeInOut' }}
+                    style={{
+                      background: 'radial-gradient(circle, rgba(244,208,63,0.4) 0%, rgba(212,175,55,0.15) 30%, transparent 70%)',
+                      filter: 'blur(8px)',
+                    }}
+                  />
                 )}
-              </AnimatePresence>
-            </motion.div>
-          ))}
+
+                {/* 翻牌瞬间的能量爆发 */}
+                {isRevealed && idx === revealedCount - 1 && (
+                  <motion.div
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 rounded-full pointer-events-none z-0"
+                    initial={{ width: 0, height: 0, opacity: 0 }}
+                    animate={{
+                      width: [0, 200, 300],
+                      height: [0, 200, 300],
+                      opacity: [0, 0.6, 0],
+                    }}
+                    transition={{ duration: 1.2, ease: 'easeOut' }}
+                    style={{
+                      background: 'radial-gradient(circle, rgba(244,208,63,0.5) 0%, transparent 70%)',
+                    }}
+                  />
+                )}
+
+                <div className="relative z-10">
+                  <TarotCard
+                    card={drawn.card}
+                    reversed={drawn.reversed}
+                    flipped={isRevealed}
+                    size={cards.length > 5 ? 'md' : 'lg'}
+                    interactive={false}
+                  />
+                </div>
+                <AnimatePresence>
+                  {isRevealed && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-3 text-center relative z-10"
+                    >
+                      <div className="font-title text-sm sm:text-base text-mystic-lightgold">
+                        {drawn.card.name.cn}
+                      </div>
+                      {drawn.reversed && (
+                        <div className="text-xs text-rose-400/80 font-title mt-1">
+                          · 逆位 ·
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* 进度 */}
-        <div className="text-center">
+        <div className="text-center relative z-10">
           <div className="text-xs font-sans-ui text-mystic-gold/70 tracking-widest">
             {revealedCount} / {cards.length} 已揭晓
           </div>
