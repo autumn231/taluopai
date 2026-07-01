@@ -642,49 +642,78 @@ function SelectStage({
 }) {
   const [selected, setSelected] = useState<number[]>([]);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [pickingIdx, setPickingIdx] = useState<number | null>(null);
 
-  // 14 张牌分两行扇形铺开，每张都可独立点击
   const FAN_SIZE = 14;
-  const ROW_SIZE = 7;
-  const fanAngles = useMemo(
+
+  // 入场动画触发
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+
+  // 弧形牌阵布局：14 张牌形成一条优雅的扇形弧线
+  const fanPositions = useMemo(
     () =>
       Array.from({ length: FAN_SIZE }, (_, i) => {
-        // 上排 7 张（0-6），下排 7 张（7-13）
-        const isTop = i < ROW_SIZE;
-        const posInRow = isTop ? i : i - ROW_SIZE;
-        const center = (ROW_SIZE - 1) / 2; // 3
-        // 横向偏移：每张牌 44px 间隔（牌宽 90px，露出 ~44px 可见区域）
-        const xOffset = (posInRow - center) * 44;
-        // 上排在上方，下排贴底
-        const yOffset = isTop ? -160 : 0;
-        // 旋转：左右两边的牌角度更大，形成扇形
-        const normalized = (posInRow - center) / center; // -1 to 1
-        const angle = normalized * (isTop ? 7 : -5);
-        return { xOffset, yOffset, angle, isTop, posInRow };
+        const t = (i / (FAN_SIZE - 1)) * 2 - 1; // -1 到 1
+        const xOffset = t * 180;
+        const yOffset = -Math.pow(Math.abs(t), 1.6) * 32; // 边缘上抬
+        const angle = t * 16; // -16° 到 16°
+        // 每张牌独立浮动相位
+        const floatPhase = i * 0.6;
+        const floatAmp = 4 + Math.abs(t) * 2; // 边缘浮动稍大
+        return { xOffset, yOffset, angle, t, idx: i, floatPhase, floatAmp };
       }),
     [],
   );
 
-  const handleClick = (i: number) => {
-    if (selected.includes(i)) return;
-    if (selected.length >= cardCount) return;
-    const newSelected = [...selected, i];
-    setSelected(newSelected);
-    if (newSelected.length === cardCount) {
-      setTimeout(() => onSelect(newSelected), 700);
-    }
-  };
+  // 选中后剩余牌重新居中
+  const remainingPositions = useMemo(() => {
+    const remaining = Array.from({ length: FAN_SIZE }, (_, i) => i).filter(
+      (i) => !selected.includes(i),
+    );
+    const total = remaining.length;
+    if (total === 0) return [];
+    return remaining.map((origIdx, newIdx) => {
+      const t = total === 1 ? 0 : (newIdx / (total - 1)) * 2 - 1;
+      const xOffset = t * 180;
+      const yOffset = -Math.pow(Math.abs(t), 1.6) * 32;
+      const angle = t * 16;
+      return { origIdx, xOffset, yOffset, angle };
+    });
+  }, [selected]);
 
-  // 选中牌的飞出位置（在顶部展示区横向排列）
-  const getSelectedFlyTarget = (order: number, total: number) => {
-    const totalWidth = Math.min(600, total * 70);
-    const spacing = totalWidth / Math.max(total - 1, 1);
+  // 顶部选中槽的位置
+  const getSlotTarget = (slot: number) => {
+    const total = cardCount;
+    const totalWidth = Math.min(560, total * 76);
+    const spacing = total > 1 ? totalWidth / (total - 1) : 0;
     const startX = -totalWidth / 2;
     return {
-      x: startX + order * spacing,
-      y: -180,
+      x: startX + slot * spacing,
+      y: -260,
       rotate: 0,
+      scale: 0.6,
     };
+  };
+
+  // 点击选牌
+  const handleClick = (i: number) => {
+    if (!mounted) return;
+    if (selected.includes(i)) return;
+    if (selected.length >= cardCount) return;
+    setPickingIdx(i);
+    const newSelected = [...selected, i];
+    // 短暂延迟让飞牌动画播放
+    setTimeout(() => {
+      setPickingIdx(null);
+      setSelected(newSelected);
+    }, 280);
+    if (newSelected.length === cardCount) {
+      setTimeout(() => onSelect(newSelected), 1200);
+    }
   };
 
   return (
@@ -692,143 +721,395 @@ function SelectStage({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex-1 flex items-center justify-center px-2 sm:px-4 py-6 sm:py-8"
+      className="flex-1 flex flex-col items-center justify-center px-2 sm:px-4 py-6 sm:py-8"
     >
       <div className="max-w-5xl w-full">
-        <div className="text-center mb-4 sm:mb-8">
-          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl text-gold-gradient glow-text">
+        {/* 标题与进度 */}
+        <div className="text-center mb-2 sm:mb-4">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="font-display text-2xl sm:text-3xl md:text-4xl text-gold-gradient glow-text"
+          >
             选择你的牌
-          </h2>
+          </motion.h2>
           <div className="rune-divider mt-2 sm:mt-3 max-w-xs mx-auto">
             <span className="text-mystic-gold/60 text-xs">✦</span>
           </div>
-          <p className="mt-3 sm:mt-4 font-body italic text-sm sm:text-base text-midnight-200/80">
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mt-3 sm:mt-4 font-body italic text-sm sm:text-base text-midnight-200/80"
+          >
             请凭直觉选择 {cardCount} 张牌
             <br />
-            <span className="text-mystic-gold/80 text-xs">已选 {selected.length} / {cardCount}</span>
-          </p>
+            <span className="text-mystic-gold/80 text-xs">
+              已选 {selected.length} / {cardCount}
+            </span>
+          </motion.p>
         </div>
 
-        {/* 选中区 */}
-        <div className="relative h-20 sm:h-24 mb-2 sm:mb-4">
+        {/* 选中区 - 顶部牌槽 */}
+        <div className="relative h-28 sm:h-32 mb-1">
           <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center">
             {Array.from({ length: cardCount }).map((_, slot) => {
-              const isFilled = selected.length > slot;
+              const filledIdx = selected[slot];
+              const isFilled = filledIdx !== undefined;
               return (
                 <div
                   key={slot}
-                  className="w-[52px] h-[80px] sm:w-[64px] sm:h-[100px] mx-1 sm:mx-2 rounded-lg border border-dashed border-mystic-gold/30 flex items-center justify-center text-mystic-gold/30 text-xs"
+                  className="relative w-[60px] h-[96px] sm:w-[72px] sm:h-[112px] mx-1 sm:mx-2"
                 >
-                  {isFilled ? '✦' : slot + 1}
+                  {/* 槽位虚框 */}
+                  <div
+                    className={cn(
+                      'absolute inset-0 rounded-lg border-2 border-dashed flex items-center justify-center font-display text-sm transition-all duration-500',
+                      isFilled
+                        ? 'border-mystic-gold/0 opacity-0'
+                        : selected.length === slot
+                        ? 'border-mystic-gold/60 text-mystic-gold/70 shadow-gold-glow animate-pulse'
+                        : 'border-mystic-gold/25 text-mystic-gold/30',
+                    )}
+                  >
+                    {slot + 1}
+                  </div>
+                  {/* 已选牌占位（牌实际位置由下方弧形牌阵动画控制） */}
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* 牌阵 - 两行扇形 */}
-        <div className="relative h-[340px] sm:h-[400px] mb-4 sm:mb-8 flex items-center justify-center">
-          {fanAngles.map((info, i) => {
-            const isSelected = selected.includes(i);
-            const order = selected.indexOf(i);
-            const target = order >= 0 ? getSelectedFlyTarget(order, cardCount) : null;
+        {/* 弧形牌阵 */}
+        <div className="relative h-[280px] sm:h-[340px] mb-4 sm:mb-6 flex items-end justify-center">
+          {/* 底座弧线光晕 */}
+          <svg
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[110%] max-w-2xl h-32 pointer-events-none opacity-30"
+            viewBox="0 0 600 100"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#d4af37" stopOpacity="0" />
+                <stop offset="50%" stopColor="#d4af37" stopOpacity="0.6" />
+                <stop offset="100%" stopColor="#d4af37" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M 0 80 Q 300 -20 600 80"
+              fill="none"
+              stroke="url(#arcGradient)"
+              strokeWidth="1.5"
+            />
+          </svg>
 
+          {/* 顶部牌槽指示线 */}
+          {selected.length > 0 && (
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              preserveAspectRatio="none"
+            >
+              {selected.map((cardIdx, slot) => {
+                const pos = fanPositions[cardIdx];
+                if (!pos) return null;
+                const target = getSlotTarget(slot);
+                return (
+                  <motion.line
+                    key={`beam-${cardIdx}`}
+                    x1={`calc(50% + ${pos.xOffset}px)`}
+                    y1={pos.yOffset + 200}
+                    x2={`calc(50% + ${target.x}px)`}
+                    y2={target.y + 200}
+                    stroke="rgba(212,175,55,0.25)"
+                    strokeWidth="1"
+                    strokeDasharray="3,4"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 1 }}
+                    transition={{ duration: 0.6, delay: 0.1 }}
+                  />
+                );
+              })}
+            </svg>
+          )}
+
+          {/* 已选中的牌（飞往顶部）*/}
+          {selected.map((cardIdx, slot) => {
+            const target = getSlotTarget(slot);
             return (
-              <motion.button
-                key={i}
-                type="button"
-                className="absolute left-1/2 bottom-0 origin-bottom touch-manipulation"
-                style={{
-                  zIndex: isSelected ? 200 + order : hoveredIdx === i ? 150 : i,
-                }}
+              <motion.div
+                key={`selected-${cardIdx}`}
+                className="absolute left-1/2 bottom-0 pointer-events-none"
                 initial={false}
-                animate={
-                  isSelected && target
-                    ? {
-                        x: target.x,
-                        y: target.y,
-                        rotate: 0,
-                        scale: 0.55,
-                      }
-                    : {
-                        x: info.xOffset,
-                        y: info.yOffset,
-                        rotate: hoveredIdx === i ? 0 : info.angle,
-                        scale: hoveredIdx === i ? 1.1 : 1,
-                      }
-                }
-                transition={{ type: 'spring', stiffness: 220, damping: 24 }}
-                onClick={() => handleClick(i)}
-                onMouseEnter={() => setHoveredIdx(i)}
-                onMouseLeave={() => setHoveredIdx(null)}
-                onTouchStart={() => setHoveredIdx(i)}
-                aria-label={`第 ${i + 1} 张牌`}
-                disabled={selected.length >= cardCount && !isSelected}
+                animate={{
+                  x: target.x,
+                  y: target.y,
+                  rotate: target.rotate,
+                  scale: target.scale,
+                }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 120,
+                  damping: 18,
+                  mass: 0.8,
+                }}
+                style={{ zIndex: 300 + slot }}
               >
-                {/* 牌本体 */}
-                <div
-                  className={cn(
-                    'relative transition-all duration-300',
-                    !isSelected && 'hover:drop-shadow-[0_0_20px_rgba(212,175,55,0.6)]',
-                    selected.length >= cardCount && !isSelected && 'opacity-40',
-                  )}
-                >
+                <div className="relative">
                   <TarotCard
                     showBack
                     size="sm"
                     interactive={false}
-                    className="rounded-lg shadow-xl"
+                    className="rounded-lg shadow-gold-glow"
                   />
-                  {/* 序号水印 */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="text-mystic-gold/30 font-display text-xl sm:text-2xl select-none">
-                      {i + 1}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 选中徽章 */}
-                {isSelected && (
+                  {/* 选中序号徽章 */}
                   <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 500, delay: 0.1 }}
-                    className="absolute -top-2 -right-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-mystic-gold text-midnight-950 flex items-center justify-center font-display text-xs sm:text-sm font-bold shadow-gold-glow pointer-events-none z-10"
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 400,
+                      damping: 18,
+                      delay: 0.3,
+                    }}
+                    className="absolute -top-2 -right-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-mystic-gold to-mystic-lightgold text-midnight-950 flex items-center justify-center font-display text-xs sm:text-sm font-bold shadow-gold-glow"
                   >
-                    {order + 1}
+                    {slot + 1}
                   </motion.div>
-                )}
-
-                {/* 悬停光晕 */}
-                {hoveredIdx === i && !isSelected && (
+                  {/* 持续微动 */}
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="absolute inset-0 rounded-lg pointer-events-none"
-                    style={{ boxShadow: '0 0 25px rgba(212, 175, 55, 0.7), inset 0 0 15px rgba(212, 175, 55, 0.3)' }}
+                    className="absolute inset-0 rounded-lg"
+                    animate={{ opacity: [0.3, 0.6, 0.3] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                    style={{
+                      boxShadow: '0 0 20px rgba(212, 175, 55, 0.4)',
+                    }}
                   />
-                )}
+                </div>
+              </motion.div>
+            );
+          })}
+
+          {/* 弧形牌阵 - 未选中的牌 */}
+          {fanPositions.map((info) => {
+            const isSelected = selected.includes(info.idx);
+            const isPicking = pickingIdx === info.idx;
+            if (isSelected) return null;
+
+            // 计算实时位置（已选时其他牌重新分布）
+            let pos = info;
+            if (selected.length > 0) {
+              const remap = remainingPositions.find((r) => r.origIdx === info.idx);
+              if (remap) {
+                pos = { ...info, xOffset: remap.xOffset, yOffset: remap.yOffset, angle: remap.angle };
+              }
+            }
+            const isHovered = hoveredIdx === info.idx;
+            const isDisabled = selected.length >= cardCount;
+            const enterDelay = info.idx * 0.05;
+
+            return (
+              <motion.button
+                key={info.idx}
+                type="button"
+                className="absolute left-1/2 bottom-0 touch-manipulation"
+                style={{ zIndex: isHovered ? 200 : 50 - Math.abs(info.idx - 7) }}
+                initial={{
+                  x: 0,
+                  y: 0,
+                  rotate: 0,
+                  scale: 0.3,
+                  opacity: 0,
+                }}
+                animate={
+                  isPicking
+                    ? { x: pos.xOffset, y: pos.yOffset - 60, rotate: 0, scale: 1.15, opacity: 1 }
+                    : isHovered
+                    ? {
+                        x: pos.xOffset,
+                        y: pos.yOffset - 24,
+                        rotate: 0,
+                        scale: 1.12,
+                        opacity: 1,
+                      }
+                    : {
+                        x: pos.xOffset,
+                        y: [
+                          pos.yOffset,
+                          pos.yOffset - info.floatAmp,
+                          pos.yOffset,
+                        ],
+                        rotate: pos.angle,
+                        scale: isDisabled ? 0.9 : 1,
+                        opacity: mounted ? (isDisabled ? 0.35 : 1) : 0,
+                      }
+                }
+                transition={
+                  isPicking
+                    ? { duration: 0.28, ease: 'easeOut' }
+                    : isHovered
+                    ? { type: 'spring', stiffness: 400, damping: 22 }
+                    : mounted && !isPicking && !isHovered
+                    ? {
+                        x: { type: 'spring', stiffness: 180, damping: 22 },
+                        y: {
+                          duration: 3.5,
+                          repeat: Infinity,
+                          ease: 'easeInOut',
+                          delay: info.floatPhase,
+                        },
+                        rotate: { type: 'spring', stiffness: 180, damping: 22 },
+                        scale: { duration: 0.4 },
+                        opacity: { duration: 0.5, delay: enterDelay },
+                      }
+                    : { duration: 0.5, delay: enterDelay }
+                }
+                onClick={() => handleClick(info.idx)}
+                onMouseEnter={() => setHoveredIdx(info.idx)}
+                onMouseLeave={() => setHoveredIdx(null)}
+                onTouchStart={() => setHoveredIdx(info.idx)}
+                onTouchEnd={() => setHoveredIdx(null)}
+                aria-label={`第 ${info.idx + 1} 张牌`}
+                disabled={isDisabled}
+              >
+                <div className="relative">
+                  {/* 牌本体 */}
+                  <div
+                    className={cn(
+                      'relative transition-all duration-300',
+                      isHovered && 'drop-shadow-[0_0_25px_rgba(244,208,63,0.7)]',
+                    )}
+                  >
+                    <TarotCard
+                      showBack
+                      size="sm"
+                      interactive={false}
+                      className="rounded-lg shadow-xl"
+                    />
+                    {/* 序号水印 */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="text-mystic-gold/40 font-display text-xl sm:text-2xl select-none">
+                        {info.idx + 1}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 悬停光晕 */}
+                  {isHovered && (
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="absolute -inset-3 rounded-2xl pointer-events-none"
+                        style={{
+                          background:
+                            'radial-gradient(ellipse, rgba(244,208,63,0.3) 0%, transparent 70%)',
+                          filter: 'blur(8px)',
+                        }}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="absolute -inset-1 rounded-lg pointer-events-none"
+                        style={{
+                          boxShadow:
+                            '0 0 20px rgba(212, 175, 55, 0.6), inset 0 0 10px rgba(244, 208, 63, 0.3)',
+                        }}
+                      />
+                      {/* 浮起的提示文字 */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs text-mystic-lightgold font-title tracking-widest pointer-events-none"
+                      >
+                        ✦ 选择我 ✦
+                      </motion.div>
+                    </>
+                  )}
+
+                  {/* 正在拾取的能量环 */}
+                  {isPicking && (
+                    <motion.div
+                      className="absolute -inset-6 rounded-2xl pointer-events-none"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: [0, 1, 0], scale: [0.5, 1.4, 1.8] }}
+                      transition={{ duration: 0.28, ease: 'easeOut' }}
+                      style={{
+                        background:
+                          'radial-gradient(circle, rgba(244,208,63,0.5) 0%, transparent 70%)',
+                        filter: 'blur(4px)',
+                      }}
+                    />
+                  )}
+                </div>
               </motion.button>
             );
           })}
+
+          {/* 顶部"洗牌位置"指示（待选状态） */}
+          {selected.length === 0 && mounted && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: [0.4, 0.8, 0.4], y: 0 }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute top-4 left-1/2 -translate-x-1/2 text-center pointer-events-none"
+            >
+              <p className="text-xs font-title text-mystic-gold/70 tracking-[0.4em]">
+                ✦ 静心感受 · 让直觉引导 ✦
+              </p>
+            </motion.div>
+          )}
         </div>
 
-        {/* 进度点 */}
-        <div className="flex justify-center gap-3">
-          {Array.from({ length: cardCount }).map((_, i) => (
+        {/* 进度指示 */}
+        <motion.div
+          className="flex flex-col items-center gap-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <div className="flex justify-center gap-2.5">
+            {Array.from({ length: cardCount }).map((_, i) => {
+              const filled = selected.length > i;
+              return (
+                <div key={i} className="relative w-6 h-6 flex items-center justify-center">
+                  <motion.div
+                    className={cn(
+                      'w-3 h-3 rounded-full border-2 transition-colors duration-500',
+                      filled
+                        ? 'bg-mystic-gold border-mystic-gold'
+                        : 'border-mystic-gold/30',
+                    )}
+                    animate={filled ? { scale: [1, 1.4, 1] } : {}}
+                    transition={{ duration: 0.5 }}
+                  />
+                  {filled && (
+                    <motion.div
+                      className="absolute inset-0 rounded-full"
+                      animate={{ scale: [1, 2, 2.5], opacity: [0.5, 0, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: 'easeOut' }}
+                      style={{ border: '1px solid rgba(212, 175, 55, 0.6)' }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 完成提示 */}
+          {selected.length === cardCount && (
             <motion.div
-              key={i}
-              className={cn(
-                'w-3 h-3 rounded-full border-2 transition-all',
-                selected.length > i
-                  ? 'bg-mystic-gold border-mystic-gold shadow-gold-glow'
-                  : 'border-mystic-gold/30',
-              )}
-              animate={selected.length > i ? { scale: [1, 1.3, 1] } : {}}
-              transition={{ duration: 0.4 }}
-            />
-          ))}
-        </div>
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center"
+            >
+              <p className="font-body italic text-sm text-mystic-lightgold tracking-wider">
+                ✦ 牌已选定 · 命运即将揭晓 ✦
+              </p>
+            </motion.div>
+          )}
+        </motion.div>
       </div>
     </motion.section>
   );
