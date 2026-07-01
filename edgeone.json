@@ -1,0 +1,12 @@
+# EdgeOne Pages 部署配置
+# https://console.cloud.tencent.com/edgeone
+{
+  "name": "mystic-tarot",
+  "version": "1.0.0",
+  "build": {
+    "command": "pnpm build",
+    "outputDir": "dist"
+  },
+  "framework": "vite",
+  "nodeVersion": "20"
+}
