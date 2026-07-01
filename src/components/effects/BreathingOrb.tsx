@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 interface BreathingOrbProps {
@@ -32,7 +32,10 @@ export default function BreathingOrb({
   const scaleByPhase = [1.6, 1.6, 0.85];
 
   return (
-    <div className={`relative flex items-center justify-center ${className}`} style={{ width: size * 2, height: size * 2 }}>
+    <div
+      className={`relative flex items-center justify-center ${className}`}
+      style={{ width: size * 2, height: size * 2 }}
+    >
       {/* 外层旋转光晕 */}
       <motion.div
         className="absolute inset-0 rounded-full"
@@ -45,7 +48,7 @@ export default function BreathingOrb({
 
       {/* 主球体 - 呼吸效果 */}
       <motion.div
-        className="relative rounded-full"
+        className="relative rounded-full flex items-center justify-center"
         style={{
           width: size,
           height: size,
@@ -84,23 +87,31 @@ export default function BreathingOrb({
             }}
           />
         </div>
-      </motion.div>
 
-      {/* 文字提示 */}
-      {showText && (
-        <motion.div
-          key={phase}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.6 }}
-          className="absolute -bottom-16 sm:-bottom-20 left-1/2 -translate-x-1/2 whitespace-nowrap"
-        >
-          <span className="font-title text-base sm:text-lg text-mystic-lightgold tracking-[0.4em]">
-            {text[phase]}
-          </span>
-        </motion.div>
-      )}
+        {/* 文字提示 - 在球体内部中心 */}
+        {showText && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={phase}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.1 }}
+              transition={{ duration: 0.6, ease: 'easeInOut' }}
+              className="relative z-10 pointer-events-none"
+            >
+              <span
+                className="font-display font-bold text-midnight-950 tracking-[0.2em]"
+                style={{
+                  fontSize: size * 0.16,
+                  textShadow: '0 0 8px rgba(255, 255, 255, 0.6), 0 1px 2px rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                {text[phase]}
+              </span>
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </motion.div>
 
       {/* 外层光环 - 跟随呼吸 */}
       {[0, 1, 2].map((i) => (
