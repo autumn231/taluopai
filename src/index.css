@@ -3,8 +3,92 @@
 @tailwind utilities;
 
 @layer base {
+  /* ========== 主题变量 ========== */
   :root {
+    /* 黑夜（默认） */
+    --bg-base: #050314;
+    --bg-panel: rgba(15, 8, 40, 0.6);
+    --bg-panel-strong: rgba(10, 8, 36, 0.8);
+    --bg-elevated: rgba(46, 26, 92, 0.4);
+    --bg-glass-from: rgba(46, 26, 92, 0.4);
+    --bg-glass-to: rgba(15, 8, 40, 0.6);
+    --bg-glass-strong-from: rgba(46, 26, 92, 0.65);
+    --bg-glass-strong-to: rgba(15, 8, 40, 0.8);
+    --bg-card: rgba(15, 8, 40, 0.5);
+    --bg-card-hover: rgba(46, 26, 92, 0.6);
+
+    --text-base: #e8e4f3;
+    --text-strong: #f5f3ff;
+    --text-soft: #c4b8d8;
+    --text-mute: #9a82bf;
+    --text-faint: #6e4ea3;
+
+    --border-soft: rgba(212, 175, 55, 0.15);
+    --border-mid: rgba(212, 175, 55, 0.25);
+    --border-strong: rgba(212, 175, 55, 0.4);
+
+    --vignette-1: rgba(5, 3, 20, 0.5);
+    --vignette-2: rgba(5, 3, 20, 0.9);
+
+    --scrollbar-track: #0a0824;
+    --scrollbar-thumb-a: #d4af37;
+    --scrollbar-thumb-b: #6e4ea3;
+
+    --selection-bg: rgba(212, 175, 55, 0.4);
+    --selection-fg: #f8f4ff;
+
+    /* 主题切换按钮用 */
+    --panel-bg: rgba(15, 8, 40, 0.6);
+    --panel-border: rgba(212, 175, 55, 0.3);
+    --glow-rune: rgba(212, 175, 55, 0.5);
+    --accent: #d4af37;
+
+    --starfield-opacity: 1;
+
     color-scheme: dark;
+  }
+
+  :root.light {
+    /* 白天 */
+    --bg-base: #f6f1e4;
+    --bg-panel: rgba(255, 250, 240, 0.7);
+    --bg-panel-strong: rgba(255, 250, 240, 0.85);
+    --bg-elevated: rgba(255, 250, 240, 0.9);
+    --bg-glass-from: rgba(255, 250, 240, 0.75);
+    --bg-glass-to: rgba(248, 240, 220, 0.6);
+    --bg-glass-strong-from: rgba(255, 250, 240, 0.9);
+    --bg-glass-strong-to: rgba(248, 240, 220, 0.85);
+    --bg-card: rgba(255, 250, 240, 0.7);
+    --bg-card-hover: rgba(248, 240, 220, 0.9);
+
+    --text-base: #2e1a5c;
+    --text-strong: #1a0f3d;
+    --text-soft: #4a2d7c;
+    --text-mute: #6e4ea3;
+    --text-faint: #9a82bf;
+
+    --border-soft: rgba(168, 132, 42, 0.2);
+    --border-mid: rgba(168, 132, 42, 0.35);
+    --border-strong: rgba(168, 132, 42, 0.5);
+
+    --vignette-1: rgba(168, 132, 42, 0.05);
+    --vignette-2: rgba(168, 132, 42, 0.1);
+
+    --scrollbar-track: #ebe3d4;
+    --scrollbar-thumb-a: #b8860b;
+    --scrollbar-thumb-b: #6e4ea3;
+
+    --selection-bg: rgba(212, 175, 55, 0.4);
+    --selection-fg: #1a0f3d;
+
+    --panel-bg: rgba(255, 250, 240, 0.9);
+    --panel-border: rgba(168, 132, 42, 0.5);
+    --glow-rune: rgba(168, 132, 42, 0.6);
+    --accent: #a8842a;
+
+    --starfield-opacity: 0.35;
+
+    color-scheme: light;
   }
 
   * {
@@ -18,8 +102,8 @@
 
   body {
     margin: 0;
-    background-color: #050314;
-    color: #e8e4f3;
+    background-color: var(--bg-base);
+    color: var(--text-base);
     font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
     font-weight: 400;
     line-height: 1.6;
@@ -27,11 +111,12 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.6s ease, color 0.6s ease;
   }
 
   ::selection {
-    background: rgba(212, 175, 55, 0.4);
-    color: #f8f4ff;
+    background: var(--selection-bg);
+    color: var(--selection-fg);
   }
 
   /* Custom scrollbar */
@@ -40,10 +125,10 @@
     height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #0a0824;
+    background: var(--scrollbar-track);
   }
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #d4af37, #6e4ea3);
+    background: linear-gradient(180deg, var(--scrollbar-thumb-a), var(--scrollbar-thumb-b));
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
@@ -77,20 +162,22 @@
   }
 
   .glass-panel {
-    background: linear-gradient(135deg, rgba(46, 26, 92, 0.4) 0%, rgba(15, 8, 40, 0.6) 100%);
+    background: linear-gradient(135deg, var(--bg-glass-from) 0%, var(--bg-glass-to) 100%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(212, 175, 55, 0.2);
+    border: 1px solid var(--border-mid);
     box-shadow:
       0 0 30px rgba(212, 175, 55, 0.05),
       inset 0 1px 0 rgba(212, 175, 55, 0.15);
+    transition: background 0.6s ease, border-color 0.6s ease;
   }
 
   .glass-panel-strong {
-    background: linear-gradient(135deg, rgba(46, 26, 92, 0.65) 0%, rgba(15, 8, 40, 0.8) 100%);
+    background: linear-gradient(135deg, var(--bg-glass-strong-from) 0%, var(--bg-glass-strong-to) 100%);
     backdrop-filter: blur(28px);
     -webkit-backdrop-filter: blur(28px);
-    border: 1px solid rgba(212, 175, 55, 0.3);
+    border: 1px solid var(--border-strong);
+    transition: background 0.6s ease, border-color 0.6s ease;
   }
 
   .gold-border {
@@ -121,8 +208,8 @@
     font-weight: 500;
     letter-spacing: 0.15em;
     color: #f4d03f;
-    background: linear-gradient(135deg, rgba(26, 15, 61, 0.6) 0%, rgba(15, 8, 40, 0.8) 100%);
-    border: 1px solid rgba(212, 175, 55, 0.5);
+    background: linear-gradient(135deg, var(--bg-glass-from) 0%, var(--bg-glass-to) 100%);
+    border: 1px solid var(--border-strong);
     border-radius: 9999px;
     overflow: hidden;
     cursor: pointer;
@@ -247,6 +334,74 @@
 
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* ========== 主题感知颜色覆盖 ========== */
+  /* 白天模式下，把原本用于黑夜文字的 midnight-50/100/200 反转成深色 */
+  :root.light .text-midnight-50 {
+    color: var(--text-strong) !important;
+  }
+  :root.light .text-midnight-100 {
+    color: var(--text-base) !important;
+  }
+  :root.light .text-midnight-200 {
+    color: var(--text-soft) !important;
+  }
+  :root.light .text-midnight-300 {
+    color: var(--text-mute) !important;
+  }
+  :root.light .text-midnight-400 {
+    color: var(--text-faint) !important;
+  }
+  /* 白天模式：把深色玻璃背景换成浅色 */
+  :root.light .bg-midnight-900\/40 {
+    background-color: var(--bg-card) !important;
+  }
+  :root.light .bg-midnight-900\/30 {
+    background-color: var(--bg-card) !important;
+  }
+  :root.light .bg-midnight-800\/50 {
+    background-color: var(--bg-elevated) !important;
+  }
+  :root.light .bg-midnight-950\/80 {
+    background-color: var(--bg-panel) !important;
+  }
+  :root.light .bg-midnight-950\/95 {
+    background-color: var(--bg-panel-strong) !important;
+  }
+  :root.light .bg-midnight-950\/40 {
+    background-color: var(--bg-panel) !important;
+  }
+  :root.light .bg-midnight-950 {
+    background-color: var(--bg-base) !important;
+  }
+  /* 白天模式：mystic-gold 在浅色背景上更亮 */
+  :root.light .text-mystic-gold\/80 {
+    color: rgba(122, 86, 22, 0.85) !important;
+  }
+  :root.light .text-mystic-gold\/70 {
+    color: rgba(122, 86, 22, 0.8) !important;
+  }
+  :root.light .text-mystic-gold\/65 {
+    color: rgba(122, 86, 22, 0.75) !important;
+  }
+  :root.light .text-mystic-gold\/60 {
+    color: rgba(122, 86, 22, 0.75) !important;
+  }
+  :root.light .text-mystic-gold\/50 {
+    color: rgba(122, 86, 22, 0.7) !important;
+  }
+  :root.light .text-mystic-gold\/40 {
+    color: rgba(122, 86, 22, 0.6) !important;
+  }
+  :root.light .text-mystic-gold\/30 {
+    color: rgba(122, 86, 22, 0.5) !important;
+  }
+  :root.light .text-mystic-gold\/25 {
+    color: rgba(122, 86, 22, 0.45) !important;
+  }
+  :root.light .text-mystic-gold\/20 {
+    color: rgba(122, 86, 22, 0.4) !important;
   }
 
   /* Grain noise overlay */
