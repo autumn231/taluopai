@@ -48,8 +48,8 @@ export default function PageLayout({
         className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-500"
         style={{
           background: isDark
-            ? 'radial-gradient(ellipse at center, transparent 0%, rgba(5, 3, 20, 0.5) 70%, rgba(5, 3, 20, 0.9) 100%)'
-            : 'radial-gradient(ellipse at center, transparent 0%, rgba(246, 236, 213, 0.4) 70%, rgba(239, 228, 196, 0.7) 100%)',
+            ? 'radial-gradient(ellipse at center, transparent 50%, rgba(5, 3, 20, 0.35) 85%, rgba(5, 3, 20, 0.7) 100%)'
+            : 'radial-gradient(ellipse at center, transparent 50%, rgba(239, 228, 196, 0.2) 85%, rgba(239, 228, 196, 0.5) 100%)',
         }}
       />
 
