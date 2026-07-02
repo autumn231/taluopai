@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RotateCw, History, Sparkles, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass } from 'lucide-react';
+import { ArrowLeft, RotateCw, History, Sparkles, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass, ChevronLeft, ChevronRight, Eye, EyeOff, BookMarked } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import TarotCard from '@/components/tarot/TarotCard';
 import EnergyVortex from '@/components/effects/EnergyVortex';
@@ -15,6 +15,7 @@ export default function Result() {
   const navigate = useNavigate();
   const { drawnCards, spreadType, question, threeMode } = useReadingUI();
   const { reset } = useReadingActions();
+  const [currentCardIdx, setCurrentCardIdx] = useState(0);
 
   useEffect(() => {
     if (drawnCards.length === 0 || !spreadType) {
@@ -126,28 +127,25 @@ export default function Result() {
           />
         </motion.section>
 
-        {/* 单牌解读 - 在综合解读之前 - 让用户先看每张牌的细节 */}
+        {/* 单牌解读 - 翻页式 + 可展开，默认只看一张牌的概览 */}
         <motion.section
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="space-y-6 sm:space-y-8 mb-10 sm:mb-14"
+          className="mb-10 sm:mb-14"
         >
           <SectionLabel
             step="02"
             kicker="单牌解读"
-            help="逐张阅读，每张都有专属的回应"
+            help="一张张细看，展开可看完整解读"
           />
-          {drawnCards.map((drawn, idx) => (
-            <CardInterpretation
-              key={idx}
-              card={drawn.card}
-              reversed={drawn.reversed}
-              position={positions[drawn.position]}
-              index={idx}
-              theme={theme}
-            />
-          ))}
+          <CardPager
+            cards={drawnCards}
+            positions={positions}
+            theme={theme}
+            currentIdx={currentCardIdx}
+            onChange={setCurrentCardIdx}
+          />
         </motion.section>
 
         {/* 综合解读 - 最后总览 */}
@@ -343,7 +341,130 @@ function SpreadLayout({
   );
 }
 
-// === 单张牌解读 ===
+// === 翻页导航：单张卡片查看 + 上一张/下一张 + 点指示 ===
+function CardPager({
+  cards,
+  positions,
+  theme,
+  currentIdx,
+  onChange,
+}: {
+  cards: any[];
+  positions: any[];
+  theme: QuestionTheme;
+  currentIdx: number;
+  onChange: (i: number) => void;
+}) {
+  if (cards.length === 0) return null;
+  const current = cards[currentIdx];
+  const position = positions[current.position];
+  const goPrev = () => onChange((currentIdx - 1 + cards.length) % cards.length);
+  const goNext = () => onChange((currentIdx + 1) % cards.length);
+
+  return (
+    <div>
+      {/* 顶部导航条 */}
+      <div className="glass-panel rounded-xl p-3 sm:p-4 mb-4 sm:mb-5 flex items-center justify-between gap-3">
+        <button
+          onClick={goPrev}
+          className="btn-ghost text-xs px-3 py-2 flex items-center gap-1"
+          aria-label="上一张牌"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span className="hidden sm:inline">上一张</span>
+        </button>
+
+        {/* 中间：当前/总数 + 位置名 + 牌名 */}
+        <div className="flex-1 min-w-0 text-center">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+            <span className="text-mystic-gold/80 font-title tracking-widest">
+              {String(currentIdx + 1).padStart(2, '0')} / {String(cards.length).padStart(2, '0')}
+            </span>
+            {position && (
+              <>
+                <span className="text-mystic-gold/30">·</span>
+                <span className="text-midnight-200/75 truncate">{position.name}</span>
+              </>
+            )}
+          </div>
+          <div className="font-display text-sm sm:text-base text-mystic-lightgold truncate">
+            {current.card.name.cn}
+            {current.reversed && <span className="ml-1.5 text-[10px] text-rose-400/80">· 逆位</span>}
+          </div>
+        </div>
+
+        <button
+          onClick={goNext}
+          className="btn-ghost text-xs px-3 py-2 flex items-center gap-1"
+          aria-label="下一张牌"
+        >
+          <span className="hidden sm:inline">下一张</span>
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* 点指示器 */}
+      {cards.length > 1 && (
+        <div className="flex items-center justify-center gap-1.5 mb-5">
+          {cards.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => onChange(i)}
+              aria-label={`跳到第 ${i + 1} 张`}
+              className={cn(
+                'h-1.5 rounded-full transition-all duration-300',
+                i === currentIdx
+                  ? 'w-8 bg-mystic-lightgold shadow-gold-glow'
+                  : 'w-1.5 bg-mystic-gold/25 hover:bg-mystic-gold/50',
+              )}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* 当前卡片（可展开） */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentIdx}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.35 }}
+        >
+          <CardInterpretation
+            card={current.card}
+            reversed={current.reversed}
+            position={position}
+            index={currentIdx}
+            theme={theme}
+          />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* 底部翻页快捷 */}
+      {cards.length > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <button
+            onClick={goPrev}
+            className="text-xs text-mystic-gold/70 hover:text-mystic-lightgold transition-colors flex items-center gap-1"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+            上一张 · {cards[(currentIdx - 1 + cards.length) % cards.length].card.name.cn}
+          </button>
+          <button
+            onClick={goNext}
+            className="text-xs text-mystic-gold/70 hover:text-mystic-lightgold transition-colors flex items-center gap-1"
+          >
+            下一张 · {cards[(currentIdx + 1) % cards.length].card.name.cn}
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// === 单张牌解读（可折叠：默认显示概览，展开后看完整解读） ===
 function CardInterpretation({
   card,
   reversed,
@@ -357,15 +478,98 @@ function CardInterpretation({
   index: number;
   theme: QuestionTheme;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const reading = reversed ? card.reversed : card.upright;
   const isMajor = card.arcana === 'major';
 
+  // === 折叠状态：一张牌 + 概览一句话 + 展开按钮 ===
+  if (!expanded) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="glass-panel rounded-2xl p-4 sm:p-5 relative overflow-hidden"
+      >
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mystic-gold/40 to-transparent" />
+
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+          {/* 牌面（小） */}
+          <div className="flex-shrink-0">
+            <TarotCard
+              card={card}
+              reversed={reversed}
+              flipped
+              size="sm"
+              autoFlip
+              interactive={false}
+            />
+          </div>
+
+          {/* 概览信息 */}
+          <div className="flex-1 min-w-0 text-center sm:text-left">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 mb-1.5">
+              <span className="text-[10px] font-sans-ui text-mystic-gold/70 tracking-widest">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              {position && (
+                <>
+                  <span className="text-mystic-gold/30">·</span>
+                  <span className="text-xs font-title text-mystic-gold/80">
+                    {position.name}
+                  </span>
+                </>
+              )}
+              {reversed && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-rose-400/40 text-rose-400/90 font-title">
+                  逆位
+                </span>
+              )}
+            </div>
+
+            <h3 className="font-display text-xl sm:text-2xl text-gold-gradient mb-2">
+              {card.name.cn}
+            </h3>
+
+            {/* 关键词标签 */}
+            <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start mb-3">
+              {card.keywords.slice(0, 4).map((kw: string) => (
+                <span
+                  key={kw}
+                  className="text-[11px] px-2 py-0.5 rounded-full border border-mystic-gold/30 bg-mystic-gold/5 text-mystic-gold/90"
+                >
+                  {kw}
+                </span>
+              ))}
+            </div>
+
+            {/* 概览一句话 */}
+            <p className="text-sm text-midnight-200/85 leading-relaxed mb-3 line-clamp-2">
+              {reading.general}
+            </p>
+
+            {/* 操作按钮 */}
+            <div className="flex items-center justify-center sm:justify-start gap-2">
+              <button
+                onClick={() => setExpanded(true)}
+                className="text-xs px-3 py-1.5 rounded-full border border-mystic-gold/40 bg-mystic-gold/10 text-mystic-lightgold hover:bg-mystic-gold/20 hover:border-mystic-gold/60 transition-all inline-flex items-center gap-1.5"
+              >
+                <BookMarked className="w-3.5 h-3.5" />
+                展开完整解读
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // === 展开状态：所有详细解读 ===
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-100px' }}
-      transition={{ duration: 0.6, delay: index * 0.1 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
       className="glass-panel rounded-2xl p-5 sm:p-8 relative overflow-hidden"
     >
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mystic-gold/40 to-transparent" />
@@ -405,6 +609,13 @@ function CardInterpretation({
             <span className="text-xs px-2 py-0.5 rounded-full bg-mystic-gold/15 text-mystic-lightgold border border-mystic-gold/30">
               ✦ {theme.label}主题
             </span>
+            <button
+              onClick={() => setExpanded(false)}
+              className="ml-auto text-xs px-2.5 py-1 rounded-full border border-mystic-gold/30 text-mystic-gold/80 hover:bg-mystic-gold/10 transition-all inline-flex items-center gap-1"
+            >
+              <EyeOff className="w-3 h-3" />
+              收起
+            </button>
           </div>
 
           <h3 className="font-display text-2xl sm:text-3xl text-gold-gradient mb-1">
