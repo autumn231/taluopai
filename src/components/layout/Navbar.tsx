@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ThemeToggle from './ThemeToggle';
 
 const NAV_ITEMS = [
   { path: '/', label: '首页' },
@@ -76,6 +77,9 @@ export default function Navbar() {
           <Link to="/reading" className="ml-4 btn-mystic text-xs">
             开始占卜
           </Link>
+          <div className="ml-2">
+            <ThemeToggle />
+          </div>
         </nav>
 
         {/* Mobile menu button */}
@@ -119,6 +123,9 @@ export default function Navbar() {
               <Link to="/reading" className="btn-mystic text-xs mt-2">
                 开始占卜
               </Link>
+              <div className="mt-1">
+                <ThemeToggle className="mx-auto" />
+              </div>
             </nav>
           </motion.div>
         )}
