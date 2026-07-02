@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react';
+import { Sparkles, MessageCircle } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -17,12 +17,35 @@ export default function Footer() {
             本站所有解读仅供娱乐参考，重要的决定请结合现实与理性。
           </p>
 
+          {/* 作者联系方式 */}
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-sans-ui">
+            <div className="flex items-center gap-1.5 text-midnight-200/80">
+              <span className="text-mystic-gold/70">✦</span>
+              <span className="tracking-wider">作者</span>
+              <span className="text-mystic-lightgold font-medium">高翔</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-midnight-200/80">
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-400/80" />
+              <span className="tracking-wider">微信</span>
+              <span className="font-mono text-mystic-lightgold select-all">gx13598483383</span>
+            </div>
+          </div>
+
           <div className="rune-divider w-full max-w-md">
             <span className="text-mystic-gold/50 text-xs">✦</span>
           </div>
 
-          <div className="text-xs text-midnight-300/60 font-sans-ui tracking-widest">
-            © {new Date().getFullYear()} 塔罗秘境 · 仅供娱乐 · 请勿过度依赖
+          {/* 版权声明 */}
+          <div className="text-center space-y-1.5">
+            <div className="text-xs text-midnight-300/60 font-sans-ui tracking-widest">
+              © {new Date().getFullYear()} 塔罗秘境 · 仅供娱乐 · 请勿过度依赖
+            </div>
+            <div className="text-[11px] text-midnight-300/50 font-body italic">
+              Copyright © {new Date().getFullYear()} 高翔. All rights reserved.
+              <br className="sm:hidden" />
+              <span className="hidden sm:inline"> · </span>
+              如有侵权请联系作者删除。
+            </div>
           </div>
         </div>
       </div>
