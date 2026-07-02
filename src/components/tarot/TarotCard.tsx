@@ -8,7 +8,7 @@ interface TarotCardProps {
   card?: TarotCardType;
   reversed?: boolean;
   flipped?: boolean;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   onClick?: () => void;
   showBack?: boolean;
@@ -19,6 +19,7 @@ interface TarotCardProps {
 }
 
 const SIZE_MAP = {
+  xs: { w: 60, h: 96 },
   sm: { w: 90, h: 144 },
   md: { w: 130, h: 208 },
   lg: { w: 180, h: 288 },

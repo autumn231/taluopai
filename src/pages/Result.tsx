@@ -124,11 +124,20 @@ export default function Result() {
             cards={drawnCards}
             positions={positions}
             spreadType={spreadType}
+            onCardClick={(i) => {
+              setCurrentCardIdx(i);
+              // 平滑滚动到单牌解读 section
+              setTimeout(() => {
+                document.getElementById('card-pager')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }, 50);
+            }}
+            currentIdx={currentCardIdx}
           />
         </motion.section>
 
         {/* 单牌解读 - 翻页式 + 可展开，默认只看一张牌的概览 */}
         <motion.section
+          id="card-pager"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
@@ -227,39 +236,56 @@ export default function Result() {
   );
 }
 
-// === 牌阵展示 ===
+// === 牌阵展示（紧凑版：单牌居中 / 三牌横排 / 凯尔特 5×2 网格） ===
 function SpreadLayout({
   cards,
   positions,
   spreadType,
+  onCardClick,
+  currentIdx,
 }: {
   cards: any[];
   positions: any[];
   spreadType: 'single' | 'three' | 'celtic';
+  onCardClick: (idx: number) => void;
+  currentIdx: number;
 }) {
   if (spreadType === 'single') {
+    const c = cards[0];
+    const pos = positions[c.position];
     return (
       <div className="flex justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
-          className="flex flex-col items-center"
+          className="flex flex-col items-center cursor-pointer"
+          onClick={() => onCardClick(0)}
         >
-          <TarotCard
-            card={cards[0].card}
-            reversed={cards[0].reversed}
-            flipped
-            size="xl"
-            interactive={false}
-            autoFlip
-          />
-          <div className="mt-4 text-center">
+          <div className="relative">
+            <TarotCard
+              card={c.card}
+              reversed={c.reversed}
+              flipped
+              size="md"
+              interactive={false}
+              autoFlip
+            />
+            {c.reversed && (
+              <div className="absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/40">
+                逆位
+              </div>
+            )}
+            {currentIdx === 0 && (
+              <div className="absolute inset-0 rounded-xl ring-2 ring-mystic-lightgold/60 pointer-events-none" />
+            )}
+          </div>
+          <div className="mt-3 text-center">
             <div className="font-title text-base sm:text-lg text-mystic-lightgold">
-              {positions[0]?.name} · {positions[0]?.meaning}
+              {pos?.name}
             </div>
-            <div className="mt-1 text-xs text-midnight-200/70 font-body italic">
-              {positions[0]?.description}
+            <div className="font-display text-lg sm:text-xl text-mystic-gold mt-0.5">
+              {c.card.name.cn}
             </div>
           </div>
         </motion.div>
@@ -269,41 +295,64 @@ function SpreadLayout({
 
   if (spreadType === 'three') {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-4xl mx-auto">
-        {cards.map((c, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: i * 0.15 }}
-            className="flex flex-col items-center"
-          >
-            <TarotCard
-              card={c.card}
-              reversed={c.reversed}
-              flipped
-              size="lg"
-              autoFlip
-              interactive={false}
-            />
-            <div className="mt-3 text-center">
-              <div className="font-title text-sm text-mystic-lightgold">
-                {positions[c.position]?.name}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 max-w-2xl mx-auto">
+        {cards.map((c, i) => {
+          const pos = positions[c.position];
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.1 }}
+              className="flex flex-col items-center cursor-pointer group"
+              onClick={() => onCardClick(i)}
+            >
+              <div className="relative">
+                <div
+                  className={cn(
+                    'relative rounded-lg p-0.5 transition-all',
+                    currentIdx === i
+                      ? 'ring-2 ring-mystic-lightgold/60'
+                      : 'ring-1 ring-transparent group-hover:ring-mystic-gold/40',
+                  )}
+                >
+                  <TarotCard
+                    card={c.card}
+                    reversed={c.reversed}
+                    flipped
+                    size="sm"
+                    autoFlip
+                    interactive={false}
+                  />
+                  {c.reversed && (
+                    <div className="absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/40">
+                      逆
+                    </div>
+                  )}
+                  <div className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full bg-midnight-900 border border-mystic-gold/60 text-mystic-lightgold text-[10px] font-title flex items-center justify-center">
+                    {String(i + 1).padStart(2, '0')}
+                  </div>
+                </div>
               </div>
-              <div className="text-xs text-midnight-300/60 mt-0.5">
-                {positions[c.position]?.meaning}
+              <div className="mt-2 text-center w-full">
+                <div className="text-[9px] font-title text-mystic-gold/80 tracking-widest truncate">
+                  {pos?.name}
+                </div>
+                <div className="font-display text-xs sm:text-sm text-mystic-lightgold truncate">
+                  {c.card.name.cn}
+                </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </div>
     );
   }
 
-  // Celtic Cross - 10 张牌的复杂布局
+  // Celtic Cross - 10 张牌紧凑 5×2 网格
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+    <div className="max-w-3xl mx-auto">
+      <div className="grid grid-cols-5 gap-2 sm:gap-3">
         {cards.map((c, i) => {
           const pos = positions[c.position];
           return (
@@ -311,26 +360,41 @@ function SpreadLayout({
               key={i}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="flex flex-col items-center"
+              transition={{ duration: 0.3, delay: i * 0.05 }}
+              className="flex flex-col items-center cursor-pointer group"
+              onClick={() => onCardClick(i)}
             >
-              <div className="text-xs font-sans-ui text-mystic-gold/70 tracking-wider mb-1">
-                {String(c.position + 1).padStart(2, '0')}
+              <div
+                className={cn(
+                  'relative rounded-md p-0.5 transition-all',
+                  currentIdx === i
+                    ? 'ring-2 ring-mystic-lightgold/60'
+                    : 'ring-1 ring-transparent group-hover:ring-mystic-gold/40',
+                )}
+              >
+                <TarotCard
+                  card={c.card}
+                  reversed={c.reversed}
+                  flipped
+                  size="xs"
+                  autoFlip
+                  interactive={false}
+                />
+                {c.reversed && (
+                  <div className="absolute top-0.5 right-0.5 text-[7px] px-0.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-400/40 leading-none">
+                    逆
+                  </div>
+                )}
+                <div className="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-midnight-900 border border-mystic-gold/60 text-mystic-lightgold text-[8px] font-title flex items-center justify-center">
+                  {i + 1}
+                </div>
               </div>
-              <TarotCard
-                card={c.card}
-                reversed={c.reversed}
-                flipped
-                size="md"
-                autoFlip
-                interactive={false}
-              />
-              <div className="mt-2 text-center">
-                <div className="font-title text-xs sm:text-sm text-mystic-lightgold">
+              <div className="mt-1.5 text-center w-full">
+                <div className="text-[8px] font-title text-mystic-gold/75 tracking-widest truncate leading-tight">
                   {pos?.name}
                 </div>
-                <div className="text-[10px] sm:text-xs text-midnight-300/60 mt-0.5">
-                  {pos?.meaning}
+                <div className="text-[10px] sm:text-[11px] text-mystic-lightgold/90 truncate leading-tight">
+                  {c.card.name.cn}
                 </div>
               </div>
             </motion.div>
