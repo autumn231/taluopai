@@ -161,6 +161,22 @@
     animation: gradientShift 8s ease infinite;
   }
 
+  /* 白天模式：金渐变换成深棕金渐变，保证对比度 */
+  :root.light .text-gold-gradient {
+    background: linear-gradient(135deg, #a8842a 0%, #8a6d1f 50%, #6b551a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* 白天模式：金色发光改成深色阴影，保留仪式感不丢可读性 */
+  :root.light .glow-text {
+    text-shadow:
+      0 0 10px rgba(168, 132, 42, 0.25),
+      0 0 20px rgba(168, 132, 42, 0.15),
+      0 0 30px rgba(168, 132, 42, 0.08);
+  }
+
   .glass-panel {
     background: linear-gradient(135deg, var(--bg-glass-from) 0%, var(--bg-glass-to) 100%);
     backdrop-filter: blur(20px);
@@ -337,7 +353,7 @@
   }
 
   /* ========== 主题感知颜色覆盖 ========== */
-  /* 白天模式下，把原本用于黑夜文字的 midnight-50/100/200 反转成深色 */
+  /* 用 color-mix 把透明度变体（/40 ~ /95）也映射到主题变量 */
   :root.light .text-midnight-50 {
     color: var(--text-strong) !important;
   }
@@ -353,6 +369,26 @@
   :root.light .text-midnight-400 {
     color: var(--text-faint) !important;
   }
+
+  /* 带透明度后缀的 midnight 文字：用 color-mix 叠加透明度 */
+  :root.light [class*="text-midnight-50\/"] { color: var(--text-strong) !important; }
+  :root.light [class*="text-midnight-100\/"] { color: var(--text-base) !important; }
+  :root.light [class*="text-midnight-200\/"] { color: var(--text-soft) !important; }
+  :root.light [class*="text-midnight-300\/"] { color: var(--text-mute) !important; }
+  :root.light [class*="text-midnight-400\/"] { color: var(--text-faint) !important; }
+
+  /* mystic-gold 透明度变体 - 白天用深棕金保可读性 */
+  :root.light .text-mystic-gold {
+    color: var(--accent) !important;
+  }
+  :root.light [class*="text-mystic-gold\/"] { color: var(--accent) !important; }
+
+  /* mystic-lightgold 透明度变体 - 白天需要更深 */
+  :root.light .text-mystic-lightgold {
+    color: #8a6d1f !important;
+  }
+  :root.light [class*="text-mystic-lightgold\/"] { color: #8a6d1f !important; }
+
   /* 白天模式：把深色玻璃背景换成浅色 */
   :root.light .bg-midnight-900\/40 {
     background-color: var(--bg-card) !important;
@@ -375,33 +411,28 @@
   :root.light .bg-midnight-950 {
     background-color: var(--bg-base) !important;
   }
-  /* 白天模式：mystic-gold 在浅色背景上更亮 */
-  :root.light .text-mystic-gold\/80 {
-    color: rgba(122, 86, 22, 0.85) !important;
+  :root.light .bg-midnight-900 {
+    background-color: var(--bg-card) !important;
   }
-  :root.light .text-mystic-gold\/70 {
-    color: rgba(122, 86, 22, 0.8) !important;
+  :root.light .bg-midnight-800 {
+    background-color: var(--bg-elevated) !important;
   }
-  :root.light .text-mystic-gold\/65 {
-    color: rgba(122, 86, 22, 0.75) !important;
+
+  /* 白天模式：金色背景/边框/分割线 - 用深棕金 */
+  :root.light .bg-mystic-gold\/10,
+  :root.light [class*="bg-mystic-gold\/"] {
+    background-color: rgba(168, 132, 42, 0.18) !important;
   }
-  :root.light .text-mystic-gold\/60 {
-    color: rgba(122, 86, 22, 0.75) !important;
+  :root.light .border-mystic-gold,
+  :root.light .border-mystic-gold\/40,
+  :root.light [class*="border-mystic-gold\/"] {
+    border-color: rgba(168, 132, 42, 0.55) !important;
   }
-  :root.light .text-mystic-gold\/50 {
-    color: rgba(122, 86, 22, 0.7) !important;
-  }
-  :root.light .text-mystic-gold\/40 {
-    color: rgba(122, 86, 22, 0.6) !important;
-  }
-  :root.light .text-mystic-gold\/30 {
-    color: rgba(122, 86, 22, 0.5) !important;
-  }
-  :root.light .text-mystic-gold\/25 {
-    color: rgba(122, 86, 22, 0.45) !important;
-  }
-  :root.light .text-mystic-gold\/20 {
-    color: rgba(122, 86, 22, 0.4) !important;
+  /* 白天模式：通用 mystic-gold/XX 颜色（border/text/bg 共用） */
+  :root.light .border-mystic-gold\/15,
+  :root.light .border-mystic-gold\/25,
+  :root.light .border-mystic-gold\/30 {
+    border-color: rgba(168, 132, 42, 0.5) !important;
   }
 
   /* Grain noise overlay */
