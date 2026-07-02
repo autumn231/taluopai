@@ -1,5 +1,8 @@
 import { motion } from 'framer-motion';
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useIsDark } from '@/hooks/useIsDark';
+import { useInViewport } from '@/hooks/useInViewport';
 
 interface SparkleTrailProps {
   className?: string;
@@ -8,15 +11,22 @@ interface SparkleTrailProps {
   duration?: number;
 }
 
+const DEFAULT_COLORS = ['#f4d03f', '#d4af37', '#ffffff', '#f7e98e'];
+
 /**
  * 闪光粒子阵 - 用于 CTA 按钮、标题等关键元素的装饰
+ * 优化：白天模式不渲染、视口外停帧、低性能设备少粒子
  */
-export default function SparkleTrail({
+function SparkleTrailImpl({
   className = '',
-  count = 18,
-  colors = ['#f4d03f', '#d4af37', '#ffffff', '#f7e98e'],
+  count = 12,
+  colors = DEFAULT_COLORS,
   duration = 3,
 }: SparkleTrailProps) {
+  const isDark = useIsDark();
+  const reduced = useReducedMotion();
+  const [ref, inView] = useInViewport<HTMLDivElement>({ threshold: 0.01 });
+
   const particles = useMemo(
     () =>
       Array.from({ length: count }, (_, i) => {
@@ -35,8 +45,22 @@ export default function SparkleTrail({
     [count, colors, duration],
   );
 
+  // 白天模式、视口外、减少动态时：返回空容器（保留 ref 让 IntersectionObserver 恢复）
+  if (!isDark || !inView || reduced) {
+    return (
+      <div
+        ref={ref}
+        className={`pointer-events-none absolute inset-0 ${className}`}
+        aria-hidden="true"
+      />
+    );
+  }
+
   return (
-    <div className={`pointer-events-none absolute inset-0 ${className}`}>
+    <div
+      ref={ref}
+      className={`pointer-events-none absolute inset-0 ${className}`}
+    >
       {particles.map((p) => (
         <motion.div
           key={p.id}
@@ -46,6 +70,7 @@ export default function SparkleTrail({
             height: p.size,
             background: p.color,
             boxShadow: `0 0 ${p.size * 3}px ${p.color}`,
+            willChange: 'transform, opacity',
           }}
           initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
           animate={{
@@ -65,3 +90,5 @@ export default function SparkleTrail({
     </div>
   );
 }
+
+export default memo(SparkleTrailImpl);

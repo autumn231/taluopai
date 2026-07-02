@@ -1,4 +1,7 @@
-import { motion } from 'framer-motion';
+import { memo } from 'react';
+import { useIsDark } from '@/hooks/useIsDark';
+import { useInViewport } from '@/hooks/useInViewport';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 interface MysticRingProps {
   size?: number;
@@ -12,23 +15,34 @@ const RUNE_SYMBOLS = ['✦', '☽', '✧', '☉', '✶', '☾', '✷', '✸', '�
 
 /**
  * 旋转的符文圆环 - 用于冥想环节和仪式感的占位
+ * 优化：白天模式隐藏、视口外停 CSS 动画
  */
-export default function MysticRing({
+function MysticRingImpl({
   size = 280,
   className = '',
   rings = 3,
   speed = 1,
   glowColor = '#d4af37',
 }: MysticRingProps) {
+  const isDark = useIsDark();
+  const reduced = useReducedMotion();
+  const [ref, inView] = useInViewport<HTMLDivElement>({ threshold: 0.05 });
+
+  if (!isDark) return null;
+
+  const animating = inView && !reduced;
+  const symbolCount = RUNE_SYMBOLS.length;
+
   return (
     <div
+      ref={ref}
       className={`relative ${className}`}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, willChange: animating ? 'transform' : 'auto' }}
       aria-hidden="true"
     >
       {/* 外层光晕 */}
       <div
-        className="absolute inset-0 rounded-full animate-pulse-glow"
+        className="absolute inset-0 rounded-full"
         style={{
           background: `radial-gradient(circle, ${glowColor}33 0%, transparent 70%)`,
         }}
@@ -39,7 +53,6 @@ export default function MysticRing({
         const ringSize = size * (0.95 - ringIdx * 0.18);
         const isReverse = ringIdx % 2 === 1;
         const duration = (20 + ringIdx * 10) / speed;
-        const symbolsCount = RUNE_SYMBOLS.length;
 
         return (
           <div
@@ -49,12 +62,15 @@ export default function MysticRing({
               width: ringSize,
               height: ringSize,
               border: `1px solid ${glowColor}${ringIdx === 1 ? '80' : '40'}`,
-              animation: `${isReverse ? 'spinReverse' : 'spin'} ${duration}s linear infinite`,
+              animation: animating
+                ? `${isReverse ? 'spinReverse' : 'spin'} ${duration}s linear infinite`
+                : 'none',
+              willChange: animating ? 'transform' : 'auto',
             }}
           >
-            {/* 环上的符文 */}
-            {Array.from({ length: symbolsCount }).map((_, i) => {
-              const angle = (i / symbolsCount) * 360;
+            {/* 环上的符文 - 静态摆放（用 CSS 旋转跟随父元素） */}
+            {Array.from({ length: symbolCount }).map((_, i) => {
+              const angle = (i / symbolCount) * 360;
               return (
                 <div
                   key={i}
@@ -102,17 +118,19 @@ export default function MysticRing({
         );
       })}
 
-      {/* 中心圆点 */}
-      <motion.div
+      {/* 中心圆点 - 呼吸效果 */}
+      <div
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{
           width: size * 0.1,
           height: size * 0.1,
           background: `radial-gradient(circle, ${glowColor} 0%, transparent 70%)`,
+          animation: animating ? 'pulse-soft 3s ease-in-out infinite' : 'none',
+          willChange: animating ? 'transform, opacity' : 'auto',
         }}
-        animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       />
     </div>
   );
 }
+
+export default memo(MysticRingImpl);

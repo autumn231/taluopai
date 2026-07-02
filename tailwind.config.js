@@ -42,6 +42,7 @@ export default {
         'spin-reverse': 'spin 30s linear infinite reverse',
         'float': 'float 6s ease-in-out infinite',
         'pulse-glow': 'pulse-glow 3s ease-in-out infinite',
+        'pulse-soft': 'pulse-soft 3s ease-in-out infinite',
         'shimmer': 'shimmer 3s linear infinite',
         'fade-in': 'fadeIn 1s ease-out forwards',
         'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
@@ -49,6 +50,7 @@ export default {
         'twinkle': 'twinkle 4s ease-in-out infinite',
         'breathing': 'breathing 4s ease-in-out infinite',
         'gradient-shift': 'gradientShift 15s ease infinite',
+        'vortex-fly': 'vortexFly 2s ease-out infinite',
       },
       keyframes: {
         float: {
@@ -58,6 +60,15 @@ export default {
         'pulse-glow': {
           '0%, 100%': { opacity: '0.4', filter: 'blur(20px)' },
           '50%': { opacity: '0.8', filter: 'blur(30px)' },
+        },
+        'pulse-soft': {
+          '0%, 100%': { opacity: '0.6', transform: 'scale(1)' },
+          '50%': { opacity: '1', transform: 'scale(1.2)' },
+        },
+        vortexFly: {
+          '0%': { transform: 'translate(0, 0)', opacity: '0' },
+          '20%': { opacity: '1' },
+          '100%': { transform: 'translate(var(--tx, 0), var(--ty, 0))', opacity: '0' },
         },
         shimmer: {
           '0%': { backgroundPosition: '-1000px 0' },
@@ -86,6 +97,10 @@ export default {
         gradientShift: {
           '0%, 100%': { backgroundPosition: '0% 50%' },
           '50%': { backgroundPosition: '100% 50%' },
+        },
+        spinReverse: {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(-360deg)' },
         },
       },
       backgroundImage: {

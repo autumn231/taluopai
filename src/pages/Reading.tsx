@@ -12,7 +12,13 @@ import RuneShower from '@/components/effects/RuneShower';
 import MysticFog from '@/components/effects/MysticFog';
 import TarotCard from '@/components/tarot/TarotCard';
 import { useReadingStore } from '@/store/useReadingStore';
-import { useHistoryStore } from '@/store/useHistoryStore';
+import { useHistoryActions } from '@/store/selectors';
+import {
+  useSpreadType,
+  useStage,
+  useQuestion,
+  useDrawnCards,
+} from '@/store/selectors';
 import { SPREADS } from '@/data/spreads';
 import { generateId } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -71,21 +77,21 @@ const PRESET_QUESTIONS: { key: string; icon: any; label: string; question: strin
 
 export default function Reading() {
   const navigate = useNavigate();
-  const {
-    spreadType,
-    stage,
-    drawnCards,
-    question,
-    setSpread,
-    setQuestion,
-    startShuffle,
-    startSelect,
-    selectCards,
-    revealAll,
-    reset,
-  } = useReadingStore();
+  // 使用细粒度 selector - 避免无关字段变更触发重渲染
+  const spreadType = useSpreadType();
+  const stage = useStage();
+  const drawnCards = useDrawnCards();
+  const question = useQuestion();
+  // Actions 通过 useReadingStore 直接拿到（zustand action 引用稳定）
+  const setSpread = useReadingStore((s) => s.setSpread);
+  const setQuestion = useReadingStore((s) => s.setQuestion);
+  const startShuffle = useReadingStore((s) => s.startShuffle);
+  const startSelect = useReadingStore((s) => s.startSelect);
+  const selectCards = useReadingStore((s) => s.selectCards);
+  const revealAll = useReadingStore((s) => s.revealAll);
+  const reset = useReadingStore((s) => s.reset);
 
-  const addRecord = useHistoryStore((s) => s.addRecord);
+  const { addRecord } = useHistoryActions();
 
   // 初始化 - 如果没有选 spread，默认 single
   useEffect(() => {
