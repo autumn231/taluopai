@@ -76,11 +76,11 @@ export default function Tarot() {
           </p>
         </motion.div>
 
-        {/* 筛选器 */}
-        <div className="mb-6 sm:mb-8 space-y-4">
-          {/* 搜索框 */}
-          <div className="max-w-md mx-auto">
-            <div className="relative">
+        {/* 筛选器 - 一行：搜索 + 分类（移动端 2 行） */}
+        <div className="mb-6 sm:mb-8 space-y-3 sm:space-y-4">
+          {/* 搜索框 + 计数 */}
+          <div className="flex items-center gap-3 max-w-2xl mx-auto">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-mystic-gold/60" />
               <input
                 type="text"
@@ -90,16 +90,19 @@ export default function Tarot() {
                 className="w-full pl-10 pr-4 py-2.5 bg-midnight-900/50 border border-mystic-gold/20 rounded-full text-sm text-midnight-100 placeholder:text-midnight-300/50 focus:outline-none focus:border-mystic-gold/50"
               />
             </div>
+            <div className="text-[11px] sm:text-xs font-sans-ui text-midnight-300/70 tracking-wider whitespace-nowrap">
+              {filteredCards.length} / 78
+            </div>
           </div>
 
-          {/* 分类 */}
-          <div className="flex flex-wrap justify-center gap-2">
+          {/* 分类 - 一行 */}
+          <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
             {FILTERS.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
                 className={cn(
-                  'px-4 py-1.5 rounded-full text-xs sm:text-sm font-title tracking-wider transition-all',
+                  'px-3 sm:px-4 py-1.5 rounded-full text-[11px] sm:text-xs font-title tracking-wider transition-all',
                   filter === f.key
                     ? 'bg-mystic-gold/20 border border-mystic-gold text-mystic-lightgold shadow-gold-glow'
                     : 'border border-mystic-gold/15 text-midnight-200 hover:border-mystic-gold/40',

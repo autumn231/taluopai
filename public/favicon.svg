@@ -1,13 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <radialGradient id="g" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#f4d03f"/>
-      <stop offset="60%" stop-color="#d4af37"/>
-      <stop offset="100%" stop-color="#1a0f3d"/>
+    <radialGradient id="bg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1a1340"/>
+      <stop offset="60%" stop-color="#0a0824"/>
+      <stop offset="100%" stop-color="#050414"/>
     </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f7e98e"/>
+      <stop offset="50%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#a8842a"/>
+    </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="10" fill="#0a0824"/>
-  <circle cx="32" cy="32" r="22" fill="url(#g)"/>
-  <polygon points="32,12 38,28 54,28 41,38 46,54 32,44 18,54 23,38 10,28 26,28" fill="#0a0824" opacity="0.6"/>
-  <circle cx="32" cy="32" r="4" fill="#f4d03f"/>
+  <rect width="64" height="64" rx="12" fill="url(#bg)"/>
+  <!-- 圆环 -->
+  <circle cx="32" cy="32" r="20" fill="none" stroke="url(#gold)" stroke-width="1.5" opacity="0.7"/>
+  <!-- 中央六芒星 -->
+  <path d="M32 14 L48 44 L16 44 Z" fill="none" stroke="url(#gold)" stroke-width="1.5" stroke-linejoin="round" opacity="0.9"/>
+  <path d="M32 50 L48 20 L16 20 Z" fill="none" stroke="url(#gold)" stroke-width="1.5" stroke-linejoin="round" opacity="0.9"/>
+  <!-- 中心点 -->
+  <circle cx="32" cy="32" r="2.5" fill="#f4d03f"/>
+  <!-- 四个方向小星 -->
+  <circle cx="32" cy="8" r="1" fill="#f4d03f"/>
+  <circle cx="32" cy="56" r="1" fill="#f4d03f"/>
+  <circle cx="8" cy="32" r="1" fill="#f4d03f"/>
+  <circle cx="56" cy="32" r="1" fill="#f4d03f"/>
 </svg>

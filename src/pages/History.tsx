@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Trash2, History as HistoryIcon, Eye, Calendar, RotateCcw } from 'lucide-react';
@@ -13,6 +13,35 @@ import type { ReadingRecord } from '@/types';
 export default function History() {
   const { records, removeRecord, clear } = useHistoryStore();
   const [confirmClear, setConfirmClear] = useState(false);
+
+  // 按日期分组 - 适配阅读习惯：先看最近，再按时间回溯
+  const grouped = useMemo(() => {
+    const groups: { label: string; items: ReadingRecord[] }[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(today.getDate() - 7);
+
+    records.forEach((r) => {
+      const d = new Date(r.timestamp);
+      d.setHours(0, 0, 0, 0);
+      let label: string;
+      if (d.getTime() === today.getTime()) label = '今天';
+      else if (d.getTime() === yesterday.getTime()) label = '昨天';
+      else if (d.getTime() >= weekAgo.getTime()) label = '本周早些时候';
+      else label = d.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
+
+      let g = groups.find((x) => x.label === label);
+      if (!g) {
+        g = { label, items: [] };
+        groups.push(g);
+      }
+      g.items.push(r);
+    });
+    return groups;
+  }, [records]);
 
   return (
     <PageLayout>
@@ -85,15 +114,32 @@ export default function History() {
               )}
             </motion.div>
 
-            {/* 记录列表 */}
-            <div className="space-y-4 sm:space-y-6">
-              {records.map((record, idx) => (
-                <HistoryItem
-                  key={record.id}
-                  record={record}
-                  index={idx}
-                  onRemove={() => removeRecord(record.id)}
-                />
+            {/* 记录列表 - 按时间分组 */}
+            <div className="space-y-8 sm:space-y-10">
+              {grouped.map((group) => (
+                <div key={group.label}>
+                  {/* 分组标题 */}
+                  <div className="flex items-baseline gap-3 mb-3 sm:mb-4">
+                    <span className="text-xs sm:text-sm font-title tracking-widest text-mystic-gold/80">
+                      {group.label}
+                    </span>
+                    <div className="flex-1 h-px bg-mystic-gold/10" />
+                    <span className="text-[10px] text-midnight-300/50 font-sans-ui">
+                      {group.items.length} 条
+                    </span>
+                  </div>
+
+                  {/* 该组下的记录 */}
+                  <div className="space-y-4 sm:space-y-5">
+                    {group.items.map((record) => (
+                      <HistoryItem
+                        key={record.id}
+                        record={record}
+                        onRemove={() => removeRecord(record.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </>
@@ -132,21 +178,18 @@ function EmptyState() {
 
 function HistoryItem({
   record,
-  index,
   onRemove,
 }: {
   record: ReadingRecord;
-  index: number;
   onRemove: () => void;
 }) {
   const spread = SPREADS[record.spreadType];
-  const [expanded, setExpanded] = useState(false);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
+      transition={{ duration: 0.4 }}
       className="glass-panel rounded-2xl p-4 sm:p-6 hover:border-mystic-gold/40 transition-colors"
     >
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
