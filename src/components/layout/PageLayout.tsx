@@ -36,22 +36,12 @@ export default function PageLayout({
       {/* 背景星空 - 仅暗黑模式显示全效果 */}
       {withStarfield && (
         <div
-          className="fixed inset-0 z-0 transition-opacity duration-700"
-          style={{ opacity: isDark ? 1 : 0.25 }}
+          className="fixed inset-0 z-0 transition-opacity duration-500"
+          style={{ opacity: isDark ? 1 : 0 }}
         >
           <Starfield {...starfieldProps} />
         </div>
       )}
-
-      {/* 装饰性暗角 / 光晕 */}
-      <div
-        className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-500"
-        style={{
-          background: isDark
-            ? 'radial-gradient(ellipse at center, transparent 50%, rgba(5, 3, 20, 0.35) 85%, rgba(5, 3, 20, 0.7) 100%)'
-            : 'radial-gradient(ellipse at center, transparent 50%, rgba(239, 228, 196, 0.2) 85%, rgba(239, 228, 196, 0.5) 100%)',
-        }}
-      />
 
       {/* 内容层 */}
       <div className="relative z-10 flex flex-col min-h-screen">
