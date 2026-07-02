@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { TarotCard as TarotCardType } from '@/types';
 import TarotCardFace from './TarotCardFace';
@@ -25,8 +25,7 @@ const SIZE_MAP = {
   xl: { w: 220, h: 352 },
 };
 
-// 选牌阶段同时显示 14 张牌 + Result 页 10 张牌，memo 显著减少重渲染
-function TarotCard({
+export default function TarotCard({
   card,
   reversed = false,
   flipped = false,
@@ -46,12 +45,7 @@ function TarotCard({
   return (
     <motion.div
       className={cn('relative cursor-pointer perspective-1000', className)}
-      style={{
-        width: w,
-        height: h,
-        // 告诉浏览器该元素会做 3D 变换，提前创建合成层
-        willChange: 'transform',
-      }}
+      style={{ width: w, height: h }}
       onClick={onClick}
       onMouseEnter={() => interactive && setHovered(true)}
       onMouseLeave={() => interactive && setHovered(false)}
@@ -112,13 +106,13 @@ function TarotCard({
         </div>
       </motion.div>
 
-      {/* 光晕层 - 用 transform 替代 filter blur 减小性能开销 */}
+      {/* 光晕层 */}
       {interactive && (
         <motion.div
           className="absolute inset-0 -z-10 rounded-xl pointer-events-none"
           style={{
             background: 'radial-gradient(circle, rgba(212, 175, 55, 0.4) 0%, transparent 70%)',
-            opacity: 0.3,
+            filter: 'blur(20px)',
           }}
           animate={{
             opacity: hovered ? 0.8 : 0.3,
@@ -141,20 +135,3 @@ function TarotCard({
     </motion.div>
   );
 }
-
-export default memo(TarotCard, (prev, next) => {
-  // 精细比较：避免任何不相关的 props 变化触发重渲染
-  return (
-    prev.card?.id === next.card?.id &&
-    prev.reversed === next.reversed &&
-    prev.flipped === next.flipped &&
-    prev.size === next.size &&
-    prev.className === next.className &&
-    prev.showBack === next.showBack &&
-    prev.delay === next.delay &&
-    prev.autoFlip === next.autoFlip &&
-    prev.noText === next.noText &&
-    prev.interactive === next.interactive &&
-    prev.onClick === next.onClick
-  );
-});

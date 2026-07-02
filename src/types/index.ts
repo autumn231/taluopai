@@ -57,6 +57,8 @@ export interface ReadingRecord {
   id: string;
   timestamp: number;
   spreadType: SpreadType;
+  /** 三张牌阵的子模式（仅 three 牌阵有意义） */
+  threeMode?: 'time' | 'mind' | 'free';
   question: string;
   cards: DrawnCard[];
 }

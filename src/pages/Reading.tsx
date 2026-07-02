@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ChevronRight, RotateCw, Eye, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass } from 'lucide-react';
+import { Sparkles, ChevronRight, RotateCw, Eye, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass, Clock, Compass as CompassIcon, Wind } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import MysticRing from '@/components/effects/MysticRing';
 import BreathingOrb from '@/components/effects/BreathingOrb';
@@ -12,98 +12,40 @@ import RuneShower from '@/components/effects/RuneShower';
 import MysticFog from '@/components/effects/MysticFog';
 import TarotCard from '@/components/tarot/TarotCard';
 import { useReadingStore } from '@/store/useReadingStore';
-import { useHistoryActions } from '@/store/selectors';
-import {
-  useSpreadType,
-  useStage,
-  useQuestion,
-  useDrawnCards,
-} from '@/store/selectors';
-import { SPREADS } from '@/data/spreads';
+import { useReadingUI, useReadingActions, useHistoryActions } from '@/store/selectors';
+import { SPREADS, THREE_MODES } from '@/data/spreads';
+import { QUESTION_THEMES, type QuestionThemeKey, type SubQuestion, type ThreeMode } from '@/data/questionThemes';
 import { generateId } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
-const PRESET_QUESTIONS: { key: string; icon: any; label: string; question: string; accent: string }[] = [
-  {
-    key: 'love',
-    icon: Heart,
-    label: '感情',
-    question: '我此刻的感情走向将会如何？',
-    accent: 'from-rose-400/20 to-rose-600/5',
-  },
-  {
-    key: 'career',
-    icon: Briefcase,
-    label: '事业',
-    question: '我事业的下一步该如何抉择？',
-    accent: 'from-amber-400/20 to-amber-600/5',
-  },
-  {
-    key: 'wealth',
-    icon: Coins,
-    label: '财富',
-    question: '我近期的财运与机遇在哪里？',
-    accent: 'from-yellow-400/20 to-yellow-600/5',
-  },
-  {
-    key: 'study',
-    icon: BookOpen,
-    label: '学业',
-    question: '在学业或自我精进上我该专注什么？',
-    accent: 'from-blue-400/20 to-blue-600/5',
-  },
-  {
-    key: 'people',
-    icon: Users,
-    label: '人际',
-    question: '我与身边人的关系将如何发展？',
-    accent: 'from-violet-400/20 to-violet-600/5',
-  },
-  {
-    key: 'self',
-    icon: Sprout,
-    label: '自我成长',
-    question: '当下我该如何成为更好的自己？',
-    accent: 'from-emerald-400/20 to-emerald-600/5',
-  },
-  {
-    key: 'open',
-    icon: Compass,
-    label: '让宇宙指引',
-    question: '',
-    accent: 'from-mystic-gold/20 to-mystic-gold/5',
-  },
+const PRESET_THEMES: { key: QuestionThemeKey; icon: any; label: string; accent: string }[] = [
+  { key: 'love', icon: Heart, label: '感情', accent: 'from-rose-400/20 to-rose-600/5' },
+  { key: 'career', icon: Briefcase, label: '事业', accent: 'from-amber-400/20 to-amber-600/5' },
+  { key: 'wealth', icon: Coins, label: '财富', accent: 'from-yellow-400/20 to-yellow-600/5' },
+  { key: 'study', icon: BookOpen, label: '学业', accent: 'from-blue-400/20 to-blue-600/5' },
+  { key: 'people', icon: Users, label: '人际', accent: 'from-violet-400/20 to-violet-600/5' },
+  { key: 'self', icon: Sprout, label: '自我成长', accent: 'from-emerald-400/20 to-emerald-600/5' },
+  { key: 'open', icon: Compass, label: '让宇宙指引', accent: 'from-mystic-gold/20 to-mystic-gold/5' },
 ];
+
+const THREE_MODE_ICONS: Record<ThreeMode, any> = {
+  time: Clock,
+  mind: CompassIcon,
+  free: Wind,
+};
 
 export default function Reading() {
   const navigate = useNavigate();
-  // 使用细粒度 selector - 避免无关字段变更触发重渲染
-  const spreadType = useSpreadType();
-  const stage = useStage();
-  const drawnCards = useDrawnCards();
-  const question = useQuestion();
-  // Actions 通过 useReadingStore 直接拿到（zustand action 引用稳定）
-  const setSpread = useReadingStore((s) => s.setSpread);
-  const setQuestion = useReadingStore((s) => s.setQuestion);
-  const startShuffle = useReadingStore((s) => s.startShuffle);
-  const startSelect = useReadingStore((s) => s.startSelect);
-  const selectCards = useReadingStore((s) => s.selectCards);
-  const revealAll = useReadingStore((s) => s.revealAll);
-  const reset = useReadingStore((s) => s.reset);
-
+  const { spreadType, stage, drawnCards, question, threeMode } = useReadingUI();
+  const { setSpread, setThreeMode, setQuestion, startShuffle, startSelect, selectCards, revealAll, reset } = useReadingActions();
   const { addRecord } = useHistoryActions();
 
   // 初始化 - 如果没有选 spread，默认 single
   useEffect(() => {
     if (!spreadType) {
       setSpread('single');
-    } else {
-      // 已经选了 spread 但还没开始
-      if (stage === 'idle') {
-        // 不动，等用户点击开始
-      }
     }
-  }, []);
+  }, [spreadType, setSpread]);
 
   // 选完所有牌后，延迟跳转到结果页（带传送门过场）
   const [portalActive, setPortalActive] = useState(false);
@@ -122,6 +64,7 @@ export default function Reading() {
     }
     prevStageRef.current = stage;
   }, [stage]);
+
   useEffect(() => {
     if (stage === 'done' && drawnCards.length > 0 && !savedRef.current) {
       savedRef.current = true;
@@ -130,6 +73,7 @@ export default function Reading() {
         id: generateId(),
         timestamp: Date.now(),
         spreadType: spreadType!,
+        threeMode,
         question,
         cards: drawnCards,
       });
@@ -145,7 +89,7 @@ export default function Reading() {
     if (stage !== 'done') {
       savedRef.current = false;
     }
-  }, [stage, drawnCards, navigate, addRecord, spreadType, question]);
+  }, [stage, drawnCards, navigate, addRecord, spreadType, question, threeMode]);
 
   if (!spreadType) {
     return null;
@@ -165,6 +109,8 @@ export default function Reading() {
               cardCount={spread.cardCount}
               question={question}
               setQuestion={setQuestion}
+              threeMode={threeMode}
+              setThreeMode={setThreeMode}
               onStart={() => startShuffle()}
               onChangeSpread={(t) => {
                 reset();
@@ -187,7 +133,6 @@ export default function Reading() {
               cardCount={spread.cardCount}
               onSelect={(positions) => {
                 selectCards(positions);
-                // 翻牌将自动开始
                 setTimeout(() => revealAll(), 100);
               }}
             />
@@ -231,13 +176,15 @@ export default function Reading() {
   );
 }
 
-// === 1. Intro 阶段：选牌阵 + 输入问题 ===
+// === 1. Intro 阶段：选牌阵 + 选主题 + 选子问题 ===
 function IntroStage({
   spreadName,
   spreadDesc,
   cardCount,
   question,
   setQuestion,
+  threeMode,
+  setThreeMode,
   onStart,
   onChangeSpread,
   currentSpread,
@@ -247,10 +194,44 @@ function IntroStage({
   cardCount: number;
   question: string;
   setQuestion: (q: string) => void;
+  threeMode: ThreeMode;
+  setThreeMode: (m: ThreeMode) => void;
   onStart: () => void;
   onChangeSpread: (t: 'single' | 'three' | 'celtic') => void;
   currentSpread: 'single' | 'three' | 'celtic';
 }) {
+  // 当前选中的主题（仅在二级选择时设置）
+  const [activeTheme, setActiveTheme] = useState<QuestionThemeKey | null>(null);
+  // 当前选中的子问题 id
+  const [activeSubId, setActiveSubId] = useState<string | null>(null);
+
+  // 从已有 question 反推出主题与子问题（用于刷新/恢复状态）
+  useEffect(() => {
+    if (!question || activeTheme) return;
+    for (const theme of Object.values(QUESTION_THEMES)) {
+      const found = theme.subQuestions.find((sq) => sq.text === question);
+      if (found) {
+        setActiveTheme(theme.key);
+        setActiveSubId(found.id);
+        return;
+      }
+    }
+  }, [question, activeTheme]);
+
+  const themeData = activeTheme ? QUESTION_THEMES[activeTheme] : null;
+
+  // 切换主题时重置子问题选择
+  const handleSelectTheme = (key: QuestionThemeKey) => {
+    setActiveTheme(key);
+    setActiveSubId(null);
+    // 主题级默认问题（取第一个子问题）— 不直接设，让用户继续选
+  };
+
+  const handleSelectSub = (sq: SubQuestion) => {
+    setActiveSubId(sq.id);
+    setQuestion(sq.text);
+  };
+
   return (
     <motion.section
       initial={{ opacity: 0 }}
@@ -352,7 +333,54 @@ function IntroStage({
           </div>
         </motion.div>
 
-        {/* 问题选择 - 预设问题 */}
+        {/* 三张牌阵子模式选择器 */}
+        <AnimatePresence>
+          {currentSpread === 'three' && (
+            <motion.div
+              key="three-mode"
+              initial={{ opacity: 0, y: 10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mb-8 overflow-hidden"
+            >
+              <p className="text-center text-xs font-title text-mystic-gold/80 tracking-widest mb-3">
+                ✦ 解读模式 ✦
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {(Object.keys(THREE_MODES) as ThreeMode[]).map((modeId) => {
+                  const mode = THREE_MODES[modeId];
+                  const Icon = THREE_MODE_ICONS[modeId];
+                  const active = threeMode === modeId;
+                  return (
+                    <button
+                      key={modeId}
+                      onClick={() => setThreeMode(modeId)}
+                      className={cn(
+                        'p-3 sm:p-4 rounded-lg border text-left transition-all duration-300',
+                        active
+                          ? 'bg-mystic-gold/15 border-mystic-gold shadow-gold-glow'
+                          : 'bg-midnight-900/40 border-mystic-gold/15 hover:border-mystic-gold/40',
+                      )}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <Icon className="w-3.5 h-3.5 text-mystic-gold" />
+                        <span className="font-display text-sm text-mystic-lightgold">
+                          {mode.name}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-midnight-200/70 font-body">
+                        {mode.desc}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 问题选择 - 两级（主题 → 子问题） */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -362,15 +390,17 @@ function IntroStage({
           <p className="text-center text-xs font-title text-mystic-gold/80 tracking-widest mb-4">
             ✦ 选择你的问题 ✦
           </p>
+
+          {/* 一级：主题 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {PRESET_QUESTIONS.map((preset) => {
+            {PRESET_THEMES.map((preset) => {
               const Icon = preset.icon;
-              const active = question === preset.question;
+              const active = activeTheme === preset.key;
               return (
                 <motion.button
                   key={preset.key}
                   type="button"
-                  onClick={() => setQuestion(preset.question)}
+                  onClick={() => handleSelectTheme(preset.key)}
                   whileHover={{ y: -3, scale: 1.02 }}
                   whileTap={{ scale: 0.97 }}
                   className={cn(
@@ -380,7 +410,6 @@ function IntroStage({
                       : 'bg-midnight-900/40 border-mystic-gold/15 hover:border-mystic-gold/40',
                   )}
                 >
-                  {/* 背景渐变光晕 */}
                   <div
                     className={cn(
                       'absolute inset-0 bg-gradient-to-br opacity-0 transition-opacity duration-500',
@@ -408,7 +437,6 @@ function IntroStage({
                       {preset.label}
                     </span>
                   </div>
-                  {/* 选中标记 */}
                   {active && (
                     <motion.div
                       layoutId="preset-check"
@@ -420,6 +448,74 @@ function IntroStage({
               );
             })}
           </div>
+
+          {/* 二级：子问题 - 仅当选中主题时显示 */}
+          <AnimatePresence mode="wait">
+            {themeData && (
+              <motion.div
+                key={activeTheme}
+                initial={{ opacity: 0, y: 10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -10, height: 0 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                className="overflow-hidden"
+              >
+                <div className="mt-5 sm:mt-6 glass-panel rounded-xl p-4 sm:p-5 border-l-2 border-mystic-gold/40">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-mystic-gold/80">✦</span>
+                    <span className="text-xs font-title text-mystic-gold/80 tracking-widest">
+                      {themeData.label} · 你更想看清哪一面？
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {themeData.subQuestions.map((sq) => {
+                      const active = activeSubId === sq.id;
+                      return (
+                        <button
+                          key={sq.id}
+                          type="button"
+                          onClick={() => handleSelectSub(sq)}
+                          className={cn(
+                            'group relative p-2.5 sm:p-3 rounded-lg border text-left transition-all duration-300',
+                            active
+                              ? 'bg-mystic-gold/15 border-mystic-gold shadow-gold-glow'
+                              : 'bg-midnight-900/30 border-mystic-gold/15 hover:border-mystic-gold/40',
+                          )}
+                        >
+                          <div className="flex items-baseline gap-1.5 mb-0.5">
+                            <span
+                              className={cn(
+                                'font-display text-sm sm:text-base',
+                                active ? 'text-mystic-lightgold' : 'text-mystic-gold/90',
+                              )}
+                            >
+                              {sq.label}
+                            </span>
+                            {sq.hint && (
+                              <span className="text-[10px] text-midnight-300/60 font-body">
+                                {sq.hint}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] sm:text-xs text-midnight-200/75 font-body line-clamp-2 leading-snug">
+                            {sq.text}
+                          </div>
+                          {active && (
+                            <motion.span
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-mystic-gold shadow-gold-glow"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* 当前问题预览 */}
           <AnimatePresence mode="wait">
             {question && (
@@ -663,13 +759,12 @@ function SelectStage({
   const fanPositions = useMemo(
     () =>
       Array.from({ length: FAN_SIZE }, (_, i) => {
-        const t = (i / (FAN_SIZE - 1)) * 2 - 1; // -1 到 1
+        const t = (i / (FAN_SIZE - 1)) * 2 - 1;
         const xOffset = t * 180;
-        const yOffset = -Math.pow(Math.abs(t), 1.6) * 32; // 边缘上抬
-        const angle = t * 16; // -16° 到 16°
-        // 每张牌独立浮动相位
+        const yOffset = -Math.pow(Math.abs(t), 1.6) * 32;
+        const angle = t * 16;
         const floatPhase = i * 0.6;
-        const floatAmp = 4 + Math.abs(t) * 2; // 边缘浮动稍大
+        const floatAmp = 4 + Math.abs(t) * 2;
         return { xOffset, yOffset, angle, t, idx: i, floatPhase, floatAmp };
       }),
     [],
@@ -712,7 +807,6 @@ function SelectStage({
     if (selected.length >= cardCount) return;
     setPickingIdx(i);
     const newSelected = [...selected, i];
-    // 短暂延迟让飞牌动画播放
     setTimeout(() => {
       setPickingIdx(null);
       setSelected(newSelected);
@@ -768,7 +862,6 @@ function SelectStage({
                   key={slot}
                   className="relative w-[60px] h-[96px] sm:w-[72px] sm:h-[112px] mx-1 sm:mx-2"
                 >
-                  {/* 槽位虚框 */}
                   <div
                     className={cn(
                       'absolute inset-0 rounded-lg border-2 border-dashed flex items-center justify-center font-display text-sm transition-all duration-500',
@@ -781,7 +874,6 @@ function SelectStage({
                   >
                     {slot + 1}
                   </div>
-                  {/* 已选牌占位（牌实际位置由下方弧形牌阵动画控制） */}
                 </div>
               );
             })}
@@ -790,7 +882,6 @@ function SelectStage({
 
         {/* 弧形牌阵 */}
         <div className="relative h-[280px] sm:h-[340px] mb-4 sm:mb-6 flex items-end justify-center">
-          {/* 底座弧线光晕 */}
           <svg
             className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[110%] max-w-2xl h-32 pointer-events-none opacity-30"
             viewBox="0 0 600 100"
@@ -811,7 +902,6 @@ function SelectStage({
             />
           </svg>
 
-          {/* 顶部牌槽指示线 */}
           {selected.length > 0 && (
             <svg
               className="absolute inset-0 w-full h-full pointer-events-none"
@@ -840,7 +930,6 @@ function SelectStage({
             </svg>
           )}
 
-          {/* 已选中的牌（飞往顶部）*/}
           {selected.map((cardIdx, slot) => {
             const target = getSlotTarget(slot);
             return (
@@ -869,7 +958,6 @@ function SelectStage({
                     interactive={false}
                     className="rounded-lg shadow-gold-glow"
                   />
-                  {/* 选中序号徽章 */}
                   <motion.div
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
@@ -883,7 +971,6 @@ function SelectStage({
                   >
                     {slot + 1}
                   </motion.div>
-                  {/* 持续微动 */}
                   <motion.div
                     className="absolute inset-0 rounded-lg"
                     animate={{ opacity: [0.3, 0.6, 0.3] }}
@@ -897,13 +984,11 @@ function SelectStage({
             );
           })}
 
-          {/* 弧形牌阵 - 未选中的牌 */}
           {fanPositions.map((info) => {
             const isSelected = selected.includes(info.idx);
             const isPicking = pickingIdx === info.idx;
             if (isSelected) return null;
 
-            // 计算实时位置（已选时其他牌重新分布）
             let pos = info;
             if (selected.length > 0) {
               const remap = remainingPositions.find((r) => r.origIdx === info.idx);
@@ -980,7 +1065,6 @@ function SelectStage({
                 disabled={isDisabled}
               >
                 <div className="relative">
-                  {/* 牌本体 */}
                   <div
                     className={cn(
                       'relative transition-all duration-300',
@@ -993,7 +1077,6 @@ function SelectStage({
                       interactive={false}
                       className="rounded-lg shadow-xl"
                     />
-                    {/* 序号水印 */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <span className="text-mystic-gold/40 font-display text-xl sm:text-2xl select-none">
                         {info.idx + 1}
@@ -1001,7 +1084,6 @@ function SelectStage({
                     </div>
                   </div>
 
-                  {/* 悬停光晕 */}
                   {isHovered && (
                     <>
                       <motion.div
@@ -1023,7 +1105,6 @@ function SelectStage({
                             '0 0 20px rgba(212, 175, 55, 0.6), inset 0 0 10px rgba(244, 208, 63, 0.3)',
                         }}
                       />
-                      {/* 浮起的提示文字 */}
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -1034,7 +1115,6 @@ function SelectStage({
                     </>
                   )}
 
-                  {/* 正在拾取的能量环 */}
                   {isPicking && (
                     <motion.div
                       className="absolute -inset-6 rounded-2xl pointer-events-none"
@@ -1053,7 +1133,6 @@ function SelectStage({
             );
           })}
 
-          {/* 顶部"洗牌位置"指示（待选状态） */}
           {selected.length === 0 && mounted && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -1068,7 +1147,6 @@ function SelectStage({
           )}
         </div>
 
-        {/* 进度指示 */}
         <motion.div
           className="flex flex-col items-center gap-4"
           initial={{ opacity: 0 }}
@@ -1103,7 +1181,6 @@ function SelectStage({
             })}
           </div>
 
-          {/* 完成提示 */}
           {selected.length === cardCount && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -1142,13 +1219,10 @@ function RevealStage({
     }
   }, [revealedCount, cards.length]);
 
-  // 全部翻开后：先绘制星座连线，再延迟完成
   useEffect(() => {
     if (revealedCount === cards.length && !completedRef.current) {
       completedRef.current = true;
-      // 等 0.4s 让最后一张牌的动画完成，然后开始绘制星座
       const drawTimer = setTimeout(() => {
-        // 收集已翻开牌的屏幕坐标
         const container = cardRefs.current[0]?.parentElement?.parentElement;
         if (container) {
           const containerRect = container.getBoundingClientRect();
@@ -1166,7 +1240,6 @@ function RevealStage({
         }
       }, 400);
 
-      // 星座绘制完成后延迟跳转
       const completeTimer = setTimeout(() => onComplete(), 2800);
       return () => {
         clearTimeout(drawTimer);
@@ -1195,7 +1268,6 @@ function RevealStage({
           </p>
         </div>
 
-        {/* 牌阵展示 */}
         <div
           className={cn(
             'relative grid gap-6 sm:gap-8 justify-items-center mb-8',
@@ -1204,7 +1276,6 @@ function RevealStage({
             cards.length === 10 && 'grid-cols-2 md:grid-cols-5',
           )}
         >
-          {/* 星座连线 */}
           {showConstellation && constellationPoints.length > 1 && (
             <ConstellationLines points={constellationPoints} drawDelay={0.4} />
           )}
@@ -1223,7 +1294,6 @@ function RevealStage({
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
                 className="flex flex-col items-center relative"
               >
-                {/* 即将翻开时的光环 */}
                 {isCurrent && (
                   <motion.div
                     className="absolute -inset-8 sm:-inset-12 rounded-3xl pointer-events-none z-10"
@@ -1240,7 +1310,6 @@ function RevealStage({
                   />
                 )}
 
-                {/* 翻牌瞬间的能量爆发 */}
                 {isRevealed && idx === revealedCount - 1 && (
                   <motion.div
                     className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 rounded-full pointer-events-none z-0"
@@ -1289,7 +1358,6 @@ function RevealStage({
           })}
         </div>
 
-        {/* 进度 */}
         <div className="text-center relative z-10">
           <div className="text-xs font-sans-ui text-mystic-gold/70 tracking-widest">
             {revealedCount} / {cards.length} 已揭晓

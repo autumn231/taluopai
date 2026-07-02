@@ -6,7 +6,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import TarotCard from '@/components/tarot/TarotCard';
 import { useHistoryStore } from '@/store/useHistoryStore';
 import { useReadingStore } from '@/store/useReadingStore';
-import { SPREADS } from '@/data/spreads';
+import { SPREADS, THREE_MODES } from '@/data/spreads';
 import { formatDate, cn } from '@/lib/utils';
 import type { ReadingRecord } from '@/types';
 
@@ -185,6 +185,11 @@ function HistoryItem({
             <span className="font-title text-base sm:text-lg text-mystic-lightgold">
               {spread.name}
             </span>
+            {record.spreadType === 'three' && record.threeMode && THREE_MODES[record.threeMode] && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-mystic-gold/10 border border-mystic-gold/25 text-mystic-gold/80">
+                {THREE_MODES[record.threeMode].name}
+              </span>
+            )}
             <span className="text-xs text-midnight-300/60">
               · {record.cards.length} 张牌
             </span>
@@ -220,6 +225,7 @@ function HistoryItem({
               // 恢复历史到 store
               useReadingStore.setState({
                 spreadType: record.spreadType,
+                threeMode: record.threeMode || 'time',
                 drawnCards: record.cards,
                 question: record.question,
                 stage: 'done',

@@ -6,14 +6,15 @@ import PageLayout from '@/components/layout/PageLayout';
 import TarotCard from '@/components/tarot/TarotCard';
 import EnergyVortex from '@/components/effects/EnergyVortex';
 import SparkleTrail from '@/components/effects/SparkleTrail';
-import { useReadingStore } from '@/store/useReadingStore';
-import { SPREADS } from '@/data/spreads';
-import { getQuestionTheme, QUESTION_THEMES, type CardDimension, type QuestionTheme } from '@/data/questionThemes';
+import { useReadingUI, useReadingActions } from '@/store/selectors';
+import { SPREADS, getSpreadPositions, THREE_MODES } from '@/data/spreads';
+import { getQuestionTheme, QUESTION_THEMES, type CardDimension, type QuestionTheme, type ThreeMode } from '@/data/questionThemes';
 import { cn } from '@/lib/utils';
 
 export default function Result() {
   const navigate = useNavigate();
-  const { drawnCards, spreadType, question, reset } = useReadingStore();
+  const { drawnCards, spreadType, question, threeMode } = useReadingUI();
+  const { reset } = useReadingActions();
 
   useEffect(() => {
     if (drawnCards.length === 0 || !spreadType) {
@@ -26,8 +27,10 @@ export default function Result() {
   }
 
   const spread = SPREADS[spreadType];
-  const positions = spread.positions;
+  // 三张牌阵根据 threeMode 拿位置
+  const positions = getSpreadPositions(spreadType, threeMode);
   const theme = getQuestionTheme(question);
+  const modeLabel = spreadType === 'three' ? THREE_MODES[threeMode] : null;
 
   return (
     <PageLayout>
@@ -51,6 +54,9 @@ export default function Result() {
           <div className="text-center">
             <div className="font-title text-xs sm:text-sm text-mystic-gold/80 tracking-widest">
               {spread.name}
+              {modeLabel && (
+                <span className="ml-1.5 text-mystic-gold/60">· {modeLabel.name}</span>
+              )}
             </div>
             <div className="text-xs text-midnight-300/60 mt-1">
               {drawnCards.length} 张牌 · {new Date().toLocaleDateString('zh-CN')}
@@ -162,6 +168,7 @@ export default function Result() {
               <div className="prose prose-invert max-w-none">
                 <SynthesisReading
                   spreadType={spreadType}
+                  threeMode={threeMode}
                   cards={drawnCards}
                   question={question}
                 />
@@ -503,10 +510,12 @@ function SectionTitle({
 // === 综合解读 ===
 function SynthesisReading({
   spreadType,
+  threeMode,
   cards,
   question,
 }: {
   spreadType: 'single' | 'three' | 'celtic';
+  threeMode: ThreeMode;
   cards: any[];
   question: string;
 }) {
@@ -584,34 +593,45 @@ function SynthesisReading({
     );
   };
 
-  // === 三张牌时间线解读 ===
+  // === 三张牌解读（支持 time / mind / free 三种模式） ===
   const renderThreeAnalysis = () => {
     if (cards.length !== 3) return null;
-    const [past, present, future] = cards;
-    const focus = theme.positionFocus.three;
+    const focus = theme.positionFocus.three[threeMode];
+    const modeNames: Record<ThreeMode, [string, string, string]> = {
+      time: ['过去的因', '当下的势', '未来的果'],
+      mind: ['你的心', '你的行', 'TA 的应'],
+      free: ['第一张', '第二张', '第三张'],
+    };
+    const [n0, n1, n2] = modeNames[threeMode];
+    const modeOpeners: Record<ThreeMode, string> = {
+      time: '三张牌的时间之流为你呈现了一幅关于「{theme}」的完整图景。',
+      mind: '心·行·果三张牌为你照见内在、外在与回应的呼应——关于「{theme}」。',
+      free: '三张自由牌依你此刻的呼吸而落，没有固定位置，只为回应你心中那个模糊的念。',
+    };
+    const opener = modeOpeners[threeMode].replace('{theme}', theme.label);
     return (
       <div className="space-y-4">
         <div className="glass-panel rounded-xl p-4 sm:p-5">
           <p className="text-sm sm:text-base leading-relaxed text-midnight-100/90 mb-3">
-            三张牌的时间之流为你呈现了一幅关于「{theme.label}」的完整能量图景。
+            {opener}
           </p>
           <div className="space-y-3 mt-4">
             <TimelineRow
-              label="过去"
-              card={past}
+              label={n0}
+              card={cards[0]}
               hint={focus.past}
               dimension={theme.primaryDimension}
             />
             <TimelineRow
-              label="当下"
-              card={present}
+              label={n1}
+              card={cards[1]}
               hint={focus.present}
               dimension={theme.primaryDimension}
               highlight
             />
             <TimelineRow
-              label="未来"
-              card={future}
+              label={n2}
+              card={cards[2]}
               hint={focus.future}
               dimension={theme.primaryDimension}
             />

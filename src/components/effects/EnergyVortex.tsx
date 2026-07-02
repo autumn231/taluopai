@@ -1,7 +1,4 @@
-import { memo } from 'react';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { useIsDark } from '@/hooks/useIsDark';
-import { useInViewport } from '@/hooks/useInViewport';
+import { motion } from 'framer-motion';
 
 interface EnergyVortexProps {
   size?: number;
@@ -14,9 +11,8 @@ interface EnergyVortexProps {
 
 /**
  * 能量漩涡 - 多环旋转 + 能量粒子辐射
- * 优化：白天模式隐藏、视口外停帧、减少默认粒子数
  */
-function EnergyVortexImpl({
+export default function EnergyVortex({
   size = 240,
   color = '#d4af37',
   active = true,
@@ -24,49 +20,27 @@ function EnergyVortexImpl({
   rings = 4,
   speed = 1,
 }: EnergyVortexProps) {
-  const isDark = useIsDark();
-  const reduced = useReducedMotion();
-  const [ref, inView] = useInViewport<HTMLDivElement>({ threshold: 0.05 });
-
-  if (!active || !isDark || !inView || reduced) {
-    return (
-      <div
-        ref={ref}
-        className={`relative ${className}`}
-        style={{ width: size, height: size }}
-        aria-hidden="true"
-      />
-    );
-  }
-
-  // 预先计算粒子角度与目标位置 - 避免每帧 Math.cos/sin
-  const particleAngles = Array.from({ length: 6 }, (_, i) => (i / 6) * Math.PI * 2);
-  const particleTargets = particleAngles.map((angle) => ({
-    x: Math.cos(angle) * size * 0.5,
-    y: Math.sin(angle) * size * 0.5,
-  }));
+  if (!active) return null;
 
   return (
     <div
-      ref={ref}
       className={`relative flex items-center justify-center ${className}`}
       style={{ width: size, height: size }}
     >
       {/* 辐射光晕 */}
-      <div
+      <motion.div
         className="absolute inset-0 rounded-full"
         style={{
           background: `radial-gradient(circle, ${color}40 0%, transparent 60%)`,
-          filter: 'blur(4px)',
-          animation: `pulse-soft 2s ease-in-out infinite`,
-          animationDuration: `${2 / speed}s`,
-          willChange: 'transform, opacity',
+          filter: 'blur(8px)',
         }}
+        animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
+        transition={{ duration: 2 / speed, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       {/* 多层环 */}
       {Array.from({ length: rings }).map((_, i) => (
-        <div
+        <motion.div
           key={i}
           className="absolute rounded-full"
           style={{
@@ -75,46 +49,63 @@ function EnergyVortexImpl({
             border: `1px solid ${color}`,
             opacity: 0.4 - i * 0.05,
             borderStyle: i % 2 === 0 ? 'solid' : 'dashed',
-            animation: `${i % 2 === 0 ? 'spin' : 'spinReverse'} ${(6 + i) / speed}s linear infinite`,
-            willChange: 'transform',
+          }}
+          animate={{
+            rotate: i % 2 === 0 ? 360 : -360,
+            scale: [1, 1.05, 1],
+          }}
+          transition={{
+            rotate: {
+              duration: 6 / speed + i,
+              repeat: Infinity,
+              ease: 'linear',
+            },
+            scale: { duration: 3 / speed, repeat: Infinity, ease: 'easeInOut' },
           }}
         />
       ))}
 
       {/* 中心光球 */}
-      <div
+      <motion.div
         className="absolute rounded-full"
         style={{
           width: size * 0.25,
           height: size * 0.25,
           background: `radial-gradient(circle, #f4d03f 0%, ${color} 60%, transparent 90%)`,
           boxShadow: `0 0 ${size / 3}px ${color}`,
-          animation: `pulse-soft 1.5s ease-in-out infinite`,
-          animationDuration: `${1.5 / speed}s`,
-          willChange: 'transform, opacity',
         }}
+        animate={{ scale: [1, 1.3, 1], opacity: [0.8, 1, 0.8] }}
+        transition={{ duration: 1.5 / speed, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      {/* 辐射粒子 - 6 个（从 8 减少），使用 CSS 变量驱动的 keyframe */}
-      {particleTargets.map((target, i) => (
-        <div
-          key={`particle-${i}`}
-          className="absolute left-1/2 top-1/2 rounded-full"
-          style={{
-            width: 4,
-            height: 4,
-            background: color,
-            boxShadow: `0 0 8px ${color}`,
-            animation: `vortexFly ${2 / speed}s ease-out ${i * 0.25}s infinite`,
-            // CSS 变量驱动 keyframe 终点 - 比 motion.div 更便宜
-            ['--tx' as string]: `${target.x}px`,
-            ['--ty' as string]: `${target.y}px`,
-            willChange: 'transform, opacity',
-          }}
-        />
-      ))}
+      {/* 辐射粒子 */}
+      {Array.from({ length: 8 }).map((_, i) => {
+        const angle = (i / 8) * Math.PI * 2;
+        return (
+          <motion.div
+            key={`particle-${i}`}
+            className="absolute rounded-full"
+            style={{
+              width: 4,
+              height: 4,
+              background: color,
+              boxShadow: `0 0 8px ${color}`,
+            }}
+            initial={{ x: 0, y: 0, opacity: 0 }}
+            animate={{
+              x: [0, Math.cos(angle) * size * 0.5, Math.cos(angle) * size * 0.5],
+              y: [0, Math.sin(angle) * size * 0.5, Math.sin(angle) * size * 0.5],
+              opacity: [0, 1, 0],
+            }}
+            transition={{
+              duration: 2 / speed,
+              delay: i * 0.15,
+              repeat: Infinity,
+              ease: 'easeOut',
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
-
-export default memo(EnergyVortexImpl);

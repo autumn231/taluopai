@@ -64,12 +64,13 @@ export function drawCardsByQuestion(
   count: number,
   question: string,
   spreadType: string,
+  threeMode?: string,
 ): TarotCard[] {
   // 没有问题则用真随机
   if (!question.trim()) {
     return drawCards(deck, count);
   }
-  const seed = `${spreadType}::${question.trim()}`;
+  const seed = `${spreadType}::${threeMode || ''}::${question.trim()}`;
   return seededShuffle(deck, seed).slice(0, count);
 }
 
