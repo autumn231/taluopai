@@ -2,7 +2,13 @@ import { Sparkles } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="relative border-t border-mystic-gold/10 bg-midnight-950/40 backdrop-blur-md">
+    <footer
+      className="relative border-t backdrop-blur-md transition-colors duration-500"
+      style={{
+        backgroundColor: 'var(--bg-panel)',
+        borderColor: 'var(--border-soft)',
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
         <div className="flex flex-col items-center gap-6">
           <div className="flex items-center gap-2 text-mystic-gold/70">

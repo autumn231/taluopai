@@ -34,9 +34,13 @@ export default function Navbar() {
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
         scrolled
-          ? 'bg-midnight-950/80 backdrop-blur-xl border-b border-mystic-gold/10'
+          ? 'backdrop-blur-xl border-b'
           : 'bg-transparent',
       )}
+      style={scrolled ? {
+        backgroundColor: 'var(--bg-panel)',
+        borderColor: 'var(--border-soft)',
+      } : undefined}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Logo */}
@@ -100,7 +104,11 @@ export default function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="md:hidden overflow-hidden bg-midnight-950/95 backdrop-blur-xl border-t border-mystic-gold/10"
+            className="md:hidden overflow-hidden backdrop-blur-xl border-t"
+            style={{
+              backgroundColor: 'var(--bg-panel-strong)',
+              borderColor: 'var(--border-soft)',
+            }}
           >
             <nav className="flex flex-col p-4 gap-2">
               {NAV_ITEMS.map((item) => {
