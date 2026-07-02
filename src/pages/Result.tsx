@@ -112,8 +112,13 @@ export default function Result() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="mb-12 sm:mb-16"
+          className="mb-10 sm:mb-14"
         >
+          <SectionLabel
+            step="01"
+            kicker="你的牌阵"
+            help="先看牌面，再看解读"
+          />
           <SpreadLayout
             cards={drawnCards}
             positions={positions}
@@ -121,13 +126,18 @@ export default function Result() {
           />
         </motion.section>
 
-        {/* 单牌解读 */}
+        {/* 单牌解读 - 在综合解读之前 - 让用户先看每张牌的细节 */}
         <motion.section
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="space-y-8 sm:space-y-12 mb-12 sm:mb-16"
+          className="space-y-6 sm:space-y-8 mb-10 sm:mb-14"
         >
+          <SectionLabel
+            step="02"
+            kicker="单牌解读"
+            help="逐张阅读，每张都有专属的回应"
+          />
           {drawnCards.map((drawn, idx) => (
             <CardInterpretation
               key={idx}
@@ -140,28 +150,35 @@ export default function Result() {
           ))}
         </motion.section>
 
-        {/* 综合解读 */}
+        {/* 综合解读 - 最后总览 */}
         <motion.section
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
           className="mb-12 sm:mb-16"
         >
-          <div className="glass-panel-strong rounded-2xl p-6 sm:p-10 relative overflow-hidden">
+          <SectionLabel
+            step="03"
+            kicker="综合解读"
+            help="把所有牌的线索连成画面"
+            accent
+          />
+          <div className="glass-panel-strong rounded-2xl p-5 sm:p-8 relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mystic-gold/50 to-transparent" />
             <div className="absolute -top-20 -right-20 w-60 h-60 bg-mystic-gold/10 rounded-full blur-3xl" />
 
             <div className="relative z-10">
-              <div className="text-center mb-6 sm:mb-8 relative">
-                <div className="flex justify-center mb-3">
-                  <EnergyVortex size={80} rings={3} speed={1.5} />
-                </div>
-                <Sparkles className="w-6 h-6 text-mystic-gold mx-auto mb-3 relative z-10" />
-                <h2 className="font-display text-2xl sm:text-3xl text-mystic-lightgold glow-text">
-                  综合解读
-                </h2>
-                <div className="rune-divider mt-3 max-w-xs mx-auto">
-                  <span className="text-mystic-gold/60 text-xs">✦</span>
+              <div className="flex items-center gap-3 mb-6 sm:mb-8">
+                <EnergyVortex size={56} rings={3} speed={1.5} />
+                <div>
+                  <h2 className="font-display text-xl sm:text-2xl text-mystic-lightgold glow-text leading-tight">
+                    综合解读
+                  </h2>
+                  <p className="text-[10px] sm:text-xs text-midnight-300/60 mt-0.5">
+                    {spreadType === 'single' && '一张牌的全面解析'}
+                    {spreadType === 'three' && `三张牌 · ${modeLabel?.name}`}
+                    {spreadType === 'celtic' && '凯尔特十字 · 十大要素的聚合'}
+                  </p>
                 </div>
               </div>
 
@@ -501,6 +518,50 @@ function SectionTitle({
       {highlight && (
         <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-mystic-gold/20 text-mystic-lightgold border border-mystic-gold/40">
           重点
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Section 标签 - 与 Reading 页统一的 step / kicker / help 结构
+ * 适配阅读习惯：编号 + 标题 + 帮助文字
+ */
+function SectionLabel({
+  step,
+  kicker,
+  help,
+  accent = false,
+}: {
+  step: string;
+  kicker: string;
+  help?: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 mb-5 sm:mb-6 pb-3 border-b border-mystic-gold/10">
+      <div className="flex items-baseline gap-2 sm:gap-3 min-w-0">
+        <span
+          className={cn(
+            'text-[10px] sm:text-[11px] font-display tracking-widest shrink-0',
+            accent ? 'text-mystic-lightgold' : 'text-mystic-gold/60',
+          )}
+        >
+          {step}
+        </span>
+        <h3
+          className={cn(
+            'text-lg sm:text-xl font-title tracking-wider leading-tight',
+            accent ? 'text-mystic-lightgold' : 'text-mystic-gold',
+          )}
+        >
+          {kicker}
+        </h3>
+      </div>
+      {help && (
+        <span className="text-[10px] sm:text-[11px] text-midnight-300/65 font-body italic truncate min-w-0 max-w-[60%]">
+          {help}
         </span>
       )}
     </div>

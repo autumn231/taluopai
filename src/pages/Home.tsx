@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Sparkles, Eye, Compass, BookOpen, History as HistoryIcon, ArrowRight } from 'lucide-react';
+import { Sparkles, Eye, Compass, BookOpen, History as HistoryIcon, ArrowRight, Clock, Layers } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import MysticRing from '@/components/effects/MysticRing';
 import RuneShower from '@/components/effects/RuneShower';
@@ -63,7 +63,8 @@ export default function Home() {
 
   return (
     <PageLayout>
-      {/* Hero 区域 */}
+      {/* ================== Hero ================== */}
+      {/* 视觉层级: 标题(E) > 副标 > 描述 > CTA - F 视觉 */}
       <section className="relative min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 sm:px-6 py-12 sm:py-20">
         {/* 中心装饰环 */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
@@ -71,83 +72,82 @@ export default function Home() {
         </div>
 
         {/* 飘落的符文 */}
-        <RuneShower count={20} className="z-0" />
+        <RuneShower count={18} className="z-0" />
 
         <div className="relative z-10 max-w-6xl mx-auto w-full">
-          <div className="text-center mb-12 sm:mb-16">
-            {/* 顶部装饰 */}
+          <div className="text-center">
+            {/* 顶部小标签 - 一行 */}
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1 }}
-              className="flex items-center justify-center gap-3 mb-6"
+              transition={{ duration: 0.8 }}
+              className="flex items-center justify-center gap-2 sm:gap-3 mb-5 sm:mb-7"
             >
-              <span className="h-px w-12 bg-gradient-to-r from-transparent to-mystic-gold/50" />
-              <Sparkles className="w-4 h-4 text-mystic-gold animate-pulse" />
-              <span className="font-title text-xs sm:text-sm text-mystic-gold/80 tracking-[0.4em]">
-                MYSTIC TAROT
+              <span className="h-px w-8 sm:w-14 bg-gradient-to-r from-transparent to-mystic-gold/50" />
+              <Sparkles className="w-3.5 h-3.5 text-mystic-gold animate-pulse" />
+              <span className="font-title text-[10px] sm:text-xs text-mystic-gold/80 tracking-[0.35em] uppercase">
+                Mystic Tarot
               </span>
-              <Sparkles className="w-4 h-4 text-mystic-gold animate-pulse" />
-              <span className="h-px w-12 bg-gradient-to-l from-transparent to-mystic-gold/50" />
+              <Sparkles className="w-3.5 h-3.5 text-mystic-gold animate-pulse" />
+              <span className="h-px w-8 sm:w-14 bg-gradient-to-l from-transparent to-mystic-gold/50" />
             </motion.div>
 
-            {/* 主标题 */}
+            {/* 主标题 - 一行一个词 */}
             <motion.h1
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.2 }}
-              className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-tight"
+              transition={{ duration: 1, delay: 0.15 }}
+              className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.1] tracking-tight"
             >
               <span className="block text-gold-gradient glow-text">塔罗秘境</span>
             </motion.h1>
 
-            {/* 副标题 */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
+            {/* 副标 - 14-16px 标题区 */}
+            <motion.h2
+              initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.4 }}
-              className="mt-6 sm:mt-8 font-title text-base sm:text-xl md:text-2xl text-midnight-100/90 tracking-[0.2em]"
+              transition={{ duration: 1, delay: 0.35 }}
+              className="mt-5 sm:mt-6 font-title text-lg sm:text-xl md:text-2xl text-midnight-100/90 tracking-[0.18em]"
             >
-              <span className="text-mystic-lightgold">✦</span> 揭开命运的薄纱 <span className="text-mystic-lightgold">✦</span>
-            </motion.div>
+              <span className="text-mystic-lightgold">✦</span>
+              <span className="mx-2">揭开命运的薄纱</span>
+              <span className="text-mystic-lightgold">✦</span>
+            </motion.h2>
 
+            {/* 描述 - 14-15px 段落，左对齐更利扫读 */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 1.2, delay: 0.6 }}
-              className="mt-6 font-body italic text-sm sm:text-base text-midnight-200/80 max-w-2xl mx-auto leading-relaxed"
+              transition={{ duration: 1.2, delay: 0.55 }}
+              className="mt-5 sm:mt-6 font-body text-[15px] sm:text-base text-midnight-200/85 max-w-xl mx-auto leading-relaxed"
             >
               78 张古老的卡牌，承载宇宙的智慧。
               <br className="hidden sm:block" />
               在星辰的指引下，聆听内心的回响，遇见未知的自己。
             </motion.p>
 
-            {/* CTA 按钮 */}
+            {/* CTA - 主+次 横排 */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.8 }}
-              className="mt-10 sm:mt-12 flex flex-col sm:flex-row items-center justify-center gap-4"
+              transition={{ duration: 1, delay: 0.75 }}
+              className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4"
             >
-              <Link
-                to="/reading"
-                className="btn-mystic group relative overflow-visible"
-              >
+              <Link to="/reading" className="btn-mystic group relative overflow-visible text-sm sm:text-base px-6 py-3">
                 <span className="relative z-10 flex items-center">
                   <span>开始占卜</span>
                   <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
                 </span>
-                {/* 闪光粒子 */}
-                <SparkleTrail count={10} duration={2.5} />
+                <SparkleTrail count={8} duration={2.5} />
               </Link>
-              <Link to="/tarot" className="btn-ghost">
+              <Link to="/tarot" className="btn-ghost text-sm sm:text-base px-5 py-3">
                 探索图鉴
               </Link>
             </motion.div>
           </div>
 
           {/* 飘浮的牌 - 装饰 */}
-          <div className="relative h-32 sm:h-40 hidden md:block">
+          <div className="relative h-32 sm:h-40 mt-8 sm:mt-12 hidden md:block">
             {displayCards.map((id, idx) => {
               const positions = [
                 { left: '15%', top: '20px', rotate: -15 },
@@ -196,7 +196,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, y: [0, 8, 0] }}
           transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 text-mystic-gold/50"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 text-mystic-gold/50"
         >
           <div className="w-5 h-8 border border-mystic-gold/30 rounded-full flex justify-center">
             <div className="w-1 h-2 bg-mystic-gold/70 rounded-full mt-1.5" />
@@ -204,72 +204,68 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* 牌阵选择 */}
+      {/* ================== 牌阵选择 ================== */}
+      {/* 视觉：横向网格(桌面) / 垂直堆叠(手机) - 第一行是标题 */}
       <section className="relative px-4 sm:px-6 py-16 sm:py-24">
         <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-12 sm:mb-16"
-          >
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl text-gold-gradient glow-text">
-              选择你的牌阵
-            </h2>
-            <div className="rune-divider mt-6 max-w-md mx-auto">
-              <span className="text-mystic-gold/60 text-xs">✦</span>
-            </div>
-            <p className="mt-6 font-body italic text-sm sm:text-base text-midnight-200/70 max-w-2xl mx-auto">
-              每一种牌阵都对应不同的提问深度。从简明的一日指引，到深邃的十面人生剖析。
-            </p>
-          </motion.div>
+          <SectionHeader
+            kicker="第一步"
+            title="选择你的牌阵"
+            subtitle="每一种牌阵都对应不同的提问深度。从简明的一日指引，到深邃的十面人生剖析。"
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
             {SPREAD_CARDS.map((item, idx) => {
               const spread = SPREADS[item.key];
               const Icon = item.icon;
               return (
                 <motion.div
                   key={item.key}
-                  initial={{ opacity: 0, y: 40 }}
+                  initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-50px' }}
-                  transition={{ duration: 0.6, delay: idx * 0.15 }}
-                  whileHover={{ y: -8 }}
+                  transition={{ duration: 0.6, delay: idx * 0.12 }}
+                  whileHover={{ y: -6 }}
                   className="group"
                 >
                   <Link to="/reading" className="block h-full">
-                    <div className={`relative h-full glass-panel rounded-2xl p-6 sm:p-8 overflow-hidden transition-all duration-500 hover:border-mystic-gold/50 hover:shadow-gold-glow`}>
+                    <div className="relative h-full glass-panel rounded-2xl p-5 sm:p-6 overflow-hidden transition-all duration-500 hover:border-mystic-gold/50 hover:shadow-gold-glow">
                       {/* 背景渐变 */}
                       <div className={`absolute inset-0 bg-gradient-to-br ${item.accent} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
-                      {/* 顶部装饰 */}
+                      {/* 顶部装饰线 */}
                       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mystic-gold/40 to-transparent" />
 
-                      <div className="relative z-10">
+                      <div className="relative z-10 flex flex-col h-full">
+                        {/* 第一行：图标 + 难度 */}
                         <div className="flex items-center justify-between mb-4">
-                          <div className="w-12 h-12 rounded-full bg-mystic-gold/10 border border-mystic-gold/30 flex items-center justify-center group-hover:bg-mystic-gold/20 transition-colors">
-                            <Icon className="w-6 h-6 text-mystic-gold" />
+                          <div className="w-11 h-11 rounded-full bg-mystic-gold/10 border border-mystic-gold/30 flex items-center justify-center group-hover:bg-mystic-gold/20 transition-colors">
+                            <Icon className="w-5 h-5 text-mystic-gold" />
                           </div>
-                          <span className="text-xs font-title tracking-widest text-mystic-gold/70">
+                          <span className="text-[11px] font-title tracking-widest text-mystic-gold/70 px-2 py-0.5 rounded-full border border-mystic-gold/25">
                             {item.level}
                           </span>
                         </div>
 
-                        <h3 className="font-display text-xl sm:text-2xl text-midnight-50 mb-2 group-hover:text-mystic-lightgold transition-colors">
+                        {/* 标题区：牌阵名 + 描述 */}
+                        <h3 className="font-display text-xl sm:text-2xl text-midnight-50 mb-1.5 group-hover:text-mystic-lightgold transition-colors">
                           {spread.name}
                         </h3>
-                        <p className="font-title text-sm text-mystic-gold/70 tracking-wider mb-4">
+                        <p className="font-title text-sm text-mystic-gold/75 tracking-wider mb-3">
                           {spread.description}
                         </p>
-                        <p className="font-body text-sm text-midnight-200/80 leading-relaxed">
+                        <p className="font-body text-sm text-midnight-200/80 leading-relaxed mb-4">
                           {spread.longDescription}
                         </p>
 
-                        <div className="mt-6 pt-6 border-t border-mystic-gold/10 flex items-center justify-between text-xs">
-                          <span className="font-sans-ui text-midnight-200/60">
-                            {spread.cardCount} 张牌 · {item.duration}
+                        {/* 底部：meta + 箭头 */}
+                        <div className="mt-auto pt-4 border-t border-mystic-gold/10 flex items-center justify-between text-xs">
+                          <span className="font-sans-ui text-midnight-200/65 flex items-center gap-2">
+                            <Layers className="w-3.5 h-3.5" />
+                            <span>{spread.cardCount} 张牌</span>
+                            <span className="text-mystic-gold/30">·</span>
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>{item.duration}</span>
                           </span>
                           <ArrowRight className="w-4 h-4 text-mystic-gold/60 transition-transform group-hover:translate-x-1" />
                         </div>
@@ -283,42 +279,35 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 特性介绍 */}
+      {/* ================== 特性 ================== */}
       <section className="relative px-4 sm:px-6 py-16 sm:py-24">
         <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-12 sm:mb-16"
-          >
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl text-gold-gradient">
-              为何选择塔罗秘境
-            </h2>
-            <div className="rune-divider mt-6 max-w-md mx-auto">
-              <span className="text-mystic-gold/60 text-xs">✦</span>
-            </div>
-          </motion.div>
+          <SectionHeader
+            kicker="独特之处"
+            title="为何选择塔罗秘境"
+          />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {FEATURES.map((feature, idx) => {
               const Icon = feature.icon;
               return (
                 <motion.div
                   key={idx}
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 24 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-50px' }}
                   transition={{ duration: 0.6, delay: idx * 0.1 }}
-                  className="glass-panel rounded-2xl p-6 sm:p-8 text-center hover:border-mystic-gold/40 transition-colors"
+                  className="glass-panel rounded-2xl p-5 sm:p-6 hover:border-mystic-gold/40 transition-colors"
                 >
-                  <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-mystic-gold/10 border border-mystic-gold/30 flex items-center justify-center">
-                    <Icon className="w-7 h-7 text-mystic-gold" />
+                  {/* 顶部：图标 */}
+                  <div className="w-12 h-12 mb-4 rounded-full bg-mystic-gold/10 border border-mystic-gold/30 flex items-center justify-center">
+                    <Icon className="w-6 h-6 text-mystic-gold" />
                   </div>
-                  <h3 className="font-display text-lg sm:text-xl text-mystic-lightgold mb-3">
+                  {/* 标题 */}
+                  <h3 className="font-display text-lg text-mystic-lightgold mb-2">
                     {feature.title}
                   </h3>
+                  {/* 描述 */}
                   <p className="font-body text-sm text-midnight-200/80 leading-relaxed">
                     {feature.desc}
                   </p>
@@ -329,42 +318,33 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 仪式须知 */}
+      {/* ================== 占卜须知 ================== */}
       <section className="relative px-4 sm:px-6 py-16 sm:py-24">
         <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-100px' }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-12"
-          >
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl text-gold-gradient">
-              占卜前请记得
-            </h2>
-            <div className="rune-divider mt-6 max-w-md mx-auto">
-              <span className="text-mystic-gold/60 text-xs">✦</span>
-            </div>
-          </motion.div>
+          <SectionHeader
+            kicker="开始前"
+            title="占卜前请记得"
+          />
 
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-3 sm:space-y-4">
             {NOTICES.map((notice, idx) => (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, x: idx % 2 === 0 ? -30 : 30 }}
+                initial={{ opacity: 0, x: idx % 2 === 0 ? -20 : 20 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: '-50px' }}
-                transition={{ duration: 0.6, delay: idx * 0.1 }}
-                className="glass-panel rounded-xl p-5 sm:p-6 flex items-start gap-4 sm:gap-6 hover:border-mystic-gold/40 transition-colors"
+                transition={{ duration: 0.6, delay: idx * 0.08 }}
+                className="glass-panel rounded-xl p-4 sm:p-5 flex items-start gap-4 sm:gap-5 hover:border-mystic-gold/40 transition-colors"
               >
-                <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-mystic-gold/10 border border-mystic-gold/40 flex items-center justify-center font-display text-mystic-gold">
+                {/* 编号气泡 */}
+                <div className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-mystic-gold/10 border border-mystic-gold/40 flex items-center justify-center font-display text-mystic-gold text-sm">
                   {idx + 1}
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-title text-lg sm:text-xl text-mystic-lightgold mb-1">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-title text-base sm:text-lg text-mystic-lightgold mb-1">
                     {notice.title}
                   </h3>
-                  <p className="font-body text-sm sm:text-base text-midnight-200/80 leading-relaxed">
+                  <p className="font-body text-sm sm:text-[15px] text-midnight-200/80 leading-relaxed">
                     {notice.desc}
                   </p>
                 </div>
@@ -374,18 +354,59 @@ export default function Home() {
 
           {/* 底部 CTA */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-50px' }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.7 }}
             className="text-center mt-12 sm:mt-16"
           >
-            <Link to="/reading" className="btn-mystic text-base sm:text-lg px-8 py-4">
+            <Link to="/reading" className="btn-mystic text-sm sm:text-base px-7 py-3.5">
+              <Sparkles className="w-4 h-4 mr-2" />
               准备就绪 · 踏入秘境
             </Link>
           </motion.div>
         </div>
       </section>
     </PageLayout>
+  );
+}
+
+/**
+ * 统一的 Section 头部：kicker(小标签) + 标题 + 副标
+ * - 标题统一在中央，竖向 stack 更利扫读
+ * - 适配移动：标题字号略小、副标不超 2 行
+ */
+function SectionHeader({
+  kicker,
+  title,
+  subtitle,
+}: {
+  kicker: string;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.7 }}
+      className="text-center mb-10 sm:mb-14"
+    >
+      <div className="text-[10px] sm:text-[11px] font-title tracking-[0.35em] uppercase text-mystic-gold/80 mb-3 sm:mb-4">
+        ✦ {kicker} ✦
+      </div>
+      <h2 className="font-display text-3xl sm:text-4xl md:text-5xl text-gold-gradient glow-text leading-tight">
+        {title}
+      </h2>
+      <div className="rune-divider mt-5 sm:mt-6 max-w-xs mx-auto">
+        <span className="text-mystic-gold/60 text-xs">✦</span>
+      </div>
+      {subtitle && (
+        <p className="mt-5 sm:mt-6 font-body italic text-sm sm:text-[15px] text-midnight-200/75 max-w-2xl mx-auto leading-relaxed">
+          {subtitle}
+        </p>
+      )}
+    </motion.div>
   );
 }
