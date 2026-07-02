@@ -902,10 +902,10 @@ function SelectStage({
                   whileTap={{ scale: 0.97 }}
                   className={cn(
                     'group relative px-4 sm:px-6 py-3 sm:py-4 rounded-xl border transition-all duration-300',
-                    'bg-gradient-to-br from-midnight-900/60 to-midnight-950/60',
+                    'bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)]',
                     'border-mystic-gold/30 hover:border-mystic-gold/60',
                     'hover:shadow-gold-glow',
-                    picking === source && 'border-mystic-gold/80 shadow-gold-glow',
+                    picking === source && 'border-mystic-gold/80 shadow-gold-glow bg-[var(--bg-card-hover)]',
                     'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-mystic-gold/30 disabled:hover:shadow-none',
                   )}
                 >
@@ -915,7 +915,7 @@ function SelectStage({
                       {label.title}
                     </span>
                   </div>
-                  <div className="text-[10px] sm:text-xs text-mystic-gold/60 italic">
+                  <div className="text-[10px] sm:text-xs text-mystic-gold/85 italic font-medium">
                     {label.hint}
                   </div>
                 </motion.button>
