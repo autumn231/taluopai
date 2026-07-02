@@ -3,8 +3,72 @@
 @tailwind utilities;
 
 @layer base {
+  /* === 主题变量 === */
   :root {
     color-scheme: dark;
+    --bg: #050314;
+    --bg-soft: #0a0824;
+    --bg-elevated: #1a0f3d;
+    --text: #e8e4f3;
+    --text-soft: #c4b8d8;
+    --text-muted: #9a82bf;
+    --accent: #d4af37;
+    --accent-bright: #f4d03f;
+    --accent-deep: #b8860b;
+    --panel-bg: linear-gradient(135deg, rgba(46, 26, 92, 0.4) 0%, rgba(15, 8, 40, 0.6) 100%);
+    --panel-bg-strong: linear-gradient(135deg, rgba(46, 26, 92, 0.65) 0%, rgba(15, 8, 40, 0.8) 100%);
+    --panel-border: rgba(212, 175, 55, 0.25);
+    --panel-shadow: 0 0 30px rgba(212, 175, 55, 0.05), inset 0 1px 0 rgba(212, 175, 55, 0.15);
+    --nav-scrolled: rgba(5, 3, 20, 0.8);
+    --nav-border: rgba(212, 175, 55, 0.1);
+    --btn-ghost-text: #c4b8d8;
+    --btn-ghost-border: rgba(196, 184, 216, 0.3);
+    --btn-mystic-text: #f4d03f;
+    --btn-mystic-bg: linear-gradient(135deg, rgba(26, 15, 61, 0.6) 0%, rgba(15, 8, 40, 0.8) 100%);
+    --btn-mystic-border: rgba(212, 175, 55, 0.5);
+    --btn-mystic-hover-text: #0a0824;
+    --scrollbar-track: #0a0824;
+    --scrollbar-thumb-start: #d4af37;
+    --scrollbar-thumb-end: #6e4ea3;
+    --selection-bg: rgba(212, 175, 55, 0.4);
+    --selection-text: #f8f4ff;
+    --glow-rune: rgba(212, 175, 55, 0.6);
+  }
+
+  html.light {
+    color-scheme: light;
+    --bg: #f6ecd5;          /* 暖米黄羊皮纸 */
+    --bg-soft: #efe4c4;
+    --bg-elevated: #fff8e5;
+    --text: #2a1f4d;         /* 深紫 */
+    --text-soft: #4a3576;
+    --text-muted: #6e4ea3;
+    --accent: #8b6f1f;        /* 深金（保证对比度） */
+    --accent-bright: #a8842a;
+    --accent-deep: #6e4a05;
+    --panel-bg: linear-gradient(135deg, rgba(255, 252, 240, 0.85) 0%, rgba(248, 235, 205, 0.9) 100%);
+    --panel-bg-strong: linear-gradient(135deg, rgba(255, 250, 235, 0.95) 0%, rgba(245, 230, 200, 0.95) 100%);
+    --panel-border: rgba(139, 111, 31, 0.3);
+    --panel-shadow: 0 2px 12px rgba(110, 78, 163, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    --nav-scrolled: rgba(246, 236, 213, 0.85);
+    --nav-border: rgba(139, 111, 31, 0.2);
+    --btn-ghost-text: #4a3576;
+    --btn-ghost-border: rgba(110, 78, 163, 0.35);
+    --btn-mystic-text: #6e4a05;
+    --btn-mystic-bg: linear-gradient(135deg, rgba(255, 250, 235, 0.9) 0%, rgba(248, 235, 205, 0.95) 100%);
+    --btn-mystic-border: rgba(139, 111, 31, 0.6);
+    --btn-mystic-hover-text: #fff8e5;
+    --scrollbar-track: #efe4c4;
+    --scrollbar-thumb-start: #a8842a;
+    --scrollbar-thumb-end: #6e4ea3;
+    --selection-bg: rgba(168, 132, 42, 0.3);
+    --selection-text: #2a1f4d;
+    --glow-rune: rgba(139, 111, 31, 0.5);
+  }
+
+  /* 主题切换时整体过渡 */
+  html, body, .glass-panel, .glass-panel-strong, .btn-mystic, .btn-ghost {
+    transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
   }
 
   * {
@@ -18,8 +82,8 @@
 
   body {
     margin: 0;
-    background-color: #050314;
-    color: #e8e4f3;
+    background-color: var(--bg);
+    color: var(--text);
     font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
     font-weight: 400;
     line-height: 1.6;
@@ -27,11 +91,12 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.5s ease, color 0.5s ease;
   }
 
   ::selection {
-    background: rgba(212, 175, 55, 0.4);
-    color: #f8f4ff;
+    background: var(--selection-bg);
+    color: var(--selection-text);
   }
 
   /* Custom scrollbar */
@@ -40,20 +105,20 @@
     height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #0a0824;
+    background: var(--scrollbar-track);
   }
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #d4af37, #6e4ea3);
+    background: linear-gradient(180deg, var(--scrollbar-thumb-start), var(--scrollbar-thumb-end));
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #f4d03f, #9b59b6);
+    background: linear-gradient(180deg, var(--accent-bright), #9b59b6);
   }
 }
 
 @layer components {
   .font-display {
-    font-family: 'Cinzel Decorative', 'Cinzel', serif;
+    font-family: 'Cinzel Decorative', serif;
     letter-spacing: 0.05em;
   }
   .font-title {
@@ -68,7 +133,7 @@
   }
 
   .text-gold-gradient {
-    background: linear-gradient(135deg, #f4d03f 0%, #d4af37 50%, #b8860b 100%);
+    background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 50%, var(--accent-deep) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -77,25 +142,23 @@
   }
 
   .glass-panel {
-    background: linear-gradient(135deg, rgba(46, 26, 92, 0.4) 0%, rgba(15, 8, 40, 0.6) 100%);
+    background: var(--panel-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(212, 175, 55, 0.2);
-    box-shadow:
-      0 0 30px rgba(212, 175, 55, 0.05),
-      inset 0 1px 0 rgba(212, 175, 55, 0.15);
+    border: 1px solid var(--panel-border);
+    box-shadow: var(--panel-shadow);
   }
 
   .glass-panel-strong {
-    background: linear-gradient(135deg, rgba(46, 26, 92, 0.65) 0%, rgba(15, 8, 40, 0.8) 100%);
+    background: var(--panel-bg-strong);
     backdrop-filter: blur(28px);
     -webkit-backdrop-filter: blur(28px);
-    border: 1px solid rgba(212, 175, 55, 0.3);
+    border: 1px solid var(--panel-border);
   }
 
   .gold-border {
     position: relative;
-    border: 1px solid rgba(212, 175, 55, 0.4);
+    border: 1px solid var(--panel-border);
   }
 
   .gold-border::before {
@@ -104,7 +167,7 @@
     inset: -1px;
     padding: 1px;
     border-radius: inherit;
-    background: linear-gradient(135deg, rgba(212, 175, 55, 0.6), rgba(212, 175, 55, 0) 30%, rgba(212, 175, 55, 0) 70%, rgba(212, 175, 55, 0.6));
+    background: linear-gradient(135deg, var(--glow-rune), transparent 30%, transparent 70%, var(--glow-rune));
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
             mask-composite: exclude;
@@ -120,9 +183,9 @@
     font-family: 'Cinzel', 'Noto Serif SC', serif;
     font-weight: 500;
     letter-spacing: 0.15em;
-    color: #f4d03f;
-    background: linear-gradient(135deg, rgba(26, 15, 61, 0.6) 0%, rgba(15, 8, 40, 0.8) 100%);
-    border: 1px solid rgba(212, 175, 55, 0.5);
+    color: var(--btn-mystic-text);
+    background: var(--btn-mystic-bg);
+    border: 1px solid var(--btn-mystic-border);
     border-radius: 9999px;
     overflow: hidden;
     cursor: pointer;
@@ -138,9 +201,9 @@
     transition: opacity 0.4s ease;
   }
   .btn-mystic:hover {
-    color: #0a0824;
-    background: linear-gradient(135deg, #f4d03f 0%, #d4af37 100%);
-    box-shadow: 0 0 30px rgba(212, 175, 55, 0.6), 0 0 60px rgba(212, 175, 55, 0.3);
+    color: var(--btn-mystic-hover-text);
+    background: linear-gradient(135deg, var(--accent-bright) 0%, var(--accent) 100%);
+    box-shadow: 0 0 30px var(--glow-rune), 0 0 60px rgba(212, 175, 55, 0.3);
     transform: translateY(-2px);
   }
   .btn-mystic:hover::before {
@@ -164,16 +227,16 @@
     font-family: 'Cinzel', 'Noto Serif SC', serif;
     font-weight: 500;
     letter-spacing: 0.1em;
-    color: #c4b8d8;
+    color: var(--btn-ghost-text);
     background: transparent;
-    border: 1px solid rgba(196, 184, 216, 0.3);
+    border: 1px solid var(--btn-ghost-border);
     border-radius: 9999px;
     cursor: pointer;
     transition: all 0.3s ease;
   }
   .btn-ghost:hover {
-    color: #f4d03f;
-    border-color: rgba(212, 175, 55, 0.6);
+    color: var(--accent);
+    border-color: var(--accent);
     background: rgba(212, 175, 55, 0.05);
   }
 
@@ -182,14 +245,14 @@
     align-items: center;
     justify-content: center;
     gap: 1rem;
-    color: rgba(212, 175, 55, 0.6);
+    color: var(--accent);
   }
   .rune-divider::before,
   .rune-divider::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.5), transparent);
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
   }
 
   .card-3d {
@@ -213,9 +276,9 @@
 
   .glow-text {
     text-shadow:
-      0 0 10px rgba(212, 175, 55, 0.6),
-      0 0 20px rgba(212, 175, 55, 0.4),
-      0 0 30px rgba(212, 175, 55, 0.2);
+      0 0 10px var(--glow-rune),
+      0 0 20px var(--glow-rune),
+      0 0 30px var(--glow-rune);
   }
 
   .shimmer-bg {
@@ -248,6 +311,17 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* 主题感知的实用类 */
+  .text-theme-primary { color: var(--text); }
+  .text-theme-soft { color: var(--text-soft); }
+  .text-theme-muted { color: var(--text-muted); }
+  .bg-theme { background-color: var(--bg); }
+  .bg-theme-soft { background-color: var(--bg-soft); }
+  .bg-theme-elevated { background-color: var(--bg-elevated); }
+  .border-theme { border-color: var(--panel-border); }
+  .accent-text { color: var(--accent); }
+  .accent-text-bright { color: var(--accent-bright); }
 
   /* Grain noise overlay */
   .grain-overlay {
