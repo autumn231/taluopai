@@ -139,8 +139,8 @@ export default function Starfield({
           p.y + oy,
           p.r,
         );
-        gradient.addColorStop(0, `hsla(${p.hue}, ${p.sat}%, ${p.light}%, 0.6)`);
-        gradient.addColorStop(0.5, `hsla(${p.hue}, ${p.sat}%, ${p.light}%, 0.2)`);
+        gradient.addColorStop(0, `hsla(${p.hue}, ${p.sat}%, ${p.light}%, 0.2)`);
+        gradient.addColorStop(0.5, `hsla(${p.hue}, ${p.sat}%, ${p.light}%, 0.07)`);
         gradient.addColorStop(1, 'transparent');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, w, h);
