@@ -8,7 +8,7 @@ import EnergyVortex from '@/components/effects/EnergyVortex';
 import SparkleTrail from '@/components/effects/SparkleTrail';
 import { useReadingUI, useReadingActions } from '@/store/selectors';
 import { SPREADS, getSpreadPositions, THREE_MODES } from '@/data/spreads';
-import { getQuestionTheme, QUESTION_THEMES, type CardDimension, type QuestionTheme, type ThreeMode } from '@/data/questionThemes';
+import { getQuestionTheme, type CardDimension, type QuestionTheme, type ThreeMode } from '@/data/questionThemes';
 import { cn } from '@/lib/utils';
 
 export default function Result() {
@@ -908,7 +908,7 @@ function SectionLabel({
   );
 }
 
-// === 综合解读（基于实际牌面数据，4 段结构 + 整合建议） ===
+// === 综合解读（精简 3 段：映照 + 故事 + 指引，去重去杂） ===
 function SynthesisReading({
   spreadType,
   threeMode,
@@ -923,122 +923,67 @@ function SynthesisReading({
   const theme = getQuestionTheme(question);
   const readingOf = (c: any) => (c.reversed ? c.card.reversed : c.card.upright);
   const nameOf = (c: any) => `${c.card.name.cn}${c.reversed ? '（逆）' : '（正）'}`;
+  const dim = theme.primaryDimension;
 
-  // === 数据聚合 ===
-  const reversedCards = cards.filter((c) => c.reversed);
-  const majorCards = cards.filter((c) => c.card.arcana === 'major');
-  const minorCards = cards.filter((c) => c.card.arcana === 'minor');
-  const courtCards = cards.filter((c) => c.card.suit && (c.card.number ?? 0) >= 11);
+  // === 锚点：单牌=本身 / 三牌=当下 / 凯尔特=最终结果 ===
+  const anchorIdx = spreadType === 'single' ? 0 : spreadType === 'three' ? 1 : cards.length - 1;
+  const anchor = cards[anchorIdx];
+  const anchorR = readingOf(anchor);
+  const reversedCount = cards.filter((c) => c.reversed).length;
 
-  const elementCount: Record<string, number> = {};
-  cards.forEach((c) => {
-    const e = c.card.element || 'spirit';
-    elementCount[e] = (elementCount[e] || 0) + 1;
-  });
-  const sortedEls = Object.entries(elementCount).sort((a, b) => b[1] - a[1]);
-  const dominantEl = sortedEls[0]?.[0];
-  const elLabel: Record<string, string> = {
-    fire: '火 · 行动',
-    water: '水 · 情感',
-    air: '风 · 思维',
-    earth: '土 · 物质',
-    spirit: '灵 · 觉知',
-  };
-
-  // === 1. 整体基调 ===
-  const buildTone = (): string[] => {
-    const lines: string[] = [];
-    const reversedRatio = reversedCards.length / Math.max(cards.length, 1);
-    const majorRatio = majorCards.length / Math.max(cards.length, 1);
-
-    // 开场 - 用牌数引入
-    if (cards.length === 1) {
-      lines.push(`你抽到了「${nameOf(cards[0])}」。`);
-    } else {
-      const names = cards.map(nameOf).join('、');
-      lines.push(`你抽到了 ${cards.length} 张牌：${names}。`);
-    }
-
-    // 整组牌的张力
-    if (reversedCards.length === 0) {
-      lines.push('全部正位登场，宇宙把门直接推开——这段对话没有遮掩。');
-    } else if (reversedCards.length === cards.length) {
-      lines.push('所有牌均呈逆位，提示你：外在的转向需要先从内在的功课开始。');
-    } else {
-      const rNames = reversedCards.map(nameOf).join('、');
-      lines.push(
-        `其中 ${rNames} 呈逆位，${cards.length - reversedCards.length} 张正位——${
-          reversedRatio > 0.5
-            ? '逆位占多数，整体能量偏向内省、暂停、修正。'
-            : '正位主导，逆位牌则精准指出你需要留意的暗面。'
-        }`,
-      );
-    }
-
-    // 大/小阿尔卡那分布
-    if (cards.length >= 3) {
-      if (majorRatio >= 0.7) {
-        lines.push(
-          `大阿尔卡那占主导（${majorCards.length}/${cards.length}），这是一次关于「灵魂功课」的占卜，议题比你想象的更深远。`,
-        );
-      } else if (majorRatio <= 0.3) {
-        lines.push(
-          `小阿尔卡那为主（${minorCards.length}/${cards.length}），议题聚焦在具体可操作的日常层面——柴米油盐、工作细节、关系选择。`,
-        );
-      } else {
-        lines.push(
-          `大阿尔卡那与${minorCards.length ? '小阿尔卡那' : ''}并存，${majorCards.length ? '大' : ''}${minorCards.length ? '小' : ''}各有分工——既有命层的指引，也落在可执行的事务上。`,
-        );
-      }
-    }
-
-    // 主元素
-    if (dominantEl && sortedEls[0][1] >= 2) {
-      lines.push(
-        `从元素分布看，${elLabel[dominantEl]}为这一组牌的主调色。${
-          dominantEl === 'fire'
-            ? '行动力、创造力、激情——这是一个让你"动起来"的阶段。'
-            : dominantEl === 'water'
-            ? '情感、直觉、关系——这是一段需要倾听内心的时期。'
-            : dominantEl === 'air'
-            ? '思考、沟通、抉择——清晰是关键。'
-            : dominantEl === 'earth'
-            ? '稳定、物质、积累——慢即是快。'
-            : '觉知、灵性、超越——你正在被更高的东西引领。'
-        }`,
-      );
-    }
-
-    // 宫廷牌
-    if (courtCards.length > 0) {
-      const courtNames = courtCards.map(nameOf).join('、');
-      lines.push(
-        `出现${courtCards.length > 1 ? '了' : '了'}宫廷牌 ${courtNames}——它${
-          courtCards.length > 1 ? '们' : ''
-        }通常代表某个人格原型，可能是你内在的某个面向，也可能是你身边的某个人。`,
-      );
-    }
-
-    return lines;
-  };
-
-  // === 2. 关键脉络 ===
-  const buildThread = (): string[] => {
-    const lines: string[] = [];
+  // === 1. 整体映照：1 段话，描绘这组牌的能量基调（不重复罗列牌名） ===
+  const overallEcho = (): string => {
+    const parts: string[] = [];
 
     if (cards.length === 1) {
-      // 单牌 - 直接分析这张牌
+      parts.push(`你抽到的是「${nameOf(cards[0])}」。`);
+    } else {
+      parts.push(`这组牌由「${nameOf(cards[0])}」启程，到「${nameOf(cards[cards.length - 1])}」收束。`);
+    }
+
+    if (reversedCount === 0) {
+      parts.push('全部正位登场——这是一段没有遮掩的对话，牌面把门直接推开。');
+    } else if (reversedCount === cards.length) {
+      parts.push('所有牌均呈逆位——提示你：外在的转向必须先从内在的功课开始。');
+    } else if (reversedCount > cards.length / 2) {
+      parts.push('逆位占多数，整体能量偏向内省、暂停与修正。');
+    } else {
+      parts.push('正位主导，逆位牌则精准指出你需要留意的暗面。');
+    }
+
+    // 主调元素（仅在足够集中时提及）
+    const elCount: Record<string, number> = {};
+    cards.forEach((c) => {
+      const e = c.card.element || 'spirit';
+      elCount[e] = (elCount[e] || 0) + 1;
+    });
+    const sorted = Object.entries(elCount).sort((a, b) => b[1] - a[1]);
+    if (sorted[0] && sorted[0][1] >= 2) {
+      const elDesc: Record<string, string> = {
+        fire: '行动与热情的火焰',
+        water: '情感与直觉的深流',
+        air: '思考与沟通的清流',
+        earth: '稳定与物质的根基',
+        spirit: '觉知与超越的召唤',
+      };
+      parts.push(`主调色是${elDesc[sorted[0][0]]}。`);
+    }
+
+    return parts.join('');
+  };
+
+  // === 2. 牌的故事：每张牌一段叙述性文字（按牌阵位置语境展开） ===
+  const storyParagraphs = (): string[] => {
+    const paras: string[] = [];
+
+    if (cards.length === 1) {
       const c = cards[0];
       const r = readingOf(c);
       const kw = c.card.keywords.slice(0, 3).join('、');
-      lines.push(
-        `${c.card.name.cn}是此刻你问题的核心回应——${
-          c.reversed ? '逆位提示' : '正位强调'
-        }「${kw}」这一组能量。`,
+      paras.push(
+        `${c.card.name.cn}${c.reversed ? '逆位' : '正位'}登场，把「${kw}」这一组能量摆到你面前——${r[dim]}`,
       );
-      // 用 primary dimension 的解读作为展开
-      lines.push(r[theme.primaryDimension]);
-      return lines;
+      return paras;
     }
 
     if (cards.length === 3 && spreadType === 'three') {
@@ -1050,408 +995,118 @@ function SynthesisReading({
       const [n0, n1, n2] = modeNames[threeMode];
       const focus = theme.positionFocus.three[threeMode];
 
-      lines.push(
-        `「${n0}」的${nameOf(cards[0])}：${focus.past} ${readingOf(cards[0])[theme.primaryDimension]}`,
+      paras.push(
+        `「${n0}」是${nameOf(cards[0])}——${focus.past}${readingOf(cards[0])[dim]}`,
       );
-      lines.push(
-        `「${n1}」的${nameOf(cards[1])}：${focus.present} ${readingOf(cards[1])[theme.primaryDimension]}`,
+      paras.push(
+        `「${n1}」是${nameOf(cards[1])}——${focus.present}${readingOf(cards[1])[dim]}`,
       );
-      lines.push(
-        `「${n2}」的${nameOf(cards[2])}：${focus.future} ${readingOf(cards[2])[theme.primaryDimension]}`,
+      paras.push(
+        `「${n2}」是${nameOf(cards[2])}——${focus.future}${readingOf(cards[2])[dim]}`,
       );
 
-      // 演化方向
+      // 演化方向（首尾正逆对比）
       const c0 = cards[0];
       const c2 = cards[2];
       if (c0.reversed && !c2.reversed) {
-        lines.push('整体走向：从逆位过渡到正位——你正在走出某段阴霾，向清晰靠近。');
+        paras.push('从首到尾，是由逆位过渡到正位——你正在走出某段阴霾，向清晰靠近。');
       } else if (!c0.reversed && c2.reversed) {
-        lines.push('整体走向：从正位走入逆位——需要主动调整，否则会陷入旧的模式。');
-      } else if (c0.reversed === c2.reversed) {
-        lines.push('整体走向：首尾一致——这是一个连续递进的过程，没有断点。');
+        paras.push('从首到尾，是由正位走入逆位——需要主动调整，否则会陷入旧的模式。');
+      } else {
+        paras.push('首尾一致——这是一个连续递进的过程，没有断点。');
       }
-      return lines;
+      return paras;
     }
 
-    // 凯尔特 - 5 张关键牌
+    // 凯尔特：聚焦 5 张关键牌
     if (cards.length >= 5) {
       const positions: { idx: number; label: string; hint: string }[] = [
-        { idx: 0, label: '当下核心', hint: '此刻你站的位置' },
-        { idx: 1, label: '主要挑战', hint: '横亘在你面前的课题' },
-        { idx: 5, label: '近未来', hint: '即将浮现的走向' },
-        { idx: 6, label: '自我状态', hint: '你当下的内在' },
-        { idx: 9, label: '最终结果', hint: '沿当前路径的归宿' },
+        { idx: 0, label: '当下核心', hint: '此刻你站的位置——' },
+        { idx: 1, label: '主要挑战', hint: '横亘在你面前的课题——' },
+        { idx: 5, label: '近未来', hint: '即将浮现的走向——' },
+        { idx: 6, label: '自我状态', hint: '你当下的内在——' },
+        { idx: 9, label: '最终结果', hint: '沿当前路径的归宿——' },
       ];
       positions.forEach((p) => {
         if (p.idx >= cards.length) return;
         const c = cards[p.idx];
-        lines.push(
-          `【${p.label}】${nameOf(c)} —— ${p.hint}。${readingOf(c)[theme.primaryDimension]}`,
-        );
+        paras.push(`【${p.label}】${nameOf(c)}：${p.hint}${readingOf(c)[dim]}`);
       });
-      return lines;
+      return paras;
     }
 
-    return lines;
+    return paras;
   };
 
-  // === 3. 核心张力 ===
-  const buildTension = (): string | null => {
-    // 找出最重要的矛盾关系
-    if (cards.length < 2) {
-      // 单牌的张力 - 看正逆
-      const c = cards[0];
-      const r = readingOf(c);
-      if (c.reversed && r.warning) {
-        return `这张牌逆位出现时，${r.warning}所以它的「阴影面」会比平时更明显——请把它当作提醒而非宣判。`;
-      }
-      return null;
-    }
+  // === 3. 给你的指引：把 行动 + 时机 + 留意 合为一段，避免重复 ===
+  const guidance = (): string => {
+    const parts: string[] = [];
 
-    // 找出元素对立的牌
-    const opposites: Record<string, string> = {
-      fire: 'water',
-      water: 'fire',
-      air: 'earth',
-      earth: 'air',
-    };
-    const pairs: string[] = [];
-    for (let i = 0; i < cards.length; i++) {
-      for (let j = i + 1; j < cards.length; j++) {
-        const a = cards[i];
-        const b = cards[j];
-        if (opposites[a.card.element] === b.card.element) {
-          pairs.push(
-            `${nameOf(a)}（${elLabel[a.card.element] ?? a.card.element}）与 ${nameOf(b)}（${elLabel[b.card.element] ?? b.card.element}）形成一组张力——一者关于${a.card.element === 'fire' || a.card.element === 'water' ? '情感直觉' : '理性执行'}，一者关于${b.card.element === 'fire' || b.card.element === 'water' ? '情感直觉' : '理性执行'}。你无需二选一，牌面提示的是让两者在同一个身体里合作。`,
-          );
-        }
-      }
-    }
+    // 核心行动（优先取牌本身的 advice，缺时用主题级 advice）
+    const action = anchorR.advice || theme.advice;
+    if (action) parts.push(action);
 
-    // 找出一正一逆的关键对
-    if (cards.length >= 2) {
-      for (let i = 0; i < cards.length; i++) {
-        for (let j = i + 1; j < cards.length; j++) {
-          if (cards[i].reversed !== cards[j].reversed) {
-            const upright = cards[i].reversed ? cards[j] : cards[i];
-            const reversed = cards[i].reversed ? cards[i] : cards[j];
-            pairs.push(
-              `${nameOf(upright)}（正位）是你可以走通的方向，而 ${nameOf(reversed)}（逆位）则指出了同一议题的盲区——看清逆位那一张说什么，能让你更稳地站在正位。`,
-            );
-            break; // 只取一对，避免过载
-          }
-        }
-      }
-    }
+    // 时间提示（仅当牌本身有时机信息时给出）
+    if (anchorR.timing) parts.push(anchorR.timing);
 
-    return pairs.length > 0 ? pairs.join('\n\n') : null;
+    // 需要留意（优先取牌本身的 warning，缺时用主题级 caution）
+    const caution = anchorR.warning || theme.caution;
+    if (caution) parts.push(caution);
+
+    return parts.join(' ');
   };
 
-  // === 4. 走向与时机 ===
-  const buildTrajectory = (): string => {
-    const anchor = cards[spreadType === 'single' ? 0 : spreadType === 'three' ? 1 : cards.length - 1];
-    const r = readingOf(anchor);
-    const first = cards[0];
-    const last = cards[cards.length - 1];
-
-    let line = '';
-    if (cards.length === 1) {
-      line = `围绕「${theme.label}」这一问，这张牌指向——`;
-    } else {
-      line = `从开篇的「${nameOf(first)}」到收束的「${nameOf(last)}」，这组牌铺陈了一条演变之路——`;
-    }
-
-    if (r.timing) {
-      line += r.timing;
-    } else {
-      line += '时机是流动的，请相信你的直觉。';
-    }
-    return line;
-  };
-
-  // === 5. 整合建议 ===
-  const buildAdvice = () => {
-    if (cards.length === 0) return null;
-    const anchorIdx = spreadType === 'single' ? 0 : spreadType === 'three' ? 1 : cards.length - 1;
-    const anchor = cards[anchorIdx];
-    const anchorR = readingOf(anchor);
-    const origin = cards[0];
-    const originR = readingOf(origin);
-
-    return (
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {anchorR.advice && (
-            <div className="rounded-xl border border-mystic-gold/40 bg-mystic-gold/8 p-4 sm:p-5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-mystic-gold/10 rounded-full blur-2xl" />
-              <div className="relative">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-mystic-lightgold">✦</span>
-                  <span className="font-title text-xs sm:text-sm text-mystic-lightgold tracking-widest">
-                    核心行动指引
-                  </span>
-                </div>
-                <p className="text-sm sm:text-base text-midnight-100/95 leading-relaxed">
-                  {anchorR.advice}
-                </p>
-                <div className="mt-2 text-[10px] text-mystic-gold/60 tracking-widest">
-                  — 来自 {anchor.card.name.cn}{anchor.reversed ? '（逆）' : '（正）'}
-                </div>
-              </div>
-            </div>
-          )}
-          {cards.length > 1
-            ? originR.warning || anchorR.warning
-            : anchorR.warning && (
-                <div className="rounded-xl border border-rose-400/30 bg-rose-400/5 p-4 sm:p-5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-rose-400/90">⚠</span>
-                    <span className="font-title text-xs sm:text-sm text-rose-400/90 tracking-widest">
-                      需要留意
-                    </span>
-                  </div>
-                  <p className="text-sm sm:text-base text-midnight-100/95 leading-relaxed">
-                    {originR.warning || anchorR.warning}
-                  </p>
-                  <div className="mt-2 text-[10px] text-rose-400/60 tracking-widest">
-                    — 来自 {origin.card.name.cn}{origin.reversed ? '（逆）' : '（正）'}
-                  </div>
-                </div>
-              )}
-        </div>
-        {anchorR.timing && (
-          <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 p-4 sm:p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-amber-400/85">⏳</span>
-              <span className="font-title text-xs sm:text-sm text-amber-400/85 tracking-widest">
-                时间提示
-              </span>
-            </div>
-            <p className="text-sm sm:text-base text-midnight-100/95 leading-relaxed">
-              {anchorR.timing}
-            </p>
-          </div>
-        )}
-      </div>
-    );
-  };
+  const hasGuidance = guidance().length > 0;
 
   return (
-    <div className="space-y-5 sm:space-y-6 font-body text-sm sm:text-base leading-relaxed text-midnight-100/90">
-      {/* === 0. 主题开场（问题回声 + 主题核心理念） === */}
-      <div className="glass-panel rounded-xl p-4 sm:p-5 border-l-2 border-mystic-gold/60">
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <span className="text-xs font-title text-mystic-gold/80 tracking-widest">✦ 你所问</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-mystic-gold/15 text-mystic-lightgold border border-mystic-gold/30">
-            {theme.label}主题
-          </span>
-        </div>
-        <p className="font-body italic text-base sm:text-lg text-midnight-100/95 mb-3">
-          "{question.trim()}"
-        </p>
-        <p className="text-sm sm:text-base text-midnight-100/85 leading-relaxed">
-          {theme.guidance}
-        </p>
+    <div className="space-y-6 sm:space-y-8 font-body text-sm sm:text-base leading-relaxed text-midnight-100/90">
+      {/* === 1. 整体映照（首段，开门见山） === */}
+      <p className="text-base sm:text-lg text-midnight-100/95 leading-relaxed font-body">
+        {overallEcho()}
+      </p>
+
+      {/* === 2. 牌的故事（按牌位展开的叙述） === */}
+      <div className="glass-panel rounded-xl p-5 sm:p-6 space-y-4 border-l-2 border-mystic-gold/40">
+        {storyParagraphs().map((p, i) => (
+          <p
+            key={i}
+            className="text-sm sm:text-base text-midnight-100/90 leading-relaxed"
+          >
+            {p}
+          </p>
+        ))}
       </div>
 
-      {/* === 1. 整体基调 === */}
-      <section>
-        <SectionSubLabel step="01" title="整体基调" />
-        <div className="glass-panel rounded-xl p-4 sm:p-5 space-y-3">
-          {buildTone().map((line, i) => (
-            <p key={i} className="text-sm sm:text-base text-midnight-100/90 leading-relaxed">
-              {line}
-            </p>
-          ))}
-        </div>
-      </section>
-
-      {/* === 2. 关键脉络 === */}
-      <section>
-        <SectionSubLabel
-          step="02"
-          title={spreadType === 'single' ? '这张牌的回应' : spreadType === 'three' ? '牌的展开' : '五张关键牌'}
-        />
-        <div className="glass-panel rounded-xl p-4 sm:p-5 space-y-3">
-          {buildThread().map((line, i) => (
-            <p key={i} className="text-sm sm:text-base text-midnight-100/90 leading-relaxed">
-              {line}
-            </p>
-          ))}
-        </div>
-      </section>
-
-      {/* === 3. 核心张力 === */}
-      {buildTension() && (
-        <section>
-          <SectionSubLabel step="03" title="核心张力" highlight />
-          <div className="rounded-xl p-4 sm:p-5 border border-mystic-gold/30 bg-mystic-gold/5 space-y-3">
-            {buildTension()!
-              .split('\n\n')
-              .map((line, i) => (
-                <p key={i} className="text-sm sm:text-base text-midnight-100/90 leading-relaxed">
-                  {line}
-                </p>
-              ))}
+      {/* === 3. 给你的指引（行动 + 时机 + 留意，1 段话） === */}
+      {hasGuidance && (
+        <div className="rounded-xl p-5 sm:p-6 border border-mystic-lightgold/40 bg-mystic-gold/8 relative overflow-hidden">
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-mystic-gold/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="relative flex items-start gap-3">
+            <span className="text-mystic-lightgold text-lg leading-none mt-0.5">✦</span>
+            <div className="flex-1 min-w-0">
+              <div className="font-title text-sm sm:text-base text-mystic-lightgold tracking-widest mb-2">
+                给你的指引
+              </div>
+              <p className="text-sm sm:text-base text-midnight-100/95 leading-relaxed">
+                {guidance()}
+              </p>
+              <div className="mt-2 text-[10px] text-mystic-gold/60 tracking-widest">
+                — 取自 {anchor.card.name.cn}{anchor.reversed ? '（逆）' : '（正）'}
+              </div>
+            </div>
           </div>
-        </section>
+        </div>
       )}
 
-      {/* === 4. 走向与时机 === */}
-      <section>
-        <SectionSubLabel step="04" title="走向与时机" />
-        <div className="glass-panel rounded-xl p-4 sm:p-5">
-          <p className="text-sm sm:text-base text-midnight-100/90 leading-relaxed">
-            {buildTrajectory()}
-          </p>
-        </div>
-      </section>
-
-      {/* === 5. 整合建议 === */}
-      <section>
-        <SectionSubLabel step="05" title="整合建议" highlight />
-        {buildAdvice()}
-      </section>
-
-      {/* === 6. 收束 === */}
-      <div className="mt-2 pt-6 border-t border-mystic-gold/15 text-center">
+      {/* === 收束 === */}
+      <div className="text-center pt-2">
         <p className="font-title text-sm sm:text-base text-mystic-gold/90 tracking-widest">
           ✦ {theme.closing} ✦
         </p>
         <p className="mt-3 text-xs sm:text-sm text-midnight-200/70 italic">
-          记住：塔罗不预测命运，而是照亮当下。每一次占卜都是与自己内心的一次深度对话。
+          塔罗不预测命运，而是照亮当下。每一次占卜都是与自己内心的一次深度对话。
         </p>
       </div>
-    </div>
-  );
-}
-
-// === 子标签 - Section 03 内部使用的小标签 ===
-function SectionSubLabel({
-  step,
-  title,
-  highlight = false,
-}: {
-  step: string;
-  title: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-2 mb-3">
-      <span
-        className={cn(
-          'text-[10px] sm:text-[11px] font-display tracking-widest shrink-0',
-          highlight ? 'text-mystic-lightgold' : 'text-mystic-gold/60',
-        )}
-      >
-        {step}
-      </span>
-      <h4
-        className={cn(
-          'text-sm sm:text-base font-title tracking-wider',
-          highlight ? 'text-mystic-lightgold' : 'text-mystic-gold',
-        )}
-      >
-        {title}
-      </h4>
-      <div className="flex-1 h-px bg-gradient-to-r from-mystic-gold/20 to-transparent" />
-    </div>
-  );
-}
-
-// === 时间线单行 ===
-function TimelineRow({
-  label,
-  card,
-  hint,
-  dimension,
-  highlight = false,
-}: {
-  label: string;
-  card: any;
-  hint: string;
-  dimension: CardDimension;
-  highlight?: boolean;
-}) {
-  const reading = card.reversed ? card.card.reversed : card.card.upright;
-  return (
-    <div
-      className={cn(
-        'rounded-lg p-3 sm:p-4 border-l-2',
-        highlight
-          ? 'border-mystic-lightgold bg-mystic-gold/5'
-          : 'border-mystic-gold/40 bg-midnight-900/30',
-      )}
-    >
-      <div className="flex flex-wrap items-center gap-2 mb-1.5">
-        <span className="text-xs font-title text-mystic-gold tracking-widest">{label}</span>
-        <span className="text-mystic-lightgold">·</span>
-        <span className="text-sm font-display text-mystic-lightgold">{card.card.name.cn}</span>
-        <span className="text-xs text-midnight-300/60">({card.card.name.en})</span>
-        {card.reversed && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-rose-400/40 text-rose-400/90">
-            逆位
-          </span>
-        )}
-        {highlight && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-mystic-gold/20 text-mystic-lightgold border border-mystic-gold/40">
-            此刻
-          </span>
-        )}
-      </div>
-      <div className="text-xs text-midnight-300/70 italic mb-2">{hint}</div>
-      <p className="text-sm sm:text-base text-midnight-100/90 leading-relaxed">
-        {reading[dimension]}
-      </p>
-    </div>
-  );
-}
-
-// === 重点牌行（凯尔特十字） ===
-function KeyCardRow({
-  positionName,
-  positionHint,
-  card,
-  dimension,
-  isFinal = false,
-}: {
-  positionName: string;
-  positionHint: string;
-  card: any;
-  dimension: CardDimension;
-  isFinal?: boolean;
-}) {
-  const reading = card.reversed ? card.card.reversed : card.card.upright;
-  return (
-    <div
-      className={cn(
-        'rounded-lg p-3 sm:p-4 border-l-2',
-        isFinal
-          ? 'border-mystic-lightgold bg-mystic-gold/8 shadow-gold-glow'
-          : 'border-mystic-gold/40 bg-midnight-900/30',
-      )}
-    >
-      <div className="flex flex-wrap items-center gap-2 mb-1.5">
-        <span className="text-xs font-title text-mystic-gold/80 tracking-widest">
-          {positionName}
-        </span>
-        <span className="text-mystic-lightgold">·</span>
-        <span className="text-sm font-display text-mystic-lightgold">{card.card.name.cn}</span>
-        {card.reversed && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-rose-400/40 text-rose-400/90">
-            逆位
-          </span>
-        )}
-        {isFinal && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-mystic-gold/20 text-mystic-lightgold border border-mystic-gold/40">
-            最终
-          </span>
-        )}
-      </div>
-      <div className="text-xs text-midnight-300/70 italic mb-2">{positionHint}</div>
-      <p className="text-sm sm:text-base text-midnight-100/90 leading-relaxed">
-        {reading[dimension]}
-      </p>
     </div>
   );
 }
