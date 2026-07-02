@@ -13,17 +13,34 @@ export interface TarotCard {
   suit?: Suit;
   number?: number; // 1-14 for minor arcana, undefined for major
   keywords: string[];
-  upright: Reading;
-  reversed: Reading;
+  upright: BaseReading & Partial<Omit<Reading, keyof BaseReading>>;
+  reversed: BaseReading & Partial<Omit<Reading, keyof BaseReading>>;
   symbol: string; // 牌面象征元素描述
   element: Element;
 }
 
-export interface Reading {
+/** 牌面解读 - 基础 4 维（爱/事业/财富/总览） */
+export interface BaseReading {
   general: string;
   love: string;
   career: string;
   wealth: string;
+}
+
+/** 完整解读 - 基础 4 维 + 扩展 6 维（健康/人际/灵性/建议/警示/时间） */
+export interface Reading extends BaseReading {
+  /** 健康 / 身心状态 */
+  health: string;
+  /** 人际 / 朋友 / 家庭 */
+  relationship: string;
+  /** 灵性 / 内在成长 */
+  spiritual: string;
+  /** 行动建议 - 一句话指引 */
+  advice: string;
+  /** 需要留意 - 警示 / 陷阱 */
+  warning: string;
+  /** 时间提示 - 短期 / 中期 / 长期 */
+  timing: string;
 }
 
 export type Element = 'spirit' | 'fire' | 'water' | 'air' | 'earth';
