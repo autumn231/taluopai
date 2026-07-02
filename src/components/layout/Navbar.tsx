@@ -2,7 +2,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Sparkles } from 'lucide-react';
-import ThemeToggle from './ThemeToggle';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -33,16 +32,10 @@ export default function Navbar() {
       transition={{ duration: 0.6, ease: 'easeOut' }}
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
-        scrolled ? 'backdrop-blur-xl border-b' : 'bg-transparent',
-      )}
-      style={
         scrolled
-          ? {
-              background: 'var(--nav-scrolled)',
-              borderColor: 'var(--nav-border)',
-            }
-          : undefined
-      }
+          ? 'bg-midnight-950/80 backdrop-blur-xl border-b border-mystic-gold/10'
+          : 'bg-transparent',
+      )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Logo */}
@@ -83,23 +76,16 @@ export default function Navbar() {
           <Link to="/reading" className="ml-4 btn-mystic text-xs">
             开始占卜
           </Link>
-          <div className="ml-3">
-            <ThemeToggle />
-          </div>
         </nav>
 
         {/* Mobile menu button */}
-        <div className="md:hidden flex items-center gap-2">
-          <ThemeToggle className="!w-9 !h-9" />
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 hover:text-mystic-gold"
-            style={{ color: 'var(--text-soft)' }}
-            aria-label="菜单"
-          >
-            {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
-        </div>
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="md:hidden p-2 text-midnight-100 hover:text-mystic-gold"
+          aria-label="菜单"
+        >
+          {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
       </div>
 
       {/* Mobile menu */}
@@ -110,11 +96,7 @@ export default function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="md:hidden overflow-hidden backdrop-blur-xl border-t"
-            style={{
-              background: 'var(--nav-scrolled)',
-              borderColor: 'var(--nav-border)',
-            }}
+            className="md:hidden overflow-hidden bg-midnight-950/95 backdrop-blur-xl border-t border-mystic-gold/10"
           >
             <nav className="flex flex-col p-4 gap-2">
               {NAV_ITEMS.map((item) => {

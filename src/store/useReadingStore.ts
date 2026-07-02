@@ -4,12 +4,15 @@ import type { DrawnCard, SpreadType, TarotCard } from '@/types';
 import { drawCards, shouldReverse, shouldReversedSeeded, drawCardsByQuestion } from '@/utils/shuffle';
 import { TAROT_CARDS } from '@/data/tarotCards';
 import { getSpread } from '@/data/spreads';
+import type { ThreeMode } from '@/data/questionThemes';
 import { generateId } from '@/lib/utils';
 
 export type Stage = 'idle' | 'meditation' | 'shuffle' | 'select' | 'reveal' | 'done';
 
 interface ReadingState {
   spreadType: SpreadType | null;
+  /** 三张牌阵的子模式 */
+  threeMode: ThreeMode;
   stage: Stage;
   drawnCards: DrawnCard[];
   question: string;
@@ -17,6 +20,7 @@ interface ReadingState {
 
   // Actions
   setSpread: (type: SpreadType) => void;
+  setThreeMode: (mode: ThreeMode) => void;
   setQuestion: (q: string) => void;
   startMeditation: () => void;
   startShuffle: () => void;
@@ -31,6 +35,7 @@ export const useReadingStore = create<ReadingState>()(
   persist(
     (set, get) => ({
       spreadType: null,
+      threeMode: 'time',
       stage: 'idle',
       drawnCards: [],
       question: '',
@@ -49,6 +54,8 @@ export const useReadingStore = create<ReadingState>()(
         });
       },
 
+      setThreeMode: (mode) => set({ threeMode: mode }),
+
       setQuestion: (q) => set({ question: q }),
 
       startMeditation: () => set({ stage: 'meditation' }),
@@ -63,7 +70,7 @@ export const useReadingStore = create<ReadingState>()(
       startSelect: () => set({ stage: 'select' }),
 
       selectCards: (positions) => {
-        const { spreadType, question, deck } = get();
+        const { spreadType, question, deck, threeMode } = get();
         if (!spreadType) return;
         const spread = getSpread(spreadType);
 
@@ -73,9 +80,10 @@ export const useReadingStore = create<ReadingState>()(
           spread.cardCount,
           question,
           spreadType,
+          threeMode,
         );
 
-        const seedBase = `${spreadType}::${question.trim()}::${positions.join(',')}`;
+        const seedBase = `${spreadType}::${threeMode}::${question.trim()}::${positions.join(',')}`;
         const drawn: DrawnCard[] = newDeck.map((card, idx) => ({
           card,
           reversed: question.trim()
@@ -95,6 +103,7 @@ export const useReadingStore = create<ReadingState>()(
       reset: () =>
         set({
           spreadType: null,
+          threeMode: 'time',
           stage: 'idle',
           drawnCards: [],
           question: '',
@@ -105,6 +114,7 @@ export const useReadingStore = create<ReadingState>()(
       name: 'mystic-tarot-reading',
       partialize: (state) => ({
         spreadType: state.spreadType,
+        threeMode: state.threeMode,
         drawnCards: state.drawnCards,
         question: state.question,
       }),

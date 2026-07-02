@@ -1,4 +1,32 @@
-import type { SpreadDefinition, SpreadType } from '@/types';
+import type { SpreadDefinition, SpreadType, SpreadPosition } from '@/types';
+import type { ThreeMode } from './questionThemes';
+
+const THREE_POSITIONS: Record<ThreeMode, SpreadPosition[]> = {
+  /** 时间之流：过去 / 当下 / 未来 */
+  time: [
+    { index: 0, name: '过去', meaning: 'The Past', description: '影响当前局面的过往因素' },
+    { index: 1, name: '现在', meaning: 'The Present', description: '你当下所处的核心能量' },
+    { index: 2, name: '未来', meaning: 'The Future', description: '若沿此路径发展的可能走向' },
+  ],
+  /** 心·行·果：心态 / 行动 / 结果 */
+  mind: [
+    { index: 0, name: '心', meaning: 'The Heart', description: '你此刻内在的真实心态' },
+    { index: 1, name: '行', meaning: 'The Action', description: '你当下可以采取的具体行动' },
+    { index: 2, name: '果', meaning: 'The Outcome', description: '这份行动可能带来的结果' },
+  ],
+  /** 自由三牌：凭直觉整体感知 */
+  free: [
+    { index: 0, name: '第一张', meaning: 'The First Whisper', description: '牌阵想让你先看见的一面' },
+    { index: 1, name: '第二张', meaning: 'The Second Whisper', description: '牌阵想让你停留在此刻的一面' },
+    { index: 2, name: '第三张', meaning: 'The Third Whisper', description: '牌阵想让你望向前方的一面' },
+  ],
+};
+
+export const THREE_MODES: Record<ThreeMode, { id: ThreeMode; name: string; desc: string }> = {
+  time: { id: 'time', name: '时间之流', desc: '过去 / 当下 / 未来' },
+  mind: { id: 'mind', name: '心·行·果', desc: '心态 / 行动 / 结果' },
+  free: { id: 'free', name: '自由三牌', desc: '凭直觉整体感知' },
+};
 
 export const SPREADS: Record<SpreadType, SpreadDefinition> = {
   single: {
@@ -19,29 +47,11 @@ export const SPREADS: Record<SpreadType, SpreadDefinition> = {
   three: {
     type: 'three',
     name: '三张牌阵',
-    description: '时间之流 · 过去/现在/未来',
-    longDescription: '经典三张牌阵，揭示事物发展的三个阶段。洞察过去根源、理解当下处境、预见未来走向。',
+    description: '三扇窗口 · 看见更完整的答案',
+    longDescription: '经典三张牌阵，揭示事物的三个切面。可选"时间之流"、"心·行·果"或"自由三牌"三种解读模式。',
     cardCount: 3,
-    positions: [
-      {
-        index: 0,
-        name: '过去',
-        meaning: 'The Past',
-        description: '影响当前局面的过往因素',
-      },
-      {
-        index: 1,
-        name: '现在',
-        meaning: 'The Present',
-        description: '你当下所处的核心能量',
-      },
-      {
-        index: 2,
-        name: '未来',
-        meaning: 'The Future',
-        description: '若沿此路径发展的可能走向',
-      },
-    ],
+    /** 默认使用时间之流 - 实际位置由 getSpreadPositions 决定 */
+    positions: THREE_POSITIONS.time,
   },
   celtic: {
     type: 'celtic',
@@ -65,3 +75,11 @@ export const SPREADS: Record<SpreadType, SpreadDefinition> = {
 };
 
 export const getSpread = (type: SpreadType): SpreadDefinition => SPREADS[type];
+
+/**
+ * 三张牌阵的位置根据 threeMode 动态返回
+ */
+export function getSpreadPositions(type: SpreadType, threeMode: ThreeMode = 'time'): SpreadPosition[] {
+  if (type === 'three') return THREE_POSITIONS[threeMode];
+  return SPREADS[type].positions;
+}
