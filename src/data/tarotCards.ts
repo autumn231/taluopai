@@ -1,4 +1,5 @@
 import type { TarotCard, Suit } from '@/types';
+import { MAJOR_EXT } from './tarotMajorExtended';
 
 // 元素映射
 const suitToElement: Record<Suit, 'fire' | 'water' | 'air' | 'earth'> = {
@@ -475,7 +476,6 @@ function generateMinorMeaning(
   reversedDesc: string,
 ) {
   const element = suitToElement[suit];
-  const isCourt = num >= 11;
   return {
     keywords: uprightKeywords,
     element,
@@ -484,15 +484,146 @@ function generateMinorMeaning(
       love: getLoveMeaning(num, suit, 'upright'),
       career: getCareerMeaning(num, suit, 'upright'),
       wealth: getWealthMeaning(num, suit, 'upright'),
+      health: getHealthMeaning(num, suit, 'upright'),
+      relationship: getRelationshipMeaning(num, suit, 'upright'),
+      spiritual: getSpiritualMeaning(num, suit, 'upright'),
+      advice: getAdviceMeaning(num, suit, 'upright'),
+      warning: getWarningMeaning(num, suit, 'upright'),
+      timing: getTimingMeaning(num, suit, 'upright'),
     },
     reversed: {
       general: reversedDesc,
       love: getLoveMeaning(num, suit, 'reversed'),
       career: getCareerMeaning(num, suit, 'reversed'),
       wealth: getWealthMeaning(num, suit, 'reversed'),
+      health: getHealthMeaning(num, suit, 'reversed'),
+      relationship: getRelationshipMeaning(num, suit, 'reversed'),
+      spiritual: getSpiritualMeaning(num, suit, 'reversed'),
+      advice: getAdviceMeaning(num, suit, 'reversed'),
+      warning: getWarningMeaning(num, suit, 'reversed'),
+      timing: getTimingMeaning(num, suit, 'reversed'),
     },
   };
 }
+
+// === 小阿尔卡那 - 扩展字段生成器 ===
+// 基于花色 + 数字 维度组合，让 56 张牌都有一致的解读深度
+
+type MinorTpl = { up: string; re: string };
+
+const HEALTH_TPL: Record<Suit, MinorTpl> = {
+  wands: {
+    up: '能量充沛，是开始运动计划或体力活动的黄金期。注意运动损伤。',
+    re: '精力透支或急躁易怒。注意休息，避免过度劳累。',
+  },
+  cups: {
+    up: '情绪与身体连接紧密，注意补水、皮肤保养与情绪调养。',
+    re: '情绪积压影响身体，注意排解、倾诉或寻求专业帮助。',
+  },
+  swords: {
+    up: '头脑清晰，呼吸系统与神经系统运作良好。',
+    re: '精神压力导致失眠、偏头痛或焦虑。',
+  },
+  pentacles: {
+    up: '身体状态稳定，是改善饮食习惯与作息的好时机。',
+    re: '注意慢性疲劳或过度安逸带来的健康问题。',
+  },
+};
+
+const RELATIONSHIP_TPL: Record<Suit, MinorTpl> = {
+  wands: {
+    up: '朋友圈充满活力，可能结识志同道合的伙伴。',
+    re: '人际中可能因冲动或争夺而出现摩擦。',
+  },
+  cups: {
+    up: '情感连接加深，可能遇到真心朋友或亲近的伙伴。',
+    re: '人际中界限不清，过度依赖或冷漠。',
+  },
+  swords: {
+    up: '通过理性沟通改善人际关系。',
+    re: '言语冲突或误解影响人际和谐。',
+  },
+  pentacles: {
+    up: '人际关系务实稳定，可能建立长期合作或社群。',
+    re: '人际中存在利益纠葛或信任问题。',
+  },
+};
+
+const SPIRITUAL_TPL: Record<Suit, MinorTpl> = {
+  wands: {
+    up: '通过行动与创造力连接灵性。打破常规的修行方式。',
+    re: '用行动代替思考，避免蛮力修行的陷阱。',
+  },
+  cups: {
+    up: '直觉与梦境是重要的指引。倾听内在的声音。',
+    re: '被情绪淹没，需要回到内心中心。',
+  },
+  swords: {
+    up: '通过思考与冥想寻找答案。理性与灵性可以共存。',
+    re: '过度用脑反而阻断了直觉的流动。',
+  },
+  pentacles: {
+    up: '灵性就在日常中。接地气的修行最有力量。',
+    re: '困在物质层面，忘记了灵性的存在。',
+  },
+};
+
+const ADVICE_TPL: Record<Suit, MinorTpl> = {
+  wands: {
+    up: '保持热情与行动力，让你的火点燃他人的灵感。',
+    re: '暂停脚步，思考方向比盲目冲刺更重要。',
+  },
+  cups: {
+    up: '跟随你的心，情感的流动会指引你。',
+    re: '先稳定情绪，再做决定。',
+  },
+  swords: {
+    up: '用清晰的思维和公正的判断做出选择。',
+    re: '放下完美主义，先完成再完美。',
+  },
+  pentacles: {
+    up: '踏实积累，回报会在未来到来。',
+    re: '改变策略，重复旧方法只会得到旧结果。',
+  },
+};
+
+const WARNING_TPL: Record<Suit, MinorTpl> = {
+  wands: {
+    up: '不要让热情烧毁边界，注意保护自己与他人。',
+    re: '冲动是最大的敌人，三思后行。',
+  },
+  cups: {
+    up: '不要被情绪绑架，保持一定距离看清全局。',
+    re: '情绪失控或陷入受害者心态。',
+  },
+  swords: {
+    up: '言语可以伤人，慎用你的智慧。',
+    re: '避免钻牛角尖或陷入思维陷阱。',
+  },
+  pentacles: {
+    up: '不要只盯着物质，忽略了精神世界。',
+    re: '警惕贪婪、囤积或过度安逸。',
+  },
+};
+
+const TIMING_TPL: Record<Suit, MinorTpl> = {
+  wands: {
+    up: '事情会快速发展（1-2 周内），把握当下的势头。',
+    re: '暂停 1-2 周再行动，蓄势待发。',
+  },
+  cups: {
+    up: '跟随情感的节奏，自然展开（2-4 周）。',
+    re: '需要更长的情绪修复期（1-3 个月）。',
+  },
+  swords: {
+    up: '做决定后立即行动（数日到 2 周）。',
+    re: '等待信息更完整再做判断（1-2 周）。',
+  },
+  pentacles: {
+    up: '长期布局（3-6 个月），耐心是关键词。',
+    re: '短期难有变化（1-2 个月），需要策略调整。',
+  },
+};
 
 function getLoveMeaning(num: number, suit: Suit, dir: 'upright' | 'reversed'): string {
   const elementMeanings: Record<Suit, { up: string; re: string }> = {
@@ -559,6 +690,16 @@ function getWealthMeaning(num: number, suit: Suit, dir: 'upright' | 'reversed'):
   };
   return elementMeanings[suit][dir];
 }
+
+// === 扩展字段 helper ===
+const tpl = (m: MinorTpl, dir: 'upright' | 'reversed') => m[dir === 'upright' ? 'up' : 're'];
+
+const getHealthMeaning = (n: number, s: Suit, d: 'upright' | 'reversed') => tpl(HEALTH_TPL[s], d);
+const getRelationshipMeaning = (n: number, s: Suit, d: 'upright' | 'reversed') => tpl(RELATIONSHIP_TPL[s], d);
+const getSpiritualMeaning = (n: number, s: Suit, d: 'upright' | 'reversed') => tpl(SPIRITUAL_TPL[s], d);
+const getAdviceMeaning = (n: number, s: Suit, d: 'upright' | 'reversed') => tpl(ADVICE_TPL[s], d);
+const getWarningMeaning = (n: number, s: Suit, d: 'upright' | 'reversed') => tpl(WARNING_TPL[s], d);
+const getTimingMeaning = (n: number, s: Suit, d: 'upright' | 'reversed') => tpl(TIMING_TPL[s], d);
 
 // 小阿尔卡那数据定义
 const MINOR_ARCANA_DATA: Array<{
@@ -659,7 +800,15 @@ function buildMinorCards(): TarotCard[] {
 }
 
 export const TAROT_CARDS: TarotCard[] = [
-  ...MAJOR_ARCANA.map((card) => ({ ...card, arcana: 'major' as const })),
+  ...MAJOR_ARCANA.map((card) => {
+    const ext = MAJOR_EXT[card.id];
+    return {
+      ...card,
+      arcana: 'major' as const,
+      upright: { ...card.upright, ...(ext?.upright ?? {}) },
+      reversed: { ...card.reversed, ...(ext?.reversed ?? {}) },
+    };
+  }),
   ...buildMinorCards(),
 ];
 

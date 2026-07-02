@@ -650,8 +650,8 @@ function ShuffleStage({ onComplete }: { onComplete: () => void }) {
     }
   }, [phase, onComplete]);
 
-  // 生成 12 张牌（视觉上的洗牌堆）
-  const deckCards = Array.from({ length: 12 });
+  // 生成 18 张牌（视觉上的洗牌堆 - 加密更显仪式感）
+  const deckCards = Array.from({ length: 18 });
 
   return (
     <motion.section
@@ -787,15 +787,15 @@ function SelectStage({
     return () => clearTimeout(t);
   }, []);
 
-  // 弧形牌阵布局：14 张牌形成一条优雅的扇形弧线
+  // 弧形牌阵布局：22 张牌形成一条优雅的扇形弧线
   const fanPositions = useMemo(
     () =>
       Array.from({ length: FAN_SIZE }, (_, i) => {
         const t = (i / (FAN_SIZE - 1)) * 2 - 1;
-        const xOffset = t * 180;
-        const yOffset = -Math.pow(Math.abs(t), 1.6) * 32;
-        const angle = t * 16;
-        const floatPhase = i * 0.6;
+        const xOffset = t * 230;
+        const yOffset = -Math.pow(Math.abs(t), 1.6) * 38;
+        const angle = t * 14;
+        const floatPhase = i * 0.55;
         const floatAmp = 4 + Math.abs(t) * 2;
         return { xOffset, yOffset, angle, t, idx: i, floatPhase, floatAmp };
       }),
@@ -811,9 +811,9 @@ function SelectStage({
     if (total === 0) return [];
     return remaining.map((origIdx, newIdx) => {
       const t = total === 1 ? 0 : (newIdx / (total - 1)) * 2 - 1;
-      const xOffset = t * 180;
-      const yOffset = -Math.pow(Math.abs(t), 1.6) * 32;
-      const angle = t * 16;
+      const xOffset = t * 230;
+      const yOffset = -Math.pow(Math.abs(t), 1.6) * 38;
+      const angle = t * 14;
       return { origIdx, xOffset, yOffset, angle };
     });
   }, [selected]);
