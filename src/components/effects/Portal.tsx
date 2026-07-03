@@ -22,7 +22,8 @@ export default function Portal({ active, onComplete, duration = 1.5, className =
     >
       {/* 中心暗化 */}
       <motion.div
-        className="absolute inset-0 bg-midnight-950"
+        className="absolute inset-0"
+        style={{ backgroundColor: 'var(--overlay-darken)' }}
         initial={{ opacity: 0 }}
         animate={{ opacity: [0, 0.6, 0.85] }}
         transition={{ duration, times: [0, 0.6, 1], ease: 'easeIn' }}

@@ -30,6 +30,11 @@
     --vignette-1: rgba(5, 3, 20, 0.5);
     --vignette-2: rgba(5, 3, 20, 0.9);
 
+    /* 过场/传送门暗化层 - 跟随主题 */
+    --overlay-darken: rgba(15, 10, 40, 0.98);
+    --overlay-mid: rgba(45, 25, 90, 0.85);
+    --overlay-accent: rgba(212, 175, 55, 0.4);
+
     --scrollbar-track: #0a0824;
     --scrollbar-thumb-a: #d4af37;
     --scrollbar-thumb-b: #6e4ea3;
@@ -73,6 +78,11 @@
 
     --vignette-1: rgba(168, 132, 42, 0.05);
     --vignette-2: rgba(168, 132, 42, 0.1);
+
+    /* 过场/传送门暗化层 - 白天用深棕金压暗但保持暖调 */
+    --overlay-darken: rgba(74, 45, 15, 0.92);
+    --overlay-mid: rgba(120, 90, 40, 0.7);
+    --overlay-accent: rgba(168, 132, 42, 0.45);
 
     --scrollbar-track: #ebe3d4;
     --scrollbar-thumb-a: #b8860b;
@@ -223,7 +233,7 @@
     font-family: 'Cinzel', 'Noto Serif SC', serif;
     font-weight: 500;
     letter-spacing: 0.15em;
-    color: #f4d03f;
+    color: var(--text-strong);
     background: linear-gradient(135deg, var(--bg-glass-from) 0%, var(--bg-glass-to) 100%);
     border: 1px solid var(--border-strong);
     border-radius: 9999px;
@@ -267,7 +277,7 @@
     font-family: 'Cinzel', 'Noto Serif SC', serif;
     font-weight: 500;
     letter-spacing: 0.1em;
-    color: #c4b8d8;
+    color: var(--text-soft);
     background: transparent;
     border: 1px solid rgba(196, 184, 216, 0.3);
     border-radius: 9999px;
@@ -275,7 +285,7 @@
     transition: all 0.3s ease;
   }
   .btn-ghost:hover {
-    color: #f4d03f;
+    color: var(--accent);
     border-color: rgba(212, 175, 55, 0.6);
     background: rgba(212, 175, 55, 0.05);
   }

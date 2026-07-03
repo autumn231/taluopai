@@ -26,7 +26,7 @@ export default function MysticFog({
         onAnimationComplete={onAnimationComplete}
         style={{
           background:
-            'linear-gradient(90deg, rgba(15,10,40,0.98) 0%, rgba(45,25,90,0.95) 35%, rgba(212,175,55,0.4) 50%, rgba(45,25,90,0.95) 65%, rgba(15,10,40,0.98) 100%)',
+            'linear-gradient(90deg, var(--overlay-darken) 0%, var(--overlay-mid) 35%, var(--overlay-accent) 50%, var(--overlay-mid) 65%, var(--overlay-darken) 100%)',
         }}
       />
     );
@@ -42,7 +42,7 @@ export default function MysticFog({
         <motion.div
           className="absolute inset-x-0 top-0 h-1/2"
           style={{
-            background: 'linear-gradient(180deg, rgba(15,10,40,0.95) 0%, transparent 100%)',
+            background: 'linear-gradient(180deg, var(--overlay-darken) 0%, transparent 100%)',
           }}
           initial={{ y: 0 }}
           animate={{ y: ['0%', '-100%'] }}
@@ -52,7 +52,7 @@ export default function MysticFog({
         <motion.div
           className="absolute inset-x-0 bottom-0 h-1/2"
           style={{
-            background: 'linear-gradient(0deg, rgba(15,10,40,0.95) 0%, transparent 100%)',
+            background: 'linear-gradient(0deg, var(--overlay-darken) 0%, transparent 100%)',
           }}
           initial={{ y: 0 }}
           animate={{ y: ['0%', '100%'] }}
@@ -87,7 +87,7 @@ export default function MysticFog({
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse at center, rgba(45,25,90,0.85) 0%, rgba(15,10,40,0.98) 70%)',
+            'radial-gradient(ellipse at center, var(--overlay-mid) 0%, var(--overlay-darken) 70%)',
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: [0, 1, 1, 0] }}

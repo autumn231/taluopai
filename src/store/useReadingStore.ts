@@ -5,9 +5,8 @@ import { drawCards, shouldReverse, shouldReversedSeeded, drawCardsByQuestion } f
 import { TAROT_CARDS } from '@/data/tarotCards';
 import { getSpread } from '@/data/spreads';
 import type { ThreeMode } from '@/data/questionThemes';
-import { generateId } from '@/lib/utils';
 
-export type Stage = 'idle' | 'meditation' | 'shuffle' | 'select' | 'reveal' | 'done';
+export type Stage = 'idle' | 'shuffle' | 'select' | 'reveal' | 'done';
 
 interface ReadingState {
   spreadType: SpreadType | null;
@@ -22,7 +21,6 @@ interface ReadingState {
   setSpread: (type: SpreadType) => void;
   setThreeMode: (mode: ThreeMode) => void;
   setQuestion: (q: string) => void;
-  startMeditation: () => void;
   startShuffle: () => void;
   startSelect: () => void;
   selectCards: (positions: number[]) => void; // positions 数组的长度应为 spreadType 对应数量
@@ -34,7 +32,7 @@ interface ReadingState {
 export const useReadingStore = create<ReadingState>()(
   persist(
     (set, get) => ({
-      spreadType: null,
+      spreadType: 'single',
       threeMode: 'time',
       stage: 'idle',
       drawnCards: [],
@@ -57,8 +55,6 @@ export const useReadingStore = create<ReadingState>()(
       setThreeMode: (mode) => set({ threeMode: mode }),
 
       setQuestion: (q) => set({ question: q }),
-
-      startMeditation: () => set({ stage: 'meditation' }),
 
       startShuffle: () => {
         const spread = getSpread(get().spreadType!);
@@ -102,7 +98,7 @@ export const useReadingStore = create<ReadingState>()(
 
       reset: () =>
         set({
-          spreadType: null,
+          spreadType: 'single',
           threeMode: 'time',
           stage: 'idle',
           drawnCards: [],
