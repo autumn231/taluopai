@@ -36,5 +36,6 @@ export const useHistoryActions = () =>
       addRecord: s.addRecord,
       removeRecord: s.removeRecord,
       clear: s.clear,
+      setMaxRecords: s.setMaxRecords,
     })),
   );

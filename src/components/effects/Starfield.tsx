@@ -10,16 +10,6 @@ interface Star {
   color: string;
 }
 
-interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-  color: string;
-}
-
 interface StarfieldProps {
   density?: number; // 星星密度系数
   showShootingStars?: boolean;
@@ -58,7 +48,6 @@ export default function Starfield({
     if (!ctx) return;
 
     let stars: Star[] = [];
-    let particles: Particle[] = [];
     let shootingStars: Array<{
       x: number;
       y: number;
@@ -231,7 +220,7 @@ export default function Starfield({
     };
 
     let lastShootingStar = 0;
-    let startTime = performance.now();
+    const startTime = performance.now();
 
     const animate = (t: number) => {
       const rect = container.getBoundingClientRect();

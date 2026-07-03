@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RotateCw, History, Sparkles, Heart, Briefcase, Coins, Users, Sprout, Compass, ChevronLeft, ChevronRight, EyeOff, BookMarked } from 'lucide-react';
+import { ArrowLeft, RotateCw, History, Sparkles, Heart, Briefcase, Coins, Users, Sprout, Compass, ChevronLeft, ChevronRight, EyeOff, BookMarked, type LucideIcon } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import TarotCard from '@/components/tarot/TarotCard';
 import EnergyVortex from '@/components/effects/EnergyVortex';
@@ -10,6 +10,7 @@ import { useReadingUI, useReadingActions } from '@/store/selectors';
 import { SPREADS, getSpreadPositions, THREE_MODES } from '@/data/spreads';
 import { getQuestionTheme, type CardDimension, type QuestionTheme, type ThreeMode } from '@/data/questionThemes';
 import { cn } from '@/lib/utils';
+import type { DrawnCard, SpreadType, TarotCard as TarotCardType, SpreadPosition } from '@/types';
 
 export default function Result() {
   const navigate = useNavigate();
@@ -244,9 +245,9 @@ function SpreadLayout({
   onCardClick,
   currentIdx,
 }: {
-  cards: any[];
-  positions: any[];
-  spreadType: 'single' | 'three' | 'celtic';
+  cards: DrawnCard[];
+  positions: SpreadPosition[];
+  spreadType: SpreadType;
   onCardClick: (idx: number) => void;
   currentIdx: number;
 }) {
@@ -269,7 +270,6 @@ function SpreadLayout({
               flipped
               size="md"
               interactive={false}
-              autoFlip
             />
             {c.reversed && (
               <div className="absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/40">
@@ -321,7 +321,6 @@ function SpreadLayout({
                     reversed={c.reversed}
                     flipped
                     size="sm"
-                    autoFlip
                     interactive={false}
                   />
                   {c.reversed && (
@@ -352,7 +351,7 @@ function SpreadLayout({
   // Celtic Cross - 10 张牌紧凑 5×2 网格
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="grid grid-cols-5 gap-2 sm:gap-3">
+      <div className="grid grid-cols-5 gap-1.5 sm:gap-3">
         {cards.map((c, i) => {
           const pos = positions[c.position];
           return (
@@ -377,7 +376,6 @@ function SpreadLayout({
                   reversed={c.reversed}
                   flipped
                   size="xs"
-                  autoFlip
                   interactive={false}
                 />
                 {c.reversed && (
@@ -413,8 +411,8 @@ function CardPager({
   currentIdx,
   onChange,
 }: {
-  cards: any[];
-  positions: any[];
+  cards: DrawnCard[];
+  positions: SpreadPosition[];
   theme: QuestionTheme;
   currentIdx: number;
   onChange: (i: number) => void;
@@ -507,20 +505,24 @@ function CardPager({
 
       {/* 底部翻页快捷 */}
       {cards.length > 1 && (
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between mt-4 gap-3">
           <button
             onClick={goPrev}
-            className="text-xs text-mystic-gold/70 hover:text-mystic-lightgold transition-colors flex items-center gap-1"
+            className="text-xs text-mystic-gold/70 hover:text-mystic-lightgold transition-colors flex items-center gap-1 min-w-0"
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
-            上一张 · {cards[(currentIdx - 1 + cards.length) % cards.length].card.name.cn}
+            <ChevronLeft className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">
+              上一张 · {cards[(currentIdx - 1 + cards.length) % cards.length].card.name.cn}
+            </span>
           </button>
           <button
             onClick={goNext}
-            className="text-xs text-mystic-gold/70 hover:text-mystic-lightgold transition-colors flex items-center gap-1"
+            className="text-xs text-mystic-gold/70 hover:text-mystic-lightgold transition-colors flex items-center gap-1 min-w-0"
           >
-            下一张 · {cards[(currentIdx + 1) % cards.length].card.name.cn}
-            <ChevronRight className="w-3.5 h-3.5" />
+            <span className="truncate">
+              下一张 · {cards[(currentIdx + 1) % cards.length].card.name.cn}
+            </span>
+            <ChevronRight className="w-3.5 h-3.5 shrink-0" />
           </button>
         </div>
       )}
@@ -536,9 +538,9 @@ function CardInterpretation({
   index,
   theme,
 }: {
-  card: any;
+  card: TarotCardType;
   reversed: boolean;
-  position: any;
+  position: SpreadPosition | undefined;
   index: number;
   theme: QuestionTheme;
 }) {
@@ -565,7 +567,6 @@ function CardInterpretation({
               reversed={reversed}
               flipped
               size="sm"
-              autoFlip
               interactive={false}
             />
           </div>
@@ -591,7 +592,7 @@ function CardInterpretation({
               )}
             </div>
 
-            <h3 className="font-display text-xl sm:text-2xl text-gold-gradient mb-2">
+            <h3 className="font-display text-xl sm:text-2xl text-gold-gradient mb-2 break-words">
               {card.name.cn}
             </h3>
 
@@ -646,7 +647,6 @@ function CardInterpretation({
             reversed={reversed}
             flipped
             size="md"
-            autoFlip
             interactive={false}
           />
         </div>
@@ -682,7 +682,7 @@ function CardInterpretation({
             </button>
           </div>
 
-          <h3 className="font-display text-2xl sm:text-3xl text-gold-gradient mb-1">
+          <h3 className="font-display text-2xl sm:text-3xl text-gold-gradient mb-1 break-words">
             {card.name.cn}
           </h3>
           <div className="text-xs text-midnight-300/60 font-title tracking-widest mb-4">
@@ -821,7 +821,7 @@ const DIMENSION_LABEL: Record<CardDimension, string> = {
   general: '综合',
 };
 
-const DIMENSION_ICON: Record<CardDimension, any> = {
+const DIMENSION_ICON: Record<CardDimension, LucideIcon> = {
   love: Heart,
   career: Briefcase,
   wealth: Coins,
@@ -900,7 +900,7 @@ function SectionLabel({
         </h3>
       </div>
       {help && (
-        <span className="text-[10px] sm:text-[11px] text-midnight-300/65 font-body italic truncate min-w-0 max-w-[60%]">
+        <span className="hidden sm:inline text-[10px] sm:text-[11px] text-midnight-300/65 font-body italic truncate min-w-0 max-w-[55%]">
           {help}
         </span>
       )}
@@ -915,14 +915,17 @@ function SynthesisReading({
   cards,
   question,
 }: {
-  spreadType: 'single' | 'three' | 'celtic';
+  spreadType: SpreadType;
   threeMode: ThreeMode;
-  cards: any[];
+  cards: DrawnCard[];
   question: string;
 }) {
   const theme = getQuestionTheme(question);
-  const readingOf = (c: any) => (c.reversed ? c.card.reversed : c.card.upright);
-  const nameOf = (c: any) => `${c.card.name.cn}${c.reversed ? '（逆）' : '（正）'}`;
+  const readingOf = (c: DrawnCard) => (c.reversed ? c.card.reversed : c.card.upright);
+  const nameOf = (c: DrawnCard) => {
+    const orientation = c.reversed ? '（逆）' : '（正）';
+    return `${c.card.name.cn}${orientation}`;
+  };
   const dim = theme.primaryDimension;
 
   // === 锚点：单牌=本身 / 三牌=当下 / 凯尔特=最终结果 ===

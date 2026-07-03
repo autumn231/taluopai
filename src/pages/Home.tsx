@@ -97,7 +97,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.15 }}
-              className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[1.1] tracking-tight"
+              className="font-display text-[2.75rem] sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold leading-[1.1] tracking-tight"
             >
               <span className="block text-gold-gradient glow-text">塔罗秘境</span>
             </motion.h1>
@@ -107,19 +107,19 @@ export default function Home() {
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.35 }}
-              className="mt-5 sm:mt-6 font-title text-lg sm:text-xl md:text-2xl text-midnight-100/90 tracking-[0.18em]"
+              className="mt-5 sm:mt-6 font-title text-base sm:text-xl md:text-2xl text-midnight-100/90 tracking-[0.12em] sm:tracking-[0.18em]"
             >
               <span className="text-mystic-lightgold">✦</span>
-              <span className="mx-2">揭开命运的薄纱</span>
+              <span className="mx-1.5 sm:mx-2">揭开命运的薄纱</span>
               <span className="text-mystic-lightgold">✦</span>
             </motion.h2>
 
-            {/* 描述 - 14-15px 段落，左对齐更利扫读 */}
+            {/* 描述 - 14-15px 段落 */}
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 1.2, delay: 0.55 }}
-              className="mt-5 sm:mt-6 font-body text-[15px] sm:text-base text-midnight-200/85 max-w-xl mx-auto leading-relaxed"
+              className="mt-5 sm:mt-6 font-body text-sm sm:text-[15px] text-midnight-200/85 max-w-lg sm:max-w-xl mx-auto leading-relaxed px-2 sm:px-0"
             >
               78 张古老的卡牌，承载宇宙的智慧。
               <br className="hidden sm:block" />
@@ -181,7 +181,6 @@ export default function Home() {
                     card={TAROT_CARDS[id]}
                     flipped
                     size="sm"
-                    autoFlip
                     interactive={false}
                     noText
                   />
@@ -191,12 +190,12 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 向下滚动提示 */}
+        {/* 向下滚动提示 - 仅装饰，不遮挡点击 */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, y: [0, 8, 0] }}
           transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 text-mystic-gold/50"
+          className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 text-mystic-gold/50 pointer-events-none z-0"
         >
           <div className="w-5 h-8 border border-mystic-gold/30 rounded-full flex justify-center">
             <div className="w-1 h-2 bg-mystic-gold/70 rounded-full mt-1.5" />

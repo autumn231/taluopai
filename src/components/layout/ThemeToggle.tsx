@@ -10,7 +10,7 @@ interface ThemeToggleProps {
  * 主题切换按钮 - 太阳/月亮图标动画
  */
 export default function ThemeToggle({ className = '' }: ThemeToggleProps) {
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { toggleTheme, isDark } = useTheme();
 
   return (
     <button

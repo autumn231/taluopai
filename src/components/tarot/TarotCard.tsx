@@ -7,13 +7,14 @@ import { cn } from '@/lib/utils';
 interface TarotCardProps {
   card?: TarotCardType;
   reversed?: boolean;
+  /** 是否已翻开显示牌面（true=正面朝上，false=背面朝上） */
   flipped?: boolean;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   onClick?: () => void;
+  /** 仅渲染牌背，用于牌堆、卡槽等装饰场景；与 flipped 同时使用时仍以背面呈现 */
   showBack?: boolean;
   delay?: number;
-  autoFlip?: boolean;
   noText?: boolean;
   interactive?: boolean;
 }
@@ -35,13 +36,13 @@ export default function TarotCard({
   onClick,
   showBack = false,
   delay = 0,
-  autoFlip = false,
   noText = false,
   interactive = true,
 }: TarotCardProps) {
   const [hovered, setHovered] = useState(false);
   const { w, h } = SIZE_MAP[size];
-  const isFlipped = flipped || autoFlip;
+  // showBack 用于强制显示牌背（不渲染正面 SVG），但仍可参与 3D 翻转动画
+  const isFlipped = flipped;
 
   return (
     <motion.div
@@ -70,7 +71,7 @@ export default function TarotCard({
           style={{ backfaceVisibility: 'hidden' }}
         >
           <TarotCardFace
-            showBack
+            showBack={showBack}
             width={w}
             height={h}
             className="rounded-xl"
@@ -86,7 +87,21 @@ export default function TarotCard({
           }}
         >
           <AnimatePresence>
-            {card && (
+            {showBack ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }}
+                className="w-full h-full"
+              >
+                <TarotCardFace
+                  showBack
+                  width={w}
+                  height={h}
+                  className="rounded-xl"
+                />
+              </motion.div>
+            ) : card ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -102,7 +117,7 @@ export default function TarotCard({
                   className="rounded-xl"
                 />
               </motion.div>
-            )}
+            ) : null}
           </AnimatePresence>
         </div>
       </motion.div>

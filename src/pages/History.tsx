@@ -7,7 +7,7 @@ import TarotCard from '@/components/tarot/TarotCard';
 import { useHistoryStore } from '@/store/useHistoryStore';
 import { useReadingStore } from '@/store/useReadingStore';
 import { SPREADS, THREE_MODES } from '@/data/spreads';
-import { formatDate, cn } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import type { ReadingRecord } from '@/types';
 
 export default function History() {
@@ -206,7 +206,6 @@ function HistoryItem({
                 reversed={c.reversed}
                 flipped
                 size="sm"
-                autoFlip
                 interactive={false}
                 noText
               />

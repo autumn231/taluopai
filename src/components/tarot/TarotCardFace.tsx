@@ -12,14 +12,6 @@ interface TarotCardProps {
   noText?: boolean; // 用于图鉴缩略
 }
 
-const ELEMENT_GLYPHS: Record<string, string[]> = {
-  major: ['☉', '☽', '☿', '♀', '♂', '♃', '♄', '⚹', '⚖', '☋', '☊', '✶'],
-  wands: ['🜂', '🜁', '🜄', '🜃', '🜅', '🜆', '🜇', '🜈', '🜉', '🜊'],
-  cups: ['🜄', '🜁', '🜂', '🜃', '🜅', '🜆', '🜇', '🜈', '🜉', '🜊'],
-  swords: ['🜁', '🜂', '🜃', '🜄', '🜅', '🜆', '🜇', '🜈', '🜉', '🜊'],
-  pentacles: ['🜃', '🜂', '🜁', '🜄', '🜅', '🜆', '🜇', '🜈', '🜉', '🜊'],
-};
-
 const SUIT_GLYPHS: Record<Suit, string> = {
   wands: '🜂',
   cups: '🜄',
@@ -58,7 +50,6 @@ export default function TarotCardFace({
 
   const isMajor = card.arcana === 'major';
   const suit = card.suit;
-  const element = card.element;
   const theme = isMajor
     ? ELEMENT_THEMES['spirit']
     : suit
@@ -91,7 +82,7 @@ export default function TarotCardFace({
 
   // 装饰图案 - 大小阿尔卡那不同
   const decoration = isMajor
-    ? getMajorDecoration(card.id)
+    ? getMajorDecoration()
     : getMinorDecoration(suit as Suit, card.number || 1);
 
   return (
@@ -374,7 +365,7 @@ export default function TarotCardFace({
   );
 }
 
-function getMajorDecoration(id: number) {
+function getMajorDecoration() {
   // 大阿尔卡那的特殊装饰
   return (
     <g opacity="0.4" stroke="#d4af37" strokeWidth="0.3" fill="none">
