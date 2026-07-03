@@ -380,12 +380,22 @@
     color: var(--text-faint) !important;
   }
 
-  /* 带透明度后缀的 midnight 文字：用 color-mix 叠加透明度 */
-  :root.light [class*="text-midnight-50\/"] { color: var(--text-strong) !important; }
-  :root.light [class*="text-midnight-100\/"] { color: var(--text-base) !important; }
-  :root.light [class*="text-midnight-200\/"] { color: var(--text-soft) !important; }
-  :root.light [class*="text-midnight-300\/"] { color: var(--text-mute) !important; }
-  :root.light [class*="text-midnight-400\/"] { color: var(--text-faint) !important; }
+  /* 带透明度后缀的 midnight 文字：用 color-mix 逐级还原透明度层级 */
+  :root.light .text-midnight-100\/95 { color: color-mix(in srgb, var(--text-base) 95%, transparent) !important; }
+  :root.light .text-midnight-100\/90 { color: color-mix(in srgb, var(--text-base) 90%, transparent) !important; }
+  :root.light .text-midnight-100\/80 { color: color-mix(in srgb, var(--text-base) 80%, transparent) !important; }
+
+  :root.light .text-midnight-200\/85 { color: color-mix(in srgb, var(--text-soft) 85%, transparent) !important; }
+  :root.light .text-midnight-200\/80 { color: color-mix(in srgb, var(--text-soft) 80%, transparent) !important; }
+  :root.light .text-midnight-200\/75 { color: color-mix(in srgb, var(--text-soft) 75%, transparent) !important; }
+  :root.light .text-midnight-200\/70 { color: color-mix(in srgb, var(--text-soft) 70%, transparent) !important; }
+  :root.light .text-midnight-200\/65 { color: color-mix(in srgb, var(--text-soft) 65%, transparent) !important; }
+  :root.light .text-midnight-200\/60 { color: color-mix(in srgb, var(--text-soft) 60%, transparent) !important; }
+
+  :root.light .text-midnight-300\/70 { color: color-mix(in srgb, var(--text-mute) 70%, transparent) !important; }
+  :root.light .text-midnight-300\/65 { color: color-mix(in srgb, var(--text-mute) 65%, transparent) !important; }
+  :root.light .text-midnight-300\/60 { color: color-mix(in srgb, var(--text-mute) 60%, transparent) !important; }
+  :root.light .text-midnight-300\/50 { color: color-mix(in srgb, var(--text-mute) 50%, transparent) !important; }
 
   /* mystic-gold 透明度变体 - 白天用深棕金保可读性 */
   :root.light .text-mystic-gold {
@@ -399,25 +409,10 @@
   }
   :root.light [class*="text-mystic-lightgold\/"] { color: #8a6d1f !important; }
 
-  /* 白天模式：把深色玻璃背景换成浅色 */
-  :root.light .bg-midnight-900\/40 {
-    background-color: var(--bg-card) !important;
-  }
-  :root.light .bg-midnight-900\/30 {
-    background-color: var(--bg-card) !important;
-  }
-  :root.light .bg-midnight-800\/50 {
-    background-color: var(--bg-elevated) !important;
-  }
-  :root.light .bg-midnight-950\/80 {
-    background-color: var(--bg-panel) !important;
-  }
-  :root.light .bg-midnight-950\/95 {
-    background-color: var(--bg-panel-strong) !important;
-  }
-  :root.light .bg-midnight-950\/40 {
-    background-color: var(--bg-panel) !important;
-  }
+  /* 白天模式：把深色玻璃背景换成浅色（通用 catch-all，覆盖所有透明度变体） */
+  :root.light [class*="bg-midnight-900/"] { background-color: var(--bg-card) !important; }
+  :root.light [class*="bg-midnight-950/"] { background-color: var(--bg-panel) !important; }
+  :root.light [class*="bg-midnight-800/"] { background-color: var(--bg-elevated) !important; }
   :root.light .bg-midnight-950 {
     background-color: var(--bg-base) !important;
   }
@@ -427,6 +422,9 @@
   :root.light .bg-midnight-800 {
     background-color: var(--bg-elevated) !important;
   }
+
+  /* 白天模式：midnight 边框 → 用主题边框色 */
+  :root.light [class*="border-midnight-200/"] { border-color: var(--border-soft) !important; }
 
   /* 白天模式：金色背景/边框/分割线 - 用深棕金 */
   :root.light .bg-mystic-gold\/10,
