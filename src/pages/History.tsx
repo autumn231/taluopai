@@ -214,7 +214,7 @@ function HistoryItem({
           ))}
           {record.cards.length > 5 && (
             <div
-              className="w-[90px] h-[144px] sm:w-[90px] sm:h-[144px] rounded-xl border border-mystic-gold/30 bg-midnight-800/80 flex items-center justify-center text-mystic-gold font-title text-sm"
+              className="w-[90px] h-[144px] rounded-xl border border-mystic-gold/30 bg-midnight-800/80 flex items-center justify-center text-mystic-gold font-title text-sm"
               style={{ transform: 'rotate(10deg)' }}
             >
               +{record.cards.length - 5}
