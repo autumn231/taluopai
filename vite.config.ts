@@ -8,6 +8,16 @@ export default defineConfig({
   build: {
     sourcemap: false,
     target: 'es2020',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'animation-vendor': ['framer-motion'],
+          'state-vendor': ['zustand'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
   },
   plugins: [
     react(),
