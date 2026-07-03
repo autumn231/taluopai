@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ChevronRight, RotateCw, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass, Clock, Compass as CompassIcon, Wind } from 'lucide-react';
+import { Sparkles, ChevronRight, RotateCw, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass, Clock, Compass as CompassIcon, Wind, type LucideIcon } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import MysticRing from '@/components/effects/MysticRing';
 import BreathingOrb from '@/components/effects/BreathingOrb';
@@ -12,7 +12,6 @@ import RuneShower from '@/components/effects/RuneShower';
 import MysticFog from '@/components/effects/MysticFog';
 import TarotCard from '@/components/tarot/TarotCard';
 import CardBack from '@/components/tarot/CardBack';
-import { useReadingStore } from '@/store/useReadingStore';
 import { useReadingUI, useReadingActions, useHistoryActions } from '@/store/selectors';
 import { SPREADS, THREE_MODES } from '@/data/spreads';
 import { QUESTION_THEMES, type QuestionThemeKey, type SubQuestion, type ThreeMode } from '@/data/questionThemes';
@@ -20,7 +19,7 @@ import { generateId } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import type { DrawnCard } from '@/types';
 
-const PRESET_THEMES: { key: QuestionThemeKey; icon: any; label: string; accent: string }[] = [
+const PRESET_THEMES: { key: QuestionThemeKey; icon: LucideIcon; label: string; accent: string }[] = [
   { key: 'love', icon: Heart, label: '感情', accent: 'from-rose-400/20 to-rose-600/5' },
   { key: 'career', icon: Briefcase, label: '事业', accent: 'from-amber-400/20 to-amber-600/5' },
   { key: 'wealth', icon: Coins, label: '财富', accent: 'from-yellow-400/20 to-yellow-600/5' },
@@ -30,7 +29,7 @@ const PRESET_THEMES: { key: QuestionThemeKey; icon: any; label: string; accent: 
   { key: 'open', icon: Compass, label: '让宇宙指引', accent: 'from-mystic-gold/20 to-mystic-gold/5' },
 ];
 
-const THREE_MODE_ICONS: Record<ThreeMode, any> = {
+const THREE_MODE_ICONS: Record<ThreeMode, LucideIcon> = {
   time: Clock,
   mind: CompassIcon,
   free: Wind,
@@ -39,7 +38,7 @@ const THREE_MODE_ICONS: Record<ThreeMode, any> = {
 export default function Reading() {
   const navigate = useNavigate();
   const { spreadType, stage, drawnCards, question, threeMode } = useReadingUI();
-  const { setSpread, setThreeMode, setQuestion, startShuffle, startSelect, selectCards, revealAll, reset } = useReadingActions();
+  const { setSpread, setThreeMode, setQuestion, startShuffle, startSelect, selectCards, revealAll } = useReadingActions();
   const { addRecord } = useHistoryActions();
 
   // 选完所有牌后，延迟跳转到结果页（带传送门过场）
@@ -99,9 +98,6 @@ export default function Reading() {
           {stage === 'idle' && (
             <IntroStage
               key="intro"
-              spreadName={spread.name}
-              spreadDesc={spread.longDescription}
-              cardCount={spread.cardCount}
               question={question}
               setQuestion={setQuestion}
               threeMode={threeMode}
@@ -172,9 +168,6 @@ export default function Reading() {
 
 // === 1. Intro 阶段：选牌阵 + 选主题 + 选子问题 ===
 function IntroStage({
-  spreadName,
-  spreadDesc,
-  cardCount,
   question,
   setQuestion,
   threeMode,
@@ -183,9 +176,6 @@ function IntroStage({
   onChangeSpread,
   currentSpread,
 }: {
-  spreadName: string;
-  spreadDesc: string;
-  cardCount: number;
   question: string;
   setQuestion: (q: string) => void;
   threeMode: ThreeMode;
@@ -1083,7 +1073,7 @@ function RevealStage({
   cards,
   onComplete,
 }: {
-  cards: { card: any; reversed: boolean; position: number }[];
+  cards: DrawnCard[];
   onComplete: () => void;
 }) {
   const [revealedCount, setRevealedCount] = useState(0);
@@ -1295,7 +1285,7 @@ function DoneStage({ cards, onComplete }: { cards: DrawnCard[]; onComplete: () =
         rotate: ((i - 1) / Math.max(total - 1, 1)) * 18 - 9,
       };
     });
-  }, [cards.length]);
+  }, [cards]);
 
   return (
     <motion.section

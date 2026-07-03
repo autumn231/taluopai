@@ -68,9 +68,6 @@ export default function ConstellationLines({
         {points.map((p, i) => {
           if (i === points.length - 1) return null;
           const next = points[i + 1];
-          const dx = next.x - p.x;
-          const dy = next.y - p.y;
-          const length = Math.sqrt(dx * dx + dy * dy);
           return (
             <g key={i} filter="url(#constellation-glow)">
               <motion.line

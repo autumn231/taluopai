@@ -136,7 +136,6 @@ export default function Tarot() {
                       card={card}
                       flipped
                       size="md"
-                      autoFlip
                       interactive={false}
                       noText
                       className="w-full h-full object-cover"
@@ -223,7 +222,6 @@ function CardDetailModal({
                 reversed={tab === 'reversed'}
                 flipped
                 size="lg"
-                autoFlip
                 interactive={false}
               />
             </div>

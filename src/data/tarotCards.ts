@@ -9,20 +9,6 @@ const suitToElement: Record<Suit, 'fire' | 'water' | 'air' | 'earth'> = {
   pentacles: 'earth',
 };
 
-const suitName: Record<Suit, string> = {
-  wands: '权杖',
-  cups: '圣杯',
-  swords: '宝剑',
-  pentacles: '星币',
-};
-
-const courtNames: Record<number, string> = {
-  11: '侍从',
-  12: '骑士',
-  13: '皇后',
-  14: '国王',
-};
-
 // 大阿尔卡那（0-21）
 const MAJOR_ARCANA: Omit<TarotCard, 'suit' | 'number'>[] = [
   {
@@ -783,7 +769,6 @@ function buildMinorCards(): TarotCard[] {
       data.uprightGeneral,
       data.reversedGeneral,
     );
-    const cnNumber = data.num <= 10 ? `${['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'][data.num - 1]}${suitName[data.suit]}` : `${suitName[data.suit]}${courtNames[data.num]}`;
     return {
       id: MAJOR_ARCANA.length + MINOR_ARCANA_DATA.indexOf(data),
       name: { en: data.name.en, cn: data.name.cn },

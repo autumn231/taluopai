@@ -66,7 +66,7 @@ export const useReadingStore = create<ReadingState>()(
       startSelect: () => set({ stage: 'select' }),
 
       selectCards: (positions) => {
-        const { spreadType, question, deck, threeMode } = get();
+        const { spreadType, question, threeMode } = get();
         if (!spreadType) return;
         const spread = getSpread(spreadType);
 
@@ -90,7 +90,7 @@ export const useReadingStore = create<ReadingState>()(
         set({ stage: 'reveal', drawnCards: drawn, deck: newDeck });
       },
 
-      revealCard: (index) => {
+      revealCard: () => {
         // 单张翻牌（顺序揭晓由 UI 控制）
       },
 
