@@ -611,7 +611,7 @@ const TIMING_TPL: Record<Suit, MinorTpl> = {
   },
 };
 
-function getLoveMeaning(num: number, suit: Suit, dir: 'upright' | 'reversed'): string {
+function getLoveMeaning(_num: number, suit: Suit, dir: 'upright' | 'reversed'): string {
   const elementMeanings: Record<Suit, { up: string; re: string }> = {
     wands: {
       up: '关系充满激情与冒险，是热恋或重启的好时机。',
@@ -630,10 +630,10 @@ function getLoveMeaning(num: number, suit: Suit, dir: 'upright' | 'reversed'): s
       re: '关系中物质问题或安全感缺失带来压力。',
     },
   };
-  return elementMeanings[suit][dir];
+  return elementMeanings[suit][dir === 'upright' ? 'up' : 're'];
 }
 
-function getCareerMeaning(num: number, suit: Suit, dir: 'upright' | 'reversed'): string {
+function getCareerMeaning(_num: number, suit: Suit, dir: 'upright' | 'reversed'): string {
   const elementMeanings: Record<Suit, { up: string; re: string }> = {
     wands: {
       up: '工作充满创造力与热情，是开创事业、启动项目的好时机。',
@@ -652,10 +652,10 @@ function getCareerMeaning(num: number, suit: Suit, dir: 'upright' | 'reversed'):
       re: '工作进展缓慢、资源不足或对薪酬不满。',
     },
   };
-  return elementMeanings[suit][dir];
+  return elementMeanings[suit][dir === 'upright' ? 'up' : 're'];
 }
 
-function getWealthMeaning(num: number, suit: Suit, dir: 'upright' | 'reversed'): string {
+function getWealthMeaning(_num: number, suit: Suit, dir: 'upright' | 'reversed'): string {
   const elementMeanings: Record<Suit, { up: string; re: string }> = {
     wands: {
       up: '财务上有新的投资机会，创业或副业可能带来收益。',
@@ -674,18 +674,18 @@ function getWealthMeaning(num: number, suit: Suit, dir: 'upright' | 'reversed'):
       re: '财务保守过度、收入停滞或支出超支。',
     },
   };
-  return elementMeanings[suit][dir];
+  return elementMeanings[suit][dir === 'upright' ? 'up' : 're'];
 }
 
 // === 扩展字段 helper ===
 const tpl = (m: MinorTpl, dir: 'upright' | 'reversed') => m[dir === 'upright' ? 'up' : 're'];
 
-const getHealthMeaning = (n: number, s: Suit, d: 'upright' | 'reversed') => tpl(HEALTH_TPL[s], d);
-const getRelationshipMeaning = (n: number, s: Suit, d: 'upright' | 'reversed') => tpl(RELATIONSHIP_TPL[s], d);
-const getSpiritualMeaning = (n: number, s: Suit, d: 'upright' | 'reversed') => tpl(SPIRITUAL_TPL[s], d);
-const getAdviceMeaning = (n: number, s: Suit, d: 'upright' | 'reversed') => tpl(ADVICE_TPL[s], d);
-const getWarningMeaning = (n: number, s: Suit, d: 'upright' | 'reversed') => tpl(WARNING_TPL[s], d);
-const getTimingMeaning = (n: number, s: Suit, d: 'upright' | 'reversed') => tpl(TIMING_TPL[s], d);
+const getHealthMeaning = (_n: number, s: Suit, d: 'upright' | 'reversed') => tpl(HEALTH_TPL[s], d);
+const getRelationshipMeaning = (_n: number, s: Suit, d: 'upright' | 'reversed') => tpl(RELATIONSHIP_TPL[s], d);
+const getSpiritualMeaning = (_n: number, s: Suit, d: 'upright' | 'reversed') => tpl(SPIRITUAL_TPL[s], d);
+const getAdviceMeaning = (_n: number, s: Suit, d: 'upright' | 'reversed') => tpl(ADVICE_TPL[s], d);
+const getWarningMeaning = (_n: number, s: Suit, d: 'upright' | 'reversed') => tpl(WARNING_TPL[s], d);
+const getTimingMeaning = (_n: number, s: Suit, d: 'upright' | 'reversed') => tpl(TIMING_TPL[s], d);
 
 // 小阿尔卡那数据定义
 const MINOR_ARCANA_DATA: Array<{

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { TarotCard as TarotCardType } from '@/types';
 import TarotCardFace from './TarotCardFace';
@@ -27,7 +27,7 @@ const SIZE_MAP = {
   xl: { w: 220, h: 352 },
 };
 
-export default function TarotCard({
+const TarotCard = memo(function TarotCard({
   card,
   reversed = false,
   flipped = false,
@@ -150,4 +150,6 @@ export default function TarotCard({
       )}
     </motion.div>
   );
-}
+});
+
+export default TarotCard;
