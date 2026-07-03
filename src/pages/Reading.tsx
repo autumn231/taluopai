@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ChevronRight, RotateCw, Eye, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass, Clock, Compass as CompassIcon, Wind } from 'lucide-react';
+import { Sparkles, ChevronRight, RotateCw, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass, Clock, Compass as CompassIcon, Wind } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import MysticRing from '@/components/effects/MysticRing';
 import BreathingOrb from '@/components/effects/BreathingOrb';
@@ -11,6 +11,7 @@ import Portal from '@/components/effects/Portal';
 import RuneShower from '@/components/effects/RuneShower';
 import MysticFog from '@/components/effects/MysticFog';
 import TarotCard from '@/components/tarot/TarotCard';
+import CardBack from '@/components/tarot/CardBack';
 import { useReadingStore } from '@/store/useReadingStore';
 import { useReadingUI, useReadingActions, useHistoryActions } from '@/store/selectors';
 import { SPREADS, THREE_MODES } from '@/data/spreads';
@@ -40,13 +41,6 @@ export default function Reading() {
   const { spreadType, stage, drawnCards, question, threeMode } = useReadingUI();
   const { setSpread, setThreeMode, setQuestion, startShuffle, startSelect, selectCards, revealAll, reset } = useReadingActions();
   const { addRecord } = useHistoryActions();
-
-  // 初始化 - 如果没有选 spread，默认 single
-  useEffect(() => {
-    if (!spreadType) {
-      setSpread('single');
-    }
-  }, [spreadType, setSpread]);
 
   // 选完所有牌后，延迟跳转到结果页（带传送门过场）
   const [portalActive, setPortalActive] = useState(false);
@@ -114,7 +108,6 @@ export default function Reading() {
               setThreeMode={setThreeMode}
               onStart={() => startShuffle()}
               onChangeSpread={(t) => {
-                reset();
                 setSpread(t);
               }}
               currentSpread={spreadType}
@@ -134,7 +127,6 @@ export default function Reading() {
               cardCount={spread.cardCount}
               onSelect={(positions) => {
                 selectCards(positions);
-                setTimeout(() => revealAll(), 100);
               }}
             />
           )}
@@ -525,7 +517,7 @@ function IntroStage({
  * - 进度已完成步骤用对勾
  */
 function StepIndicator({ currentStep }: { currentStep: number }) {
-  const steps = ['选择', '冥想', '洗牌', '选牌', '揭晓'];
+  const steps = ['选择', '洗牌', '选牌', '揭晓'];
   return (
     <div className="flex items-center justify-center gap-1.5 sm:gap-2">
       {steps.map((label, i) => {
@@ -581,7 +573,7 @@ function Section({
   step: string;
   kicker: string;
   help?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <motion.div
@@ -664,7 +656,7 @@ function ShuffleStage({ onComplete }: { onComplete: () => void }) {
       className="flex-1 px-4 sm:px-6 py-6 sm:py-10"
     >
       <div className="max-w-2xl mx-auto w-full text-center">
-        <StepIndicator currentStep={2} />
+        <StepIndicator currentStep={1} />
 
         <h2 className="font-display text-2xl sm:text-3xl md:text-4xl text-gold-gradient glow-text mt-6 sm:mt-10 mb-2">
           洗牌中
@@ -819,7 +811,7 @@ function SelectStage({
       className="flex-1 flex flex-col items-center justify-center px-2 sm:px-4 py-6 sm:py-8"
     >
       <div className="max-w-5xl w-full">
-        <StepIndicator currentStep={3} />
+        <StepIndicator currentStep={2} />
 
         <div className="text-center mt-6 sm:mt-8 mb-6 sm:mb-10">
           <h2 className="font-display text-2xl sm:text-3xl md:text-4xl text-gold-gradient glow-text">
@@ -1009,7 +1001,7 @@ function DeckView({
                   zIndex: visibleLayers - i,
                 }}
               >
-                <TarotCardBack />
+                <CardBack width={100} height={156} />
               </div>
             );
           })}
@@ -1028,7 +1020,7 @@ function DeckView({
               transition={{ duration: 0.55, ease: 'easeOut' }}
               style={{ boxShadow: '0 8px 24px rgba(212, 175, 55, 0.4)' }}
             >
-              <TarotCardBack />
+              <CardBack width={100} height={156} />
             </motion.div>
           )}
         </motion.div>
@@ -1086,24 +1078,6 @@ function PickIcon({ source, highlight }: { source: PickSource; highlight: boolea
   );
 }
 
-function TarotCardBack() {
-  return (
-    <div
-      className="w-full h-full rounded-lg border border-mystic-gold/50 relative overflow-hidden"
-      style={{
-        background: 'linear-gradient(135deg, #1a0f3d 0%, #2e1a5c 50%, #1a0f3d 100%)',
-        boxShadow: 'inset 0 0 12px rgba(212, 175, 55, 0.15)',
-      }}
-    >
-      <div className="absolute inset-1 rounded border border-mystic-gold/30 flex items-center justify-center">
-        <div className="w-1/2 h-1/2 rounded-full border border-mystic-gold/40 flex items-center justify-center">
-          <div className="w-1/3 h-1/3 rounded-full bg-mystic-gold/20" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // === 4. Reveal 阶段：揭晓翻牌 ===
 function RevealStage({
   cards,
@@ -1117,6 +1091,14 @@ function RevealStage({
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [constellationPoints, setConstellationPoints] = useState<{ x: number; y: number }[]>([]);
   const [showConstellation, setShowConstellation] = useState(false);
+
+  // 跳过揭晓：立即全部翻开并推进
+  const handleSkip = () => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    setRevealedCount(cards.length);
+    onComplete();
+  };
 
   useEffect(() => {
     if (revealedCount < cards.length) {
@@ -1163,7 +1145,7 @@ function RevealStage({
     >
       <div className="max-w-5xl mx-auto w-full">
         <div className="mb-6 sm:mb-10">
-          <StepIndicator currentStep={4} />
+          <StepIndicator currentStep={3} />
 
           <div className="text-center mt-6 sm:mt-8">
             <h2 className="font-display text-2xl sm:text-3xl md:text-4xl text-gold-gradient glow-text">
@@ -1265,10 +1247,21 @@ function RevealStage({
           })}
         </div>
 
-        <div className="text-center relative z-10">
+        <div className="text-center relative z-10 space-y-4">
           <div className="text-xs font-sans-ui text-mystic-gold/70 tracking-widest">
             {revealedCount} / {cards.length} 已揭晓
           </div>
+          {revealedCount < cards.length && (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={handleSkip}
+              className="btn-ghost text-xs"
+            >
+              <Sparkles className="w-3 h-3 mr-2" />
+              跳过 · 直接解读
+            </motion.button>
+          )}
         </div>
       </div>
     </motion.section>

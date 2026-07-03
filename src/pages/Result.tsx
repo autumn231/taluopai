@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RotateCw, History, Sparkles, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass, ChevronLeft, ChevronRight, Eye, EyeOff, BookMarked } from 'lucide-react';
+import { ArrowLeft, RotateCw, History, Sparkles, Heart, Briefcase, Coins, Users, Sprout, Compass, ChevronLeft, ChevronRight, EyeOff, BookMarked } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import TarotCard from '@/components/tarot/TarotCard';
 import EnergyVortex from '@/components/effects/EnergyVortex';
@@ -838,7 +838,7 @@ function SectionTitle({
   title,
   highlight = false,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   title: string;
   highlight?: boolean;
 }) {

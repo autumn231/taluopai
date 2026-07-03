@@ -271,7 +271,8 @@ function HistoryItem({
                 threeMode: record.threeMode || 'time',
                 drawnCards: record.cards,
                 question: record.question,
-                stage: 'done',
+                // 用 idle 而非 done：避免回 /reading 时触发重复保存与跳转
+                stage: 'idle',
               });
             }}
             className="btn-ghost text-xs"

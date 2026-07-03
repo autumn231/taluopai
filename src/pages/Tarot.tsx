@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Sparkles, Heart, Briefcase, Coins, BookOpen } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
@@ -321,7 +321,7 @@ function CardDetailModal({
   );
 }
 
-function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
+function SectionTitle({ icon, title }: { icon: ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-2 mb-2">
       <span className="text-mystic-gold">{icon}</span>
@@ -338,7 +338,7 @@ function Dimension({
   content,
   color,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   content: string;
   color: 'rose' | 'violet' | 'gold';
