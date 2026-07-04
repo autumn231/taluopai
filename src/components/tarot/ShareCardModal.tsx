@@ -210,17 +210,26 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         if (err?.name === 'AbortError') { setDownloadHint(null); return; }
         console.error('Web Share 失败', err);
       }
-      // 兜底：转 Blob URL 后新标签页打开（data URL 会被夸克拦截显示 about:blank）
-      try {
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-      } catch {
-        window.open(dataUrl, '_blank');
+      // 兜底：用新窗口 document.write 直接渲染图片（夸克/UC 等浏览器 blob: 和 data: URL 都会被拦截）
+      const newWin = window.open('', '_blank');
+      if (newWin) {
+        newWin.document.write(`
+          <!DOCTYPE html>
+          <html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>塔罗占卜海报</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: sans-serif; }
+            img { max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px; }
+            .tip { color: #d4af37; margin-top: 16px; font-size: 14px; text-align: center; padding: 0 16px; }
+          </style></head><body>
+          <img src="${dataUrl}" alt="塔罗占卜海报">
+          <p class="tip">长按图片 → 保存图片 / 存储图像</p>
+          </body></html>
+        `);
+        newWin.document.close();
       }
-      setDownloadHint('已在新标签页打开，长按图片即可保存');
+      setDownloadHint('已打开图片，长按图片即可保存');
       setTimeout(() => setDownloadHint(null), 6000);
     } else {
       // === 电脑端：优先用 File System Access API 弹出「另存为」对话框 ===
