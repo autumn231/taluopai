@@ -477,7 +477,6 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
     fontFamily: "'Cormorant Garamond', 'Noto Serif SC', serif",
     color: palette.textBase,
     position: 'relative',
-    overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
   };
