@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, ChevronRight, RotateCw, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass, Clock, Compass as CompassIcon, Wind, type LucideIcon } from 'lucide-react';
+import { Sparkles, ChevronRight, RotateCw, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass, Clock, Compass as CompassIcon, Wind, PenLine, type LucideIcon } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import MysticRing from '@/components/effects/MysticRing';
 import BreathingOrb from '@/components/effects/BreathingOrb';
@@ -188,6 +188,8 @@ function IntroStage({
   const [activeTheme, setActiveTheme] = useState<QuestionThemeKey | null>(null);
   // 当前选中的子问题 id
   const [activeSubId, setActiveSubId] = useState<string | null>(null);
+  // 自定义问题输入（与预设互斥）
+  const [customInput, setCustomInput] = useState('');
 
   // 从已有 question 反推出主题与子问题（用于刷新/恢复状态）
   useEffect(() => {
@@ -200,6 +202,8 @@ function IntroStage({
         return;
       }
     }
+    // 未匹配到预设 → 视为自定义问题，回填输入框
+    setCustomInput(question);
   }, [question, activeTheme]);
 
   const themeData = activeTheme ? QUESTION_THEMES[activeTheme] : null;
@@ -213,7 +217,15 @@ function IntroStage({
 
   const handleSelectSub = (sq: SubQuestion) => {
     setActiveSubId(sq.id);
+    setCustomInput('');
     setQuestion(sq.text);
+  };
+
+  // 自定义问题输入：与预设互斥
+  const handleCustomChange = (value: string) => {
+    setCustomInput(value);
+    setActiveSubId(null);
+    setQuestion(value);
   };
 
   return (
@@ -344,7 +356,7 @@ function IntroStage({
         <Section
           step="02"
           kicker="选择你的问题"
-          help="先选主题，再选具体想问的一面"
+          help="选预设，或直接输入"
         >
           {/* 一级：主题 - 7 个，移动端 2 列，桌面 4 列 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
@@ -456,6 +468,30 @@ function IntroStage({
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* 自定义问题输入 - 与预设互斥 */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="mt-4 sm:mt-5"
+          >
+            <div className="relative">
+              <PenLine className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-mystic-gold/60 pointer-events-none" />
+              <input
+                type="text"
+                value={customInput}
+                onChange={(e) => handleCustomChange(e.target.value)}
+                maxLength={60}
+                placeholder="或直接输入你的问题……（最多 60 字）"
+                className="w-full pl-9 pr-4 py-2.5 bg-midnight-900/40 border border-mystic-gold/20 rounded-xl text-sm text-midnight-100 placeholder:text-midnight-300/50 focus:outline-none focus:border-mystic-gold/50 focus:bg-midnight-900/60 transition-all"
+              />
+            </div>
+            <div className="mt-1.5 flex items-center justify-between text-[10px] text-midnight-300/50">
+              <span className="italic">自定义问题将与预设互斥</span>
+              <span className="font-sans-ui">{customInput.length} / 60</span>
+            </div>
+          </motion.div>
         </Section>
 
         {/* ============ 当前选择摘要 + CTA ============ */}
@@ -476,7 +512,7 @@ function IntroStage({
           ) : (
             <div className="text-center mb-5">
               <span className="text-[11px] sm:text-xs font-body italic text-midnight-300/60">
-                请先在上方选择问题，再开始洗牌
+                请先选择或输入你的问题，再开始洗牌
               </span>
             </div>
           )}
