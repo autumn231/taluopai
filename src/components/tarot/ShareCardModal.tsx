@@ -132,7 +132,7 @@ interface ShareCardModalProps extends ShareCardData {
 export default function ShareCardModal({ open, onClose, ...data }: ShareCardModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'idle' | 'generating' | 'done' | 'error'>('idle');
-  // Blob URL 用于 <img> 渲染；data URL 用于 <a download> —— 夸克可能拦截 blob: 下载
+  // Blob URL 用于 <img> 渲染；data URL 用于下载 —— 夸克可能拦截 blob: 和程序化 <a download>
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const dataUrlRef = useRef<string | null>(null);
   const blobRef = useRef<Blob | null>(null);
@@ -223,7 +223,7 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
       // 释放旧的 Blob URL
       if (imageUrl) URL.revokeObjectURL(imageUrl);
       blobRef.current = blob;
-      dataUrlRef.current = dataUrl; // 保留 data URL 用于 <a download> —— 夸克可能拦截 blob: 下载
+      dataUrlRef.current = dataUrl;
       const url = URL.createObjectURL(blob);
       setImageUrl(url);
       setStatus('done');
@@ -232,6 +232,49 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
       setStatus('error');
     }
   }, [canvasW, canvasH, palette.bg, imageUrl]);
+
+  /**
+   * 手机端保存图片 - 多级降级策略
+   * 
+   * 兼容性优先级（从高到低）：
+   * 1. Web Share API + File（Chrome/Edge/Safari 原生分享面板）
+   * 2. window.open(dataUrl) 新窗口显示图片（浏览器原生处理，用户通过菜单保存）
+   * 3. 当前页面模态框显示图片 + 长按保存（最后兜底）
+   */
+  const saveOnMobile = useCallback(async (blob: Blob, dataUrl: string, fileName: string) => {
+    // 方案 1: Web Share API
+    try {
+      const file = new File([blob], fileName, { type: 'image/png' });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: '塔罗占卜海报' });
+        setDownloadHint('已调起分享面板，选择「保存到相册」即可');
+        setTimeout(() => setDownloadHint(null), 5000);
+        return;
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') { setDownloadHint(null); return; }
+      console.warn('Web Share 不可用或失败', err);
+    }
+
+    // 方案 2: 新窗口打开 data URL（最兼容的方案）
+    // 夸克/UC/微信等浏览器会直接显示图片，用户可通过浏览器菜单保存
+    // 比 document.write 更可靠，因为浏览器把 data URL 当作独立资源处理
+    try {
+      const newWin = window.open(dataUrl, '_blank');
+      if (newWin) {
+        setDownloadHint('已在新窗口打开图片，请通过浏览器菜单保存');
+        setTimeout(() => setDownloadHint(null), 5000);
+        return;
+      }
+    } catch (err) {
+      console.warn('window.open 被拦截', err);
+    }
+
+    // 方案 3: 当前页面模态框（最后兜底）
+    setShowImageModal(true);
+    setDownloadHint('长按图片可保存');
+    setTimeout(() => setDownloadHint(null), 5000);
+  }, []);
 
   const handleDownload = useCallback(async () => {
     const blob = blobRef.current;
@@ -243,69 +286,8 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
     if (isTouchDevice) {
-      // === 手机端：开新窗口显示图片 + 自动触发下载 ===
-      // 夸克浏览器拦截了 Web Share（0B）、长按保存（看图模式禁用）、blob: 下载、<a download> 程序化点击
-      // 唯一可行方案：新窗口中嵌入图片，用脚本自动触发下载
-      const newWindow = window.open('', '_blank');
-      if (newWindow) {
-        newWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width,initial-scale=1">
-              <title>塔罗占卜海报</title>
-              <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body {
-                  background: #0a0824;
-                  display: flex;
-                  flex-direction: column;
-                  align-items: center;
-                  justify-content: center;
-                  min-height: 100vh;
-                  padding: 16px;
-                  font-family: -apple-system, sans-serif;
-                }
-                img {
-                  max-width: 100%;
-                  max-height: 85vh;
-                  object-fit: contain;
-                  border-radius: 8px;
-                }
-                .hint {
-                  color: #f4d03f;
-                  font-size: 14px;
-                  margin-top: 16px;
-                  text-align: center;
-                }
-              </style>
-            </head>
-            <body>
-              <img src="${dataUrl}" alt="塔罗占卜海报" />
-              <p class="hint">长按图片可保存</p>
-              <script>
-                setTimeout(() => {
-                  const a = document.createElement('a');
-                  a.href = '${dataUrl}';
-                  a.download = '${fileName}';
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                }, 800);
-              </script>
-            </body>
-          </html>
-        `);
-        newWindow.document.close();
-        setDownloadHint('已在新窗口打开，正在下载…');
-        setTimeout(() => setDownloadHint(null), 4000);
-      } else {
-        // 弹窗被拦截，回退到模态框
-        setShowImageModal(true);
-        setDownloadHint('请允许弹窗后重试');
-        setTimeout(() => setDownloadHint(null), 4000);
-      }
+      // 手机端：多级降级策略
+      await saveOnMobile(blob, dataUrl, fileName);
     } else {
       // === 电脑端：优先用 File System Access API 弹出「另存为」对话框 ===
       try {
@@ -344,7 +326,7 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         setTimeout(() => setDownloadHint(null), 4000);
       }
     }
-  }, [imageUrl]);
+  }, [imageUrl, saveOnMobile]);
 
   return (
     <>
