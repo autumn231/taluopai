@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { TarotCard as TarotCardType } from '@/types';
 import TarotCardFace from './TarotCardFace';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface TarotCardProps {
   card?: TarotCardType;
@@ -41,86 +42,111 @@ const TarotCard = memo(function TarotCard({
 }: TarotCardProps) {
   const [hovered, setHovered] = useState(false);
   const { w, h } = SIZE_MAP[size];
-  // showBack 用于强制显示牌背（不渲染正面 SVG），但仍可参与 3D 翻转动画
+  const isMobile = useIsMobile();
+  // 移动端跳过 3D 翻转动画，改用简单淡入（preserve-3d + backface-hidden 在移动端极耗 GPU）
+  const use3D = !isMobile;
   const isFlipped = flipped;
 
   return (
     <motion.div
-      className={cn('relative cursor-pointer perspective-1000', className)}
+      className={cn('relative cursor-pointer', use3D && 'perspective-1000', className)}
       style={{ width: w, height: h }}
       onClick={onClick}
       onMouseEnter={() => interactive && setHovered(true)}
       onMouseLeave={() => interactive && setHovered(false)}
       whileHover={interactive ? { y: -8 } : undefined}
-      initial={{ opacity: 0, y: 30, rotateY: 180 }}
-      animate={{ opacity: 1, y: 0, rotateY: 0 }}
+      initial={{ opacity: 0, y: 30, ...(use3D ? { rotateY: 180 } : {}) }}
+      animate={{ opacity: 1, y: 0, ...(use3D ? { rotateY: 0 } : {}) }}
       transition={{ duration: 0.6, delay, ease: 'easeOut' }}
     >
-      <motion.div
-        className="relative w-full h-full preserve-3d"
-        animate={{
-          rotateY: isFlipped ? 180 : 0,
-          rotateX: hovered && interactive ? -8 : 0,
-        }}
-        transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-        style={{ transformStyle: 'preserve-3d' }}
-      >
-        {/* 牌背（默认显示） */}
-        <div
-          className="absolute inset-0 backface-hidden"
-          style={{ backfaceVisibility: 'hidden' }}
-        >
-          <TarotCardFace
-            showBack={showBack}
-            width={w}
-            height={h}
-            className="rounded-xl"
-          />
-        </div>
-
-        {/* 牌面（翻转后显示） */}
-        <div
-          className="absolute inset-0 backface-hidden"
-          style={{
-            backfaceVisibility: 'hidden',
-            transform: 'rotateY(180deg)',
+      {use3D ? (
+        <motion.div
+          className="relative w-full h-full preserve-3d"
+          animate={{
+            rotateY: isFlipped ? 180 : 0,
+            rotateX: hovered && interactive ? -8 : 0,
           }}
+          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+          style={{ transformStyle: 'preserve-3d' }}
         >
-          <AnimatePresence>
-            {showBack ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4 }}
-                className="w-full h-full"
-              >
-                <TarotCardFace
-                  showBack
-                  width={w}
-                  height={h}
-                  className="rounded-xl"
-                />
-              </motion.div>
-            ) : card ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4 }}
-                className="w-full h-full"
-              >
-                <TarotCardFace
-                  card={card}
-                  width={w}
-                  height={h}
-                  reversed={reversed}
-                  noText={noText}
-                  className="rounded-xl"
-                />
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+          {/* 牌背（默认显示） */}
+          <div
+            className="absolute inset-0 backface-hidden"
+            style={{ backfaceVisibility: 'hidden' }}
+          >
+            <TarotCardFace
+              showBack={showBack}
+              width={w}
+              height={h}
+              className="rounded-xl"
+            />
+          </div>
+
+          {/* 牌面（翻转后显示） */}
+          <div
+            className="absolute inset-0 backface-hidden"
+            style={{
+              backfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+            }}
+          >
+            <AnimatePresence>
+              {showBack ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4 }}
+                  className="w-full h-full"
+                >
+                  <TarotCardFace
+                    showBack
+                    width={w}
+                    height={h}
+                    className="rounded-xl"
+                  />
+                </motion.div>
+              ) : card ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4 }}
+                  className="w-full h-full"
+                >
+                  <TarotCardFace
+                    card={card}
+                    width={w}
+                    height={h}
+                    reversed={reversed}
+                    noText={noText}
+                    className="rounded-xl"
+                  />
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      ) : (
+        /* 移动端：简单淡入，无 3D */
+        <div className="relative w-full h-full">
+          {showBack || !card ? (
+            <TarotCardFace
+              showBack
+              width={w}
+              height={h}
+              className="rounded-xl"
+            />
+          ) : (
+            <TarotCardFace
+              card={card}
+              width={w}
+              height={h}
+              reversed={reversed}
+              noText={noText}
+              className="rounded-xl"
+            />
+          )}
         </div>
-      </motion.div>
+      )}
 
       {/* 光晕层 */}
       {interactive && (

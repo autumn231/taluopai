@@ -1124,6 +1124,7 @@ function RevealStage({
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [constellationPoints, setConstellationPoints] = useState<{ x: number; y: number }[]>([]);
   const [showConstellation, setShowConstellation] = useState(false);
+  const isMobile = useIsMobile();
 
   // 跳过揭晓：立即全部翻开并推进
   const handleSkip = () => {
@@ -1227,22 +1228,23 @@ function RevealStage({
                     transition={{ duration: 1.2, ease: 'easeInOut' }}
                     style={{
                       background: 'radial-gradient(circle, rgba(244,208,63,0.4) 0%, rgba(212,175,55,0.15) 30%, transparent 70%)',
-                      filter: 'blur(8px)',
+                      filter: isMobile ? 'none' : 'blur(8px)',
                     }}
                   />
                 )}
 
                 {isRevealed && idx === revealedCount - 1 && (
                   <motion.div
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 rounded-full pointer-events-none z-0"
-                    initial={{ width: 0, height: 0, opacity: 0 }}
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none z-0"
+                    initial={{ opacity: 0, scale: 0 }}
                     animate={{
-                      width: [0, 200, 300],
-                      height: [0, 200, 300],
+                      scale: [0, 2, 3],
                       opacity: [0, 0.6, 0],
                     }}
                     transition={{ duration: 1.2, ease: 'easeOut' }}
                     style={{
+                      width: 100,
+                      height: 100,
                       background: 'radial-gradient(circle, rgba(244,208,63,0.5) 0%, transparent 70%)',
                     }}
                   />
