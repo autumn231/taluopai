@@ -7,7 +7,7 @@ import {
   type CSSProperties,
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toPng } from 'html-to-image';
+import { toBlob } from 'html-to-image';
 import { X, Download, Loader2, ImageDown, Check, Sun, Moon, Smartphone, Monitor } from 'lucide-react';
 import type { DrawnCard, SpreadPosition } from '@/types';
 import type { QuestionTheme } from '@/data/questionThemes';
@@ -132,7 +132,10 @@ interface ShareCardModalProps extends ShareCardData {
 export default function ShareCardModal({ open, onClose, ...data }: ShareCardModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'idle' | 'generating' | 'done' | 'error'>('idle');
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  // 用 Blob URL 代替 data URL —— 夸克/UC 等浏览器无法从 data: URL 提取字节，导致保存/分享显示 0B
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  // 保留 Blob 引用，用于 Web Share API 的 File 构造和 <a download>
+  const blobRef = useRef<Blob | null>(null);
   const [posterStyle, setPosterStyle] = useState<PosterStyle>('dark');
   const [orientation, setOrientation] = useState<PosterOrientation>('portrait');
   const [downloadHint, setDownloadHint] = useState<string | null>(null);
@@ -146,9 +149,30 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   const scale = previewW / canvasW;
   const previewH = canvasH * scale;
 
+  // 释放上一个 Blob URL，避免内存泄漏
+  const revokeImageUrl = useCallback(() => {
+    if (imageUrl) {
+      URL.revokeObjectURL(imageUrl);
+      setImageUrl(null);
+    }
+    blobRef.current = null;
+  }, [imageUrl]);
+
   useEffect(() => {
-    if (open) { setStatus('idle'); setDataUrl(null); setDownloadHint(null); setShowImageModal(false); }
-  }, [open]);
+    if (open) {
+      setStatus('idle');
+      revokeImageUrl();
+      setDownloadHint(null);
+      setShowImageModal(false);
+    }
+  }, [open, revokeImageUrl]);
+
+  // 组件卸载时释放 Blob URL
+  useEffect(() => {
+    return () => {
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+    };
+  }, [imageUrl]);
 
   useEffect(() => {
     if (!open) return;
@@ -162,8 +186,10 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   }, [open, onClose]);
 
   useEffect(() => {
-    setDataUrl(null); setStatus('idle'); setDownloadHint(null);
-  }, [posterStyle, orientation]);
+    revokeImageUrl();
+    setStatus('idle');
+    setDownloadHint(null);
+  }, [posterStyle, orientation, revokeImageUrl]);
 
   const handleGenerate = useCallback(async () => {
     const node = cardRef.current;
@@ -172,7 +198,9 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
     try {
       if (document.fonts?.ready) await document.fonts.ready;
       await new Promise((r) => setTimeout(r, 120));
-      const url = await toPng(node, {
+      // 用 toBlob 直接生成 Blob，再创建 Blob URL
+      // 夸克/UC 浏览器无法从 data: URL 提取字节，导致保存/分享显示 0B
+      const blob = await toBlob(node, {
         pixelRatio: 2,
         cacheBust: true,
         width: canvasW,
@@ -180,16 +208,22 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         backgroundColor: palette.bg,
         style: { transform: 'none', margin: '0' },
       });
-      setDataUrl(url);
+      if (!blob) throw new Error('toBlob 返回空');
+      // 释放旧的 Blob URL
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+      blobRef.current = blob;
+      const url = URL.createObjectURL(blob);
+      setImageUrl(url);
       setStatus('done');
     } catch (err) {
       console.error('生成图片失败', err);
       setStatus('error');
     }
-  }, [canvasW, canvasH, palette.bg]);
+  }, [canvasW, canvasH, palette.bg, imageUrl]);
 
   const handleDownload = useCallback(async () => {
-    if (!dataUrl) return;
+    const blob = blobRef.current;
+    if (!blob || !imageUrl) return;
     const fileName = `塔罗占卜_${new Date().toISOString().slice(0, 10)}.png`;
 
     // 检测是否为移动端（触摸设备）
@@ -197,9 +231,8 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
 
     if (isTouchDevice) {
       // === 手机端：Web Share API → 系统分享面板 → 保存到相册 ===
+      // 直接用 blobRef 中的 Blob 构造 File，字节完整，不会出现 0B
       try {
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
         const file = new File([blob], fileName, { type: 'image/png' });
         if (navigator.share && navigator.canShare?.({ files: [file] })) {
           await navigator.share({ files: [file], title: '塔罗占卜海报' });
@@ -211,16 +244,14 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         if (err?.name === 'AbortError') { setDownloadHint(null); return; }
         console.error('Web Share 失败', err);
       }
-      // 兜底：在当前页面显示图片模态框，用户长按保存（夸克/UC 等浏览器无法处理新窗口的 data: URL）
+      // 兜底：在当前页面显示图片模态框（用 Blob URL，字节可被浏览器提取）
+      // 模态框内同时提供「下载到手机」按钮（<a download>）和长按保存两种方式
       setShowImageModal(true);
-      setDownloadHint('长按图片即可保存');
+      setDownloadHint('可点击下方按钮下载，或长按图片保存');
       setTimeout(() => setDownloadHint(null), 6000);
     } else {
       // === 电脑端：优先用 File System Access API 弹出「另存为」对话框 ===
       try {
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
-
         // Chrome/Edge 支持 showSaveFilePicker，弹出系统文件选择器
         if ('showSaveFilePicker' in window) {
           try {
@@ -241,34 +272,22 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         }
 
         // 兜底：Blob download（Firefox/Safari 等不支持 showSaveFilePicker）
-        const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = blobUrl;
+        link.href = imageUrl;
         link.download = fileName;
         link.style.display = 'none';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
         setDownloadHint('已开始下载，请查看下载文件夹');
         setTimeout(() => setDownloadHint(null), 4000);
       } catch (err) {
         console.error('下载失败', err);
-        // 兜底：Blob URL 新标签页打开
-        try {
-          const res = await fetch(dataUrl);
-          const blob = await res.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          window.open(blobUrl, '_blank');
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-        } catch {
-          window.open(dataUrl, '_blank');
-        }
-        setDownloadHint('已在新标签页打开，右键图片可另存为');
+        setDownloadHint('下载失败，请长按预览图保存');
         setTimeout(() => setDownloadHint(null), 6000);
       }
     }
-  }, [dataUrl]);
+  }, [imageUrl]);
 
   return (
     <>
@@ -334,7 +353,7 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
                     <OptionButton active={orientation === 'landscape'} onClick={() => setOrientation('landscape')} icon={<Monitor className="w-3.5 h-3.5" />} label="横屏" />
                   </OptionGroup>
 
-                  {status === 'done' && dataUrl && (
+                  {status === 'done' && imageUrl && (
                     <div className="rounded-xl p-3 flex items-center gap-2.5" style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.35)' }}>
                       <Check className="w-4 h-4 shrink-0" style={{ color: DARK.emerald }} />
                       <span className="text-sm" style={{ color: DARK.emerald }}>图片已生成，点击下方按钮保存</span>
@@ -377,7 +396,7 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
                           </div>
                         )}
                         <button
-                          onClick={() => { setDataUrl(null); setStatus('idle'); setDownloadHint(null); }}
+                          onClick={() => { revokeImageUrl(); setStatus('idle'); setDownloadHint(null); }}
                           className="w-full py-2.5 rounded-full font-title text-xs tracking-widest transition-all hover:bg-mystic-gold/10"
                           style={{ backgroundColor: 'transparent', color: DARK.textSoft, border: `1px solid ${DARK.borderSoft}`, cursor: 'pointer' }}
                         >
@@ -393,8 +412,8 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         )}
       </AnimatePresence>
 
-      {/* 手机端图片保存模态框：在当前页面显示图片，长按保存 */}
-      {showImageModal && dataUrl && (
+      {/* 手机端图片保存模态框：用 Blob URL 显示，提供下载按钮 + 长按两种保存方式 */}
+      {showImageModal && imageUrl && (
         <div
           className="fixed inset-0 z-[60] flex flex-col items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(5, 3, 20, 0.95)' }}
@@ -414,13 +433,27 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
             onClick={(e) => e.stopPropagation()}
           >
             <img
-              src={dataUrl}
+              src={imageUrl}
               alt="塔罗占卜海报"
-              className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              className="max-w-full max-h-[68vh] object-contain rounded-lg"
               style={{ touchAction: 'manipulation' }}
             />
-            <p className="text-sm text-center px-4" style={{ color: DARK.lightgold }}>
-              长按图片 → 保存图片 / 存储图像
+            {/* 显式下载按钮：用 <a download> + Blob URL，触发浏览器原生下载，比长按更可靠 */}
+            <a
+              href={imageUrl}
+              download={`塔罗占卜_${new Date().toISOString().slice(0, 10)}.png`}
+              className="py-3 px-8 rounded-full font-title text-sm tracking-widest transition-all flex items-center gap-2 active:scale-95"
+              style={{
+                background: 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)',
+                color: '#0a0824',
+                border: `1px solid ${DARK.border}`,
+                textDecoration: 'none',
+              }}
+            >
+              <Download className="w-4 h-4" />下载到手机
+            </a>
+            <p className="text-xs text-center px-4 leading-relaxed" style={{ color: DARK.textSoft }}>
+              点击按钮直接下载，或长按图片选择「保存图片」
             </p>
           </div>
         </div>
