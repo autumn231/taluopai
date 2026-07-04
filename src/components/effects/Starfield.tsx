@@ -61,6 +61,8 @@ export default function Starfield({
     // 检测是否为移动端，降低密度
     const isMobile = window.innerWidth < 768;
     const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // 移动端关闭交互（触摸引力线计算昂贵）
+    const effectiveInteractive = interactive && !isMobile;
 
     const baseCount = isMobile ? 50 : 200;
     const starCount = Math.floor(baseCount * density);
@@ -156,7 +158,7 @@ export default function Starfield({
         ctx.globalAlpha = 1;
 
         // 鼠标引力牵引
-        if (interactive && mouseRef.current.active && !isReducedMotion) {
+        if (effectiveInteractive && mouseRef.current.active && !isReducedMotion) {
           const dx = mouseRef.current.x - star.x;
           const dy = mouseRef.current.y - star.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
@@ -276,8 +278,18 @@ export default function Starfield({
       mouseRef.current.active = false;
     };
 
+    // 页面不可见时暂停 rAF，省电省性能
+    const handleVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animationRef.current);
+      } else {
+        animationRef.current = requestAnimationFrame(animate);
+      }
+    };
+
     resize();
     window.addEventListener('resize', resize);
+    window.addEventListener('visibilitychange', handleVisibility);
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mouseleave', handleMouseLeave);
     canvas.addEventListener('touchmove', handleTouchMove, { passive: true });
@@ -287,6 +299,7 @@ export default function Starfield({
     return () => {
       cancelAnimationFrame(animationRef.current);
       window.removeEventListener('resize', resize);
+      window.removeEventListener('visibilitychange', handleVisibility);
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
       canvas.removeEventListener('touchmove', handleTouchMove);

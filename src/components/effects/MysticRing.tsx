@@ -55,7 +55,7 @@ export default function MysticRing({
               width: ringSize,
               height: ringSize,
               border: `1px solid ${glowColor}${ringIdx === 1 ? '80' : '40'}`,
-              animation: `${isReverse ? 'spinReverse' : 'spin'} ${duration}s linear infinite`,
+              animation: `spin ${duration}s linear infinite${isReverse ? ' reverse' : ''}`,
             }}
           >
             {/* 环上的符文 */}

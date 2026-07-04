@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface SparkleTrailProps {
   className?: string;
@@ -17,10 +18,14 @@ export default function SparkleTrail({
   colors = ['#f4d03f', '#d4af37', '#ffffff', '#f7e98e'],
   duration = 3,
 }: SparkleTrailProps) {
+  const isMobile = useIsMobile();
+  // 移动端大幅减少粒子数
+  const effectiveCount = isMobile ? Math.min(count, 4) : count;
+
   const particles = useMemo(
     () =>
-      Array.from({ length: count }, (_, i) => {
-        const angle = (i / count) * Math.PI * 2;
+      Array.from({ length: effectiveCount }, (_, i) => {
+        const angle = (i / effectiveCount) * Math.PI * 2;
         const radius = 60 + Math.random() * 40;
         return {
           id: i,
@@ -32,8 +37,10 @@ export default function SparkleTrail({
           duration: duration + Math.random() * 2,
         };
       }),
-    [count, colors, duration],
+    [effectiveCount, colors, duration],
   );
+
+  if (effectiveCount === 0) return null;
 
   return (
     <div className={`pointer-events-none absolute inset-0 ${className}`}>
