@@ -7,7 +7,7 @@ import {
   type CSSProperties,
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toBlob } from 'html-to-image';
+import { toPng } from 'html-to-image';
 import { X, Download, Loader2, ImageDown, Check, Sun, Moon, Smartphone, Monitor } from 'lucide-react';
 import type { DrawnCard, SpreadPosition } from '@/types';
 import type { QuestionTheme } from '@/data/questionThemes';
@@ -132,9 +132,9 @@ interface ShareCardModalProps extends ShareCardData {
 export default function ShareCardModal({ open, onClose, ...data }: ShareCardModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'idle' | 'generating' | 'done' | 'error'>('idle');
-  // 用 Blob URL 代替 data URL —— 夸克/UC 等浏览器无法从 data: URL 提取字节，导致保存/分享显示 0B
+  // Blob URL 用于 <img> 渲染；data URL 用于 <a download> —— 夸克可能拦截 blob: 下载
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  // 保留 Blob 引用，用于 Web Share API 的 File 构造和 <a download>
+  const dataUrlRef = useRef<string | null>(null);
   const blobRef = useRef<Blob | null>(null);
   const [posterStyle, setPosterStyle] = useState<PosterStyle>('dark');
   const [orientation, setOrientation] = useState<PosterOrientation>('portrait');
@@ -156,6 +156,7 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
       setImageUrl(null);
     }
     blobRef.current = null;
+    dataUrlRef.current = null;
   }, [imageUrl]);
 
   useEffect(() => {
@@ -198,9 +199,10 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
     try {
       if (document.fonts?.ready) await document.fonts.ready;
       await new Promise((r) => setTimeout(r, 120));
-      // 用 toBlob 直接生成 Blob，再创建 Blob URL
-      // 夸克/UC 浏览器无法从 data: URL 提取字节，导致保存/分享显示 0B
-      const blob = await toBlob(node, {
+      // 用 toPng 得到 data URL，再手动 base64 解码为 Blob
+      // 不能用 html-to-image 的 toBlob —— 它内部用 fetch(dataUrl) 转 Blob，
+      // 夸克浏览器拦截 fetch('data:image/...') 返回空 body，导致 Blob 为 0B
+      const dataUrl = await toPng(node, {
         pixelRatio: 2,
         cacheBust: true,
         width: canvasW,
@@ -208,10 +210,20 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         backgroundColor: palette.bg,
         style: { transform: 'none', margin: '0' },
       });
-      if (!blob) throw new Error('toBlob 返回空');
+      // 手动 base64 → ArrayBuffer → Blob，完全绕过 fetch(data:)
+      const commaIdx = dataUrl.indexOf(',');
+      const mime = dataUrl.slice(0, commaIdx).match(/:(.*?);/)![1];
+      const base64 = dataUrl.slice(commaIdx + 1);
+      const binaryStr = atob(base64);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: mime });
       // 释放旧的 Blob URL
       if (imageUrl) URL.revokeObjectURL(imageUrl);
       blobRef.current = blob;
+      dataUrlRef.current = dataUrl; // 保留 data URL 用于 <a download> —— 夸克可能拦截 blob: 下载
       const url = URL.createObjectURL(blob);
       setImageUrl(url);
       setStatus('done');
@@ -230,25 +242,11 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
     if (isTouchDevice) {
-      // === 手机端：Web Share API → 系统分享面板 → 保存到相册 ===
-      // 直接用 blobRef 中的 Blob 构造 File，字节完整，不会出现 0B
-      try {
-        const file = new File([blob], fileName, { type: 'image/png' });
-        if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], title: '塔罗占卜海报' });
-          setDownloadHint('已调起分享面板，选择「保存到相册」即可');
-          setTimeout(() => setDownloadHint(null), 6000);
-          return;
-        }
-      } catch (err: any) {
-        if (err?.name === 'AbortError') { setDownloadHint(null); return; }
-        console.error('Web Share 失败', err);
-      }
-      // 兜底：在当前页面显示图片模态框（用 Blob URL，字节可被浏览器提取）
-      // 模态框内同时提供「下载到手机」按钮（<a download>）和长按保存两种方式
+      // === 手机端：直接弹出模态框，提供下载按钮 ===
+      // 跳过 Web Share API —— 夸克浏览器的 Web Share 会丢失文件数据（显示 0B）
       setShowImageModal(true);
-      setDownloadHint('可点击下方按钮下载，或长按图片保存');
-      setTimeout(() => setDownloadHint(null), 6000);
+      setDownloadHint('点击「下载到手机」按钮即可保存');
+      setTimeout(() => setDownloadHint(null), 5000);
     } else {
       // === 电脑端：优先用 File System Access API 弹出「另存为」对话框 ===
       try {
@@ -438,9 +436,9 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
               className="max-w-full max-h-[68vh] object-contain rounded-lg"
               style={{ touchAction: 'manipulation' }}
             />
-            {/* 显式下载按钮：用 <a download> + Blob URL，触发浏览器原生下载，比长按更可靠 */}
+            {/* 显式下载按钮：用 data URL —— 夸克可能拦截 blob: 下载 */}
             <a
-              href={imageUrl}
+              href={dataUrlRef.current || imageUrl}
               download={`塔罗占卜_${new Date().toISOString().slice(0, 10)}.png`}
               className="py-3 px-8 rounded-full font-title text-sm tracking-widest transition-all flex items-center gap-2 active:scale-95"
               style={{
@@ -453,7 +451,7 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
               <Download className="w-4 h-4" />下载到手机
             </a>
             <p className="text-xs text-center px-4 leading-relaxed" style={{ color: DARK.textSoft }}>
-              点击按钮直接下载，或长按图片选择「保存图片」
+              点击按钮即可下载到手机
             </p>
           </div>
         </div>
