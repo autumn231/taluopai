@@ -62,7 +62,7 @@ export default function Starfield({
     const isMobile = window.innerWidth < 768;
     const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const baseCount = isMobile ? 80 : 200;
+    const baseCount = isMobile ? 50 : 200;
     const starCount = Math.floor(baseCount * density);
 
     let lastW = 0;
@@ -212,7 +212,7 @@ export default function Starfield({
 
     const drawParallaxDust = (w: number, h: number, t: number) => {
       // 缓慢漂浮的金色尘埃
-      const dustCount = isMobile ? 15 : 30;
+      const dustCount = isMobile ? 6 : 30;
       ctx.globalAlpha = 0.3;
       for (let i = 0; i < dustCount; i++) {
         const seed = i * 7.13;
@@ -240,7 +240,7 @@ export default function Starfield({
       drawParallaxDust(w, h, t - startTime);
       drawStars(t - startTime);
 
-      if (showShootingStars && !isReducedMotion) {
+      if (showShootingStars && !isReducedMotion && !isMobile) {
         if (t - lastShootingStar > 4000 + Math.random() * 5000) {
           spawnShootingStar(w, h);
           lastShootingStar = t;

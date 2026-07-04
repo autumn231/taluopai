@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ChevronRight, RotateCw, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass, Clock, Compass as CompassIcon, Wind, PenLine, type LucideIcon } from 'lucide-react';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import PageLayout from '@/components/layout/PageLayout';
 import MysticRing from '@/components/effects/MysticRing';
 import BreathingOrb from '@/components/effects/BreathingOrb';
@@ -635,6 +636,7 @@ function ShuffleStage({ onComplete }: { onComplete: () => void }) {
   const [phase, setPhase] = useState<'thinking' | 'shuffling' | 'done'>('thinking');
   const containerRef = useRef<HTMLDivElement>(null);
   const triggeredRef = useRef(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('shuffling'), 1500);
@@ -670,8 +672,10 @@ function ShuffleStage({ onComplete }: { onComplete: () => void }) {
     }
   }, [phase, onComplete]);
 
-  // 生成 18 张牌（视觉上的洗牌堆 - 加密更显仪式感）
-  const deckCards = Array.from({ length: 18 });
+  // 生成牌堆（视觉上的洗牌堆 - 加密更显仪式感）
+  // 移动端减少牌数
+  const deckCount = isMobile ? 10 : 18;
+  const deckCards = Array.from({ length: deckCount });
 
   return (
     <motion.section
@@ -713,7 +717,7 @@ function ShuffleStage({ onComplete }: { onComplete: () => void }) {
           />
 
           {/* 飘落的符文 - 洗牌氛围 */}
-          <RuneShower count={12} duration={8} className="z-0" />
+          <RuneShower count={isMobile ? 6 : 12} duration={8} className="z-0" />
 
           {/* 牌堆 */}
           <div className="relative w-40 h-64 sm:w-48 sm:h-72">
@@ -979,7 +983,10 @@ function DeckView({
   picking: PickSource | null;
   flying: boolean;
 }) {
-  const visibleLayers = Math.min(remaining, 16);
+  const isMobile = useIsMobile();
+  // 移动端减少可见层数
+  const maxLayers = isMobile ? 8 : 16;
+  const visibleLayers = Math.min(remaining, maxLayers);
   const isPicking = picking !== null;
 
   return (
@@ -1296,6 +1303,7 @@ function RevealStage({
 
 // === 5. Done 阶段：完成，2 秒过渡动画 + 传送门 ===
 function DoneStage({ cards, onComplete }: { cards: DrawnCard[]; onComplete: () => void }) {
+  const isMobile = useIsMobile();
   // 2 秒过渡完成后跳转
   useEffect(() => {
     const t = setTimeout(onComplete, 2000);
@@ -1401,7 +1409,7 @@ function DoneStage({ cards, onComplete }: { cards: DrawnCard[]; onComplete: () =
         );
       })}
 
-      {/* === 4. 旋转的金色光环（装饰） === */}
+      {/* === 4. 旋转的金色光环（装饰）- 移动端只保留 1 个 === */}
       <motion.div
         className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full pointer-events-none"
         initial={{ opacity: 0, rotate: 0, scale: 0.5 }}
@@ -1413,15 +1421,17 @@ function DoneStage({ cards, onComplete }: { cards: DrawnCard[]; onComplete: () =
           borderRightColor: 'rgba(244, 208, 63, 0.6)',
         }}
       />
-      <motion.div
-        className="absolute w-56 h-56 sm:w-72 sm:h-72 rounded-full pointer-events-none"
-        initial={{ opacity: 0, rotate: 0, scale: 0.5 }}
-        animate={{ opacity: [0, 0.5, 0.2, 0], rotate: -360, scale: [0.5, 0.9, 1.1, 1.4] }}
-        transition={{ duration: 2, ease: 'easeInOut' }}
-        style={{
-          border: '1px dashed rgba(212, 175, 55, 0.3)',
-        }}
-      />
+      {!isMobile && (
+        <motion.div
+          className="absolute w-56 h-56 sm:w-72 sm:h-72 rounded-full pointer-events-none"
+          initial={{ opacity: 0, rotate: 0, scale: 0.5 }}
+          animate={{ opacity: [0, 0.5, 0.2, 0], rotate: -360, scale: [0.5, 0.9, 1.1, 1.4] }}
+          transition={{ duration: 2, ease: 'easeInOut' }}
+          style={{
+            border: '1px dashed rgba(212, 175, 55, 0.3)',
+          }}
+        />
+      )}
 
       {/* === 5. 文字 === */}
       <motion.div
@@ -1431,7 +1441,7 @@ function DoneStage({ cards, onComplete }: { cards: DrawnCard[]; onComplete: () =
         transition={{ duration: 2, times: [0, 0.3, 0.85, 1] }}
       >
         <p className="font-title text-sm sm:text-base text-mystic-lightgold tracking-[0.4em]">
-          ✦ 命运正在显现 ✦
+           命运正在显现 ✦
         </p>
         <p className="mt-2 text-xs sm:text-sm text-mystic-gold/60 italic">
           {cards.length} 张牌为你揭开谜底……

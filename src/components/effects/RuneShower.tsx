@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface RuneShowerProps {
   className?: string;
@@ -15,11 +16,15 @@ export default function RuneShower({
   className = '',
   count = 16,
   duration = 6,
-  runes = ['✦', '☽', '✧', '☉', '✶', '✷', '⚝', '❋'],
+  runes = ['✦', '☽', '✧', '☉', '✶', '✷', '', '❋'],
 }: RuneShowerProps) {
+  const isMobile = useIsMobile();
+  // 移动端减半
+  const effectiveCount = isMobile ? Math.floor(count / 2) : count;
+
   const items = useMemo(
     () =>
-      Array.from({ length: count }, (_, i) => ({
+      Array.from({ length: effectiveCount }, (_, i) => ({
         id: i,
         rune: runes[i % runes.length],
         x: Math.random() * 100,
@@ -28,7 +33,7 @@ export default function RuneShower({
         size: 14 + Math.random() * 20,
         drift: (Math.random() - 0.5) * 60,
       })),
-    [count, runes, duration],
+    [effectiveCount, runes, duration],
   );
 
   return (

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface MysticRingProps {
   size?: number;
@@ -20,6 +21,12 @@ export default function MysticRing({
   speed = 1,
   glowColor = '#d4af37',
 }: MysticRingProps) {
+  const isMobile = useIsMobile();
+  // 移动端：减少环数（最多 2 环）、符文数（8 个）和刻度点（12 个）
+  const effectiveRings = isMobile ? Math.min(rings, 2) : rings;
+  const symbolsCount = isMobile ? 8 : RUNE_SYMBOLS.length;
+  const tickCount = isMobile ? 12 : 24;
+
   return (
     <div
       className={`relative ${className}`}
@@ -34,12 +41,11 @@ export default function MysticRing({
         }}
       />
 
-      {/* 三层旋转环 */}
-      {Array.from({ length: rings }).map((_, ringIdx) => {
+      {/* 旋转环 */}
+      {Array.from({ length: effectiveRings }).map((_, ringIdx) => {
         const ringSize = size * (0.95 - ringIdx * 0.18);
         const isReverse = ringIdx % 2 === 1;
         const duration = (20 + ringIdx * 10) / speed;
-        const symbolsCount = RUNE_SYMBOLS.length;
 
         return (
           <div
@@ -79,8 +85,8 @@ export default function MysticRing({
             })}
 
             {/* 刻度点 */}
-            {Array.from({ length: 24 }).map((_, i) => {
-              const angle = (i / 24) * 360;
+            {Array.from({ length: tickCount }).map((_, i) => {
+              const angle = (i / tickCount) * 360;
               const isMajor = i % 6 === 0;
               return (
                 <div

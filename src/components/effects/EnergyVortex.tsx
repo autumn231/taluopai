@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface EnergyVortexProps {
   size?: number;
@@ -20,6 +21,11 @@ export default function EnergyVortex({
   rings = 4,
   speed = 1,
 }: EnergyVortexProps) {
+  const isMobile = useIsMobile();
+  // 移动端：减少环数和粒子数
+  const effectiveRings = isMobile ? Math.min(rings, 2) : rings;
+  const particleCount = isMobile ? 4 : 8;
+
   if (!active) return null;
 
   return (
@@ -39,7 +45,7 @@ export default function EnergyVortex({
       />
 
       {/* 多层环 */}
-      {Array.from({ length: rings }).map((_, i) => (
+      {Array.from({ length: effectiveRings }).map((_, i) => (
         <motion.div
           key={i}
           className="absolute rounded-full"
@@ -79,8 +85,8 @@ export default function EnergyVortex({
       />
 
       {/* 辐射粒子 */}
-      {Array.from({ length: 8 }).map((_, i) => {
-        const angle = (i / 8) * Math.PI * 2;
+      {Array.from({ length: particleCount }).map((_, i) => {
+        const angle = (i / particleCount) * Math.PI * 2;
         return (
           <motion.div
             key={`particle-${i}`}

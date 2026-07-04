@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface BreathingOrbProps {
   size?: number;
@@ -19,7 +20,10 @@ export default function BreathingOrb({
   text = ['吸气', '屏息', '呼气'],
   showText = true,
 }: BreathingOrbProps) {
+  const isMobile = useIsMobile();
   const [phase, setPhase] = useState(0); // 0: 吸气, 1: 屏息, 2: 呼气
+  // 移动端：减少光环层数
+  const ringCount = isMobile ? 2 : 3;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -92,7 +96,7 @@ export default function BreathingOrb({
         </motion.div>
 
         {/* 外层光环 - 跟随呼吸 */}
-        {[0, 1, 2].map((i) => (
+        {Array.from({ length: ringCount }).map((_, i) => (
           <motion.div
             key={i}
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border"
