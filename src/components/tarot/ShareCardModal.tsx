@@ -243,18 +243,69 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
     if (isTouchDevice) {
-      // === 手机端：直接用 data URL + <a download> 触发浏览器自动下载 ===
-      // 夸克浏览器不支持 Web Share（0B）、长按保存（看图模式禁用）、blob: 下载
-      // data URL 是唯一可靠的方案
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = fileName;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setDownloadHint('已开始下载');
-      setTimeout(() => setDownloadHint(null), 4000);
+      // === 手机端：开新窗口显示图片 + 自动触发下载 ===
+      // 夸克浏览器拦截了 Web Share（0B）、长按保存（看图模式禁用）、blob: 下载、<a download> 程序化点击
+      // 唯一可行方案：新窗口中嵌入图片，用脚本自动触发下载
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width,initial-scale=1">
+              <title>塔罗占卜海报</title>
+              <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body {
+                  background: #0a0824;
+                  display: flex;
+                  flex-direction: column;
+                  align-items: center;
+                  justify-content: center;
+                  min-height: 100vh;
+                  padding: 16px;
+                  font-family: -apple-system, sans-serif;
+                }
+                img {
+                  max-width: 100%;
+                  max-height: 85vh;
+                  object-fit: contain;
+                  border-radius: 8px;
+                }
+                .hint {
+                  color: #f4d03f;
+                  font-size: 14px;
+                  margin-top: 16px;
+                  text-align: center;
+                }
+              </style>
+            </head>
+            <body>
+              <img src="${dataUrl}" alt="塔罗占卜海报" />
+              <p class="hint">长按图片可保存</p>
+              <script>
+                setTimeout(() => {
+                  const a = document.createElement('a');
+                  a.href = '${dataUrl}';
+                  a.download = '${fileName}';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                }, 800);
+              </script>
+            </body>
+          </html>
+        `);
+        newWindow.document.close();
+        setDownloadHint('已在新窗口打开，正在下载…');
+        setTimeout(() => setDownloadHint(null), 4000);
+      } else {
+        // 弹窗被拦截，回退到模态框
+        setShowImageModal(true);
+        setDownloadHint('请允许弹窗后重试');
+        setTimeout(() => setDownloadHint(null), 4000);
+      }
     } else {
       // === 电脑端：优先用 File System Access API 弹出「另存为」对话框 ===
       try {
