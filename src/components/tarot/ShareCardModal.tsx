@@ -210,8 +210,16 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         if (err?.name === 'AbortError') { setDownloadHint(null); return; }
         console.error('Web Share 失败', err);
       }
-      // 兜底：新标签页打开，长按保存
-      window.open(dataUrl, '_blank');
+      // 兜底：转 Blob URL 后新标签页打开（data URL 会被夸克拦截显示 about:blank）
+      try {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } catch {
+        window.open(dataUrl, '_blank');
+      }
       setDownloadHint('已在新标签页打开，长按图片即可保存');
       setTimeout(() => setDownloadHint(null), 6000);
     } else {
