@@ -6,7 +6,7 @@ import { TAROT_CARDS } from '@/data/tarotCards';
 import { getSpread } from '@/data/spreads';
 import type { ThreeMode } from '@/data/questionThemes';
 
-export type Stage = 'idle' | 'shuffle' | 'select' | 'reveal' | 'done';
+export type Stage = 'idle' | 'shuffle' | 'select' | 'done';
 
 interface ReadingState {
   spreadType: SpreadType;
@@ -76,10 +76,10 @@ export const useReadingStore = create<ReadingState>()(
             : shouldReverse(),
           position: positions[idx] ?? idx,
         }));
-        set({ stage: 'reveal', drawnCards: drawn });
+        set({ stage: 'done', drawnCards: drawn });
       },
 
-      revealAll: () => set({ stage: 'done' }),
+      revealAll: () => {},
 
       reset: () =>
         set({

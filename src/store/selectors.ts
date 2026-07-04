@@ -24,7 +24,6 @@ export const useReadingActions = () =>
       startShuffle: s.startShuffle,
       startSelect: s.startSelect,
       selectCards: s.selectCards,
-      revealAll: s.revealAll,
       reset: s.reset,
     })),
   );

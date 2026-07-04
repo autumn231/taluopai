@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ChevronRight, RotateCw, Heart, Briefcase, Coins, BookOpen, Users, Sprout, Compass, Clock, Compass as CompassIcon, Wind, PenLine, type LucideIcon } from 'lucide-react';
@@ -7,7 +7,6 @@ import PageLayout from '@/components/layout/PageLayout';
 import MysticRing from '@/components/effects/MysticRing';
 import BreathingOrb from '@/components/effects/BreathingOrb';
 import SweepBeam from '@/components/effects/SweepBeam';
-import ConstellationLines from '@/components/effects/ConstellationLines';
 import Portal from '@/components/effects/Portal';
 import RuneShower from '@/components/effects/RuneShower';
 import MysticFog from '@/components/effects/MysticFog';
@@ -18,7 +17,6 @@ import { SPREADS, THREE_MODES } from '@/data/spreads';
 import { QUESTION_THEMES, type QuestionThemeKey, type SubQuestion, type ThreeMode } from '@/data/questionThemes';
 import { generateId } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import type { DrawnCard } from '@/types';
 
 const PRESET_THEMES: { key: QuestionThemeKey; icon: LucideIcon; label: string; accent: string }[] = [
   { key: 'love', icon: Heart, label: '感情', accent: 'from-rose-400/20 to-rose-600/5' },
@@ -39,7 +37,7 @@ const THREE_MODE_ICONS: Record<ThreeMode, LucideIcon> = {
 export default function Reading() {
   const navigate = useNavigate();
   const { spreadType, stage, drawnCards, question, threeMode } = useReadingUI();
-  const { setSpread, setThreeMode, setQuestion, startShuffle, startSelect, selectCards, revealAll } = useReadingActions();
+  const { setSpread, setThreeMode, setQuestion, startShuffle, startSelect, selectCards } = useReadingActions();
   const { addRecord } = useHistoryActions();
 
   // 选完所有牌后，延迟跳转到结果页（带传送门过场）
@@ -128,18 +126,9 @@ export default function Reading() {
             />
           )}
 
-          {stage === 'reveal' && (
-            <RevealStage
-              key="reveal"
-              cards={drawnCards}
-              onComplete={() => revealAll()}
-            />
-          )}
-
           {stage === 'done' && (
             <DoneStage
               key="done"
-              cards={drawnCards}
               onComplete={() => navigate('/result')}
             />
           )}
@@ -1111,356 +1100,45 @@ function PickIcon({ source, highlight }: { source: PickSource; highlight: boolea
   );
 }
 
-// === 4. Reveal 阶段：揭晓翻牌 ===
-function RevealStage({
-  cards,
-  onComplete,
-}: {
-  cards: DrawnCard[];
-  onComplete: () => void;
-}) {
-  const [revealedCount, setRevealedCount] = useState(0);
-  const completedRef = useRef(false);
-  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [constellationPoints, setConstellationPoints] = useState<{ x: number; y: number }[]>([]);
-  const [showConstellation, setShowConstellation] = useState(false);
-  const isMobile = useIsMobile();
-
-  // 跳过揭晓：立即全部翻开并推进
-  const handleSkip = () => {
-    if (completedRef.current) return;
-    completedRef.current = true;
-    setRevealedCount(cards.length);
-    onComplete();
-  };
-
+// === 4. Done 阶段：简化过渡，直接跳转结果页 ===
+function DoneStage({ onComplete }: { onComplete: () => void }) {
+  // 1 秒后跳转
   useEffect(() => {
-    if (revealedCount < cards.length) {
-      const t = setTimeout(() => setRevealedCount((c) => c + 1), 1200);
-      return () => clearTimeout(t);
-    }
-  }, [revealedCount, cards.length]);
-
-  useEffect(() => {
-    if (revealedCount === cards.length && !completedRef.current) {
-      completedRef.current = true;
-      const drawTimer = setTimeout(() => {
-        const container = cardRefs.current[0]?.parentElement?.parentElement;
-        if (container) {
-          const containerRect = container.getBoundingClientRect();
-          const points = cardRefs.current
-            .filter(Boolean)
-            .map((el) => {
-              const rect = el!.getBoundingClientRect();
-              return {
-                x: rect.left + rect.width / 2 - containerRect.left,
-                y: rect.top + rect.height / 2 - containerRect.top,
-              };
-            });
-          setConstellationPoints(points);
-          setShowConstellation(true);
-        }
-      }, 400);
-
-      const completeTimer = setTimeout(() => onComplete(), 2800);
-      return () => {
-        clearTimeout(drawTimer);
-        clearTimeout(completeTimer);
-      };
-    }
-  }, [revealedCount, cards.length, onComplete]);
-
-  return (
-    <motion.section
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="flex-1 px-4 sm:px-6 py-6 sm:py-10 relative"
-    >
-      <div className="max-w-5xl mx-auto w-full">
-        <div className="mb-6 sm:mb-10">
-          <StepIndicator currentStep={3} />
-
-          <div className="text-center mt-6 sm:mt-8">
-            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl text-gold-gradient glow-text">
-              命运揭晓
-            </h2>
-            <p className="mt-3 sm:mt-4 font-body italic text-sm sm:text-base text-midnight-200/80">
-              依次翻开你的牌
-            </p>
-          </div>
-        </div>
-
-        <div
-          className={cn(
-            'relative grid gap-6 sm:gap-8 justify-items-center mb-8',
-            cards.length === 1 && 'grid-cols-1',
-            cards.length === 3 && 'grid-cols-1 md:grid-cols-3',
-            cards.length === 10 && 'grid-cols-2 md:grid-cols-5',
-          )}
-        >
-          {showConstellation && constellationPoints.length > 1 && (
-            <ConstellationLines points={constellationPoints} drawDelay={0.4} />
-          )}
-
-          {cards.map((drawn, idx) => {
-            const isRevealed = idx < revealedCount;
-            const isCurrent = idx === revealedCount;
-            return (
-              <motion.div
-                key={idx}
-                ref={(el) => {
-                  cardRefs.current[idx] = el;
-                }}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: idx * 0.1 }}
-                className="flex flex-col items-center relative"
-              >
-                {isCurrent && (
-                  <motion.div
-                    className="absolute -inset-8 sm:-inset-12 rounded-3xl pointer-events-none z-10"
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{
-                      opacity: [0, 0.8, 0.5, 0.8, 0.3],
-                      scale: [0.5, 1.1, 1, 1.2, 1.3],
-                    }}
-                    transition={{ duration: 1.2, ease: 'easeInOut' }}
-                    style={{
-                      background: 'radial-gradient(circle, rgba(244,208,63,0.4) 0%, rgba(212,175,55,0.15) 30%, transparent 70%)',
-                      filter: isMobile ? 'none' : 'blur(8px)',
-                    }}
-                  />
-                )}
-
-                {isRevealed && idx === revealedCount - 1 && (
-                  <motion.div
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none z-0"
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{
-                      scale: [0, 2, 3],
-                      opacity: [0, 0.6, 0],
-                    }}
-                    transition={{ duration: 1.2, ease: 'easeOut' }}
-                    style={{
-                      width: 100,
-                      height: 100,
-                      background: 'radial-gradient(circle, rgba(244,208,63,0.5) 0%, transparent 70%)',
-                    }}
-                  />
-                )}
-
-                <div className="relative z-10">
-                  <TarotCard
-                    card={drawn.card}
-                    reversed={drawn.reversed}
-                    flipped={isRevealed}
-                    size={cards.length > 5 ? 'md' : 'lg'}
-                    interactive={false}
-                  />
-                </div>
-                <AnimatePresence>
-                  {isRevealed && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-3 text-center relative z-10"
-                    >
-                      <div className="font-title text-sm sm:text-base text-mystic-lightgold">
-                        {drawn.card.name.cn}
-                      </div>
-                      {drawn.reversed && (
-                        <div className="text-xs text-rose-400/80 font-title mt-1">
-                          · 逆位 ·
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        <div className="text-center relative z-10 space-y-4">
-          <div className="text-xs font-sans-ui text-mystic-gold/70 tracking-widest">
-            {revealedCount} / {cards.length} 已揭晓
-          </div>
-          {revealedCount < cards.length && (
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              onClick={handleSkip}
-              className="btn-ghost text-xs"
-            >
-              <Sparkles className="w-3 h-3 mr-2" />
-              跳过 · 直接解读
-            </motion.button>
-          )}
-        </div>
-      </div>
-    </motion.section>
-  );
-}
-
-// === 5. Done 阶段：完成，2 秒过渡动画 + 传送门 ===
-function DoneStage({ cards, onComplete }: { cards: DrawnCard[]; onComplete: () => void }) {
-  const isMobile = useIsMobile();
-  // 2 秒过渡完成后跳转
-  useEffect(() => {
-    const t = setTimeout(onComplete, 2000);
+    const t = setTimeout(onComplete, 1000);
     return () => clearTimeout(t);
   }, [onComplete]);
 
-  // 计算每张牌的目标位置（环形）
-  const ringPositions = useMemo(() => {
-    return cards.map((_, i) => {
-      const total = cards.length;
-      // 第一张始终在正中（最近抽到的）
-      if (i === 0) {
-        return { x: 0, y: 0, scale: 1.1, zIndex: 100, rotate: 0 };
-      }
-      // 其余牌绕成环
-      const angle = ((i - 1) / Math.max(total - 1, 1)) * Math.PI * 2;
-      const radius = Math.min(220, 80 + total * 10);
-      return {
-        x: Math.cos(angle) * radius,
-        y: Math.sin(angle) * radius * 0.45, // 椭圆，更扁
-        scale: 0.85,
-        zIndex: 50 - i,
-        rotate: ((i - 1) / Math.max(total - 1, 1)) * 18 - 9,
-      };
-    });
-  }, [cards]);
-
   return (
     <motion.section
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.4 }}
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
+      transition={{ duration: 0.3 }}
+      className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: 'var(--bg-base)' }}
     >
-      {/* === 1. 中心的传送门光晕 === */}
+      {/* 简单的光晕 */}
       <motion.div
-        className="absolute w-96 h-96 sm:w-[28rem] sm:h-[28rem] rounded-full pointer-events-none"
+        className="absolute w-64 h-64 sm:w-80 sm:h-80 rounded-full pointer-events-none"
         initial={{ scale: 0, opacity: 0 }}
-        animate={{
-          scale: [0, 1.4, 2.2],
-          opacity: [0, 0.85, 0.4, 0],
-        }}
-        transition={{ duration: 2, times: [0, 0.4, 0.7, 1], ease: 'easeInOut' }}
+        animate={{ scale: [0, 1.5, 2], opacity: [0, 0.6, 0] }}
+        transition={{ duration: 1, ease: 'easeInOut' }}
         style={{
-          background:
-            'radial-gradient(circle, rgba(244, 208, 63, 0.5) 0%, rgba(212, 175, 55, 0.3) 30%, rgba(110, 78, 163, 0.15) 60%, transparent 80%)',
-          filter: 'blur(20px)',
+          background: 'radial-gradient(circle, rgba(244, 208, 63, 0.4) 0%, rgba(212, 175, 55, 0.2) 40%, transparent 70%)',
         }}
       />
 
-      {/* === 2. 中心能量球 === */}
+      {/* 文字 */}
       <motion.div
-        className="absolute w-4 h-4 sm:w-5 sm:h-5 rounded-full pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle, #f4d03f 0%, #d4af37 70%, #6e4ea3 100%)',
-          boxShadow: '0 0 30px rgba(244, 208, 63, 0.8), 0 0 60px rgba(212, 175, 55, 0.5)',
-        }}
-        initial={{ scale: 0 }}
-        animate={{ scale: [0, 1, 1.5, 0.3] }}
-        transition={{ duration: 2, times: [0, 0.3, 0.6, 1] }}
-      />
-
-      {/* === 3. 牌 - 从下坠收缩后扩散到环 === */}
-      {cards.map((drawn, i) => {
-        const target = ringPositions[i];
-        return (
-          <motion.div
-            key={i}
-            className="absolute"
-            initial={{
-              y: typeof window !== 'undefined' ? window.innerHeight * 0.4 : 400,
-              x: 0,
-              scale: 0.4,
-              rotate: (Math.random() - 0.5) * 60,
-              opacity: 0,
-            }}
-            animate={{
-              y: [null, 80, target.y],
-              x: [null, 0, target.x],
-              scale: [0.4, 0.7, target.scale, target.scale * 0.6, 0],
-              rotate: [null, 0, target.rotate, target.rotate * 1.2, 0],
-              opacity: [0, 1, 1, 0.8, 0],
-            }}
-            transition={{
-              duration: 2,
-              times: [0, 0.4, 0.7, 0.9, 1],
-              ease: 'easeInOut',
-              delay: i * 0.05,
-            }}
-            style={{ zIndex: target.zIndex }}
-          >
-            <TarotCard
-              card={drawn.card}
-              reversed={drawn.reversed}
-              flipped
-              size="sm"
-              interactive={false}
-              className="rounded-lg"
-            />
-          </motion.div>
-        );
-      })}
-
-      {/* === 4. 旋转的金色光环（装饰）- 移动端只保留 1 个 === */}
-      <motion.div
-        className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full pointer-events-none"
-        initial={{ opacity: 0, rotate: 0, scale: 0.5 }}
-        animate={{ opacity: [0, 0.6, 0.3, 0], rotate: 360, scale: [0.5, 1, 1.2, 1.5] }}
-        transition={{ duration: 2, ease: 'easeInOut' }}
-        style={{
-          border: '1px solid rgba(212, 175, 55, 0.4)',
-          borderTopColor: 'rgba(244, 208, 63, 0.8)',
-          borderRightColor: 'rgba(244, 208, 63, 0.6)',
-        }}
-      />
-      {!isMobile && (
-        <motion.div
-          className="absolute w-56 h-56 sm:w-72 sm:h-72 rounded-full pointer-events-none"
-          initial={{ opacity: 0, rotate: 0, scale: 0.5 }}
-          animate={{ opacity: [0, 0.5, 0.2, 0], rotate: -360, scale: [0.5, 0.9, 1.1, 1.4] }}
-          transition={{ duration: 2, ease: 'easeInOut' }}
-          style={{
-            border: '1px dashed rgba(212, 175, 55, 0.3)',
-          }}
-        />
-      )}
-
-      {/* === 5. 文字 === */}
-      <motion.div
-        className="absolute bottom-[18%] sm:bottom-[15%] left-0 right-0 text-center pointer-events-none"
+        className="text-center pointer-events-none"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: [0, 1, 1, 0], y: 0 }}
-        transition={{ duration: 2, times: [0, 0.3, 0.85, 1] }}
+        transition={{ duration: 1, times: [0, 0.2, 0.8, 1] }}
       >
-        <p className="font-title text-sm sm:text-base text-mystic-lightgold tracking-[0.4em]">
-           命运正在显现 ✦
-        </p>
-        <p className="mt-2 text-xs sm:text-sm text-mystic-gold/60 italic">
-          {cards.length} 张牌为你揭开谜底……
+        <p className="font-title text-base sm:text-lg text-mystic-lightgold tracking-[0.3em]">
+          命运正在显现
         </p>
       </motion.div>
-
-      {/* === 6. 最终全屏白闪（结束时） === */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: [0, 0, 0.6, 0] }}
-        transition={{ duration: 2, times: [0, 0.85, 0.95, 1] }}
-        style={{
-          background:
-            'radial-gradient(circle, rgba(244, 208, 63, 0.6) 0%, rgba(212, 175, 55, 0.3) 50%, transparent 80%)',
-        }}
-      />
     </motion.section>
   );
 }
