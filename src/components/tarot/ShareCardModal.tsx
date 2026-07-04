@@ -134,6 +134,7 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   const [status, setStatus] = useState<'idle' | 'generating' | 'done' | 'error'>('idle');
   // Blob URL 用于 <img> 渲染；data URL 用于下载 —— 夸克可能拦截 blob: 和程序化 <a download>
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const imageUrlRef = useRef<string | null>(null); // 追踪当前 URL，避免依赖链循环
   const dataUrlRef = useRef<string | null>(null);
   const blobRef = useRef<Blob | null>(null);
   const [posterStyle, setPosterStyle] = useState<PosterStyle>('dark');
@@ -151,13 +152,15 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
 
   // 释放上一个 Blob URL，避免内存泄漏
   const revokeImageUrl = useCallback(() => {
-    if (imageUrl) {
-      URL.revokeObjectURL(imageUrl);
+    const url = imageUrlRef.current;
+    if (url) {
+      URL.revokeObjectURL(url);
+      imageUrlRef.current = null;
       setImageUrl(null);
     }
     blobRef.current = null;
     dataUrlRef.current = null;
-  }, [imageUrl]);
+  }, []); // 无依赖，引用稳定
 
   useEffect(() => {
     if (open) {
@@ -171,9 +174,10 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   // 组件卸载时释放 Blob URL
   useEffect(() => {
     return () => {
-      if (imageUrl) URL.revokeObjectURL(imageUrl);
+      const url = imageUrlRef.current;
+      if (url) URL.revokeObjectURL(url);
     };
-  }, [imageUrl]);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -220,18 +224,20 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         bytes[i] = binaryStr.charCodeAt(i);
       }
       const blob = new Blob([bytes], { type: mime });
-      // 释放旧的 Blob URL
-      if (imageUrl) URL.revokeObjectURL(imageUrl);
+      // 释放旧的 Blob URL（用 ref 读取，避免依赖 imageUrl 导致循环触发）
+      const oldUrl = imageUrlRef.current;
+      if (oldUrl) URL.revokeObjectURL(oldUrl);
       blobRef.current = blob;
       dataUrlRef.current = dataUrl;
       const url = URL.createObjectURL(blob);
+      imageUrlRef.current = url;
       setImageUrl(url);
       setStatus('done');
     } catch (err) {
       console.error('生成图片失败', err);
       setStatus('error');
     }
-  }, [canvasW, canvasH, palette.bg, imageUrl]);
+  }, [canvasW, canvasH, palette.bg]);
 
   /**
    * 手机端保存图片 - 多级降级策略
