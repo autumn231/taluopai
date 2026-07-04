@@ -198,12 +198,12 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   const handleDownload = useCallback(async () => {
     if (!dataUrl) return;
     const fileName = `塔罗占卜_${new Date().toISOString().slice(0, 10)}.png`;
+
+    // 方案 1：Blob URL download（Chrome/Edge 支持好）
     try {
-      // 转 Blob 再用 object URL，兼容 iOS Safari（data: URL 的 download 在 iOS 基本失效）
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
-
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = fileName;
@@ -212,17 +212,18 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
       link.click();
       document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
-
-      // iOS Safari 仍可能只在新标签打开图片；给出长按保存提示
-      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      setDownloadHint(isIOS ? '若未自动下载，请在打开的图片上长按「存储图像」' : '已开始下载，请查看下载文件夹');
     } catch (err) {
-      console.error('下载失败', err);
-      // 兜底：新标签页打开原图，用户长按保存
-      window.open(dataUrl, '_blank');
-      setDownloadHint('已在新标签页打开，长按图片即可保存');
+      console.error('Blob 下载失败', err);
     }
-    setTimeout(() => setDownloadHint(null), 6000);
+
+    // 方案 2：新标签页打开图片（夸克/UC/Safari 长按保存）
+    // 延迟 300ms 避免被浏览器当作弹窗拦截
+    setTimeout(() => {
+      window.open(dataUrl, '_blank');
+    }, 300);
+
+    setDownloadHint('已打开图片，长按图片即可保存到相册');
+    setTimeout(() => setDownloadHint(null), 8000);
   }, [dataUrl]);
 
   return (
