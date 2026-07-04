@@ -18,16 +18,16 @@ import type {
   Verdict,
 } from '@/lib/interpretation';
 
-// === 海报样式（黑夜 / 白天） ===
+// ============================================================
+// 类型与常量
+// ============================================================
+
 type PosterStyle = 'dark' | 'light';
-// === 海报方向（竖屏 / 横屏） ===
 type PosterOrientation = 'portrait' | 'landscape';
 
-// === 色板定义 ===
 interface Palette {
-  bg0: string;
-  bg1: string;
-  bg2: string;
+  bg: string;
+  panel: string;
   gold: string;
   lightgold: string;
   textStrong: string;
@@ -36,45 +36,30 @@ interface Palette {
   textMute: string;
   border: string;
   borderSoft: string;
-  panel: string;
   emerald: string;
   rose: string;
   amber: string;
-  /** 装饰光晕颜色 */
-  glowGold: string;
-  glowAccent: string;
-  /** 进度条底色 */
-  barTrack: string;
-  /** 分隔线颜色 */
-  divider: string;
 }
 
-const DARK_PALETTE: Palette = {
-  bg0: '#050314',
-  bg1: '#0e0828',
-  bg2: '#1a0f3d',
+const DARK: Palette = {
+  bg: '#0e0828',
+  panel: 'rgba(30, 18, 64, 0.55)',
   gold: '#d4af37',
   lightgold: '#f4d03f',
   textStrong: '#f5f3ff',
   textBase: '#e8e4f3',
   textSoft: '#c4b8d8',
   textMute: '#9a82bf',
-  border: 'rgba(212, 175, 55, 0.3)',
-  borderSoft: 'rgba(212, 175, 55, 0.15)',
-  panel: 'rgba(30, 18, 64, 0.55)',
+  border: 'rgba(212, 175, 55, 0.32)',
+  borderSoft: 'rgba(212, 175, 55, 0.16)',
   emerald: '#34d399',
   rose: '#fb7185',
   amber: '#eab308',
-  glowGold: 'rgba(212,175,55,0.12)',
-  glowAccent: 'rgba(110,78,163,0.15)',
-  barTrack: 'rgba(255,255,255,0.08)',
-  divider: 'rgba(212, 175, 55, 0.3)',
 };
 
-const LIGHT_PALETTE: Palette = {
-  bg0: '#f5f0e6',
-  bg1: '#faf6ee',
-  bg2: '#efe6d4',
+const LIGHT: Palette = {
+  bg: '#f5f0e6',
+  panel: 'rgba(255, 250, 240, 0.7)',
   gold: '#a67c00',
   lightgold: '#8a6500',
   textStrong: '#2d2410',
@@ -83,133 +68,48 @@ const LIGHT_PALETTE: Palette = {
   textMute: '#9a8a66',
   border: 'rgba(166, 124, 0, 0.35)',
   borderSoft: 'rgba(166, 124, 0, 0.18)',
-  panel: 'rgba(255, 250, 240, 0.7)',
   emerald: '#2d8659',
   rose: '#c0392b',
   amber: '#b8860b',
-  glowGold: 'rgba(166,124,0,0.08)',
-  glowAccent: 'rgba(180,140,80,0.1)',
-  barTrack: 'rgba(74, 63, 40, 0.1)',
-  divider: 'rgba(166, 124, 0, 0.3)',
 };
 
-const VERDICT_COLOR_KEY: Record<Verdict, keyof Palette> = {
+const VERDICT_COLOR: Record<Verdict, keyof Palette> = {
   positive: 'emerald',
   cautious: 'rose',
   neutral: 'amber',
 };
-
 const VERDICT_LABEL: Record<Verdict, string> = {
   positive: '倾向明朗',
   cautious: '需谨慎',
   neutral: '能量待定',
 };
-
 const ACTION_ICON: Record<ActionItem['kind'], string> = {
   advice: '✦',
   warning: '⚠',
   timing: '⏳',
   theme: '✧',
 };
-
 const ACTION_LABEL: Record<ActionItem['kind'], string> = {
   advice: '此刻最该做',
   warning: '需要留意',
   timing: '时机提示',
   theme: '塔罗师叮嘱',
 };
+const ELEMENT_LABEL: Record<string, string> = {
+  fire: '火', water: '水', air: '风', earth: '土', spirit: '灵',
+};
 
-// === 尺寸 ===
+const SITE_DOMAIN = 'taluopai.tbit.xin';
+
+// 画布尺寸（设计稿）
 const PORTRAIT_W = 750;
-const PORTRAIT_H = 1334;
-const LANDSCAPE_W = 1334;
+const PORTRAIT_H = 1200;
+const LANDSCAPE_W = 1200;
 const LANDSCAPE_H = 750;
 
-// === 字号层次体系 ===
-// 分三个视觉层级：
-//   L1 焦点：品牌/问题/牌名/直接回应/域名 —— 最大字号、强对比、金色或最强文本色
-//   L2 主体：section 标签/行动指引/解读/收束语/能量数字 —— 中等字号、主要内容
-//   L3 辅助：日期/位置名/正逆位/关键词/箴言/CTA 提示 —— 小字号、柔和色
-interface Typo {
-  // L1 焦点
-  brand: number;
-  question: number;
-  cardName: number;
-  headline: number;
-  domain: number;
-  // L2 主体
-  sectionTag: number;
-  actionDetail: number;
-  reasoning: number;
-  verdict: number;
-  closingText: number;
-  energyCount: number;
-  energyBarValue: number;
-  // L3 辅助
-  date: number;
-  posName: number;
-  cardMeta: number;
-  keywords: number;
-  energyLabel: number;
-  energyPct: number;
-  energyBarLabel: number;
-  epilogue: number;
-  ctaHint: number;
-}
-
-const TYPO_PORTRAIT: Typo = {
-  brand: 30,
-  question: 26,
-  cardName: 24,
-  headline: 24,
-  domain: 22,
-  sectionTag: 18,
-  actionDetail: 20,
-  reasoning: 19,
-  verdict: 20,
-  closingText: 22,
-  energyCount: 18,
-  energyBarValue: 18,
-  date: 16,
-  posName: 15,
-  cardMeta: 15,
-  keywords: 15,
-  energyLabel: 16,
-  energyPct: 14,
-  energyBarLabel: 15,
-  epilogue: 15,
-  ctaHint: 14,
-};
-
-const TYPO_LANDSCAPE: Typo = {
-  brand: 26,
-  question: 22,
-  cardName: 20,
-  headline: 20,
-  domain: 18,
-  sectionTag: 15,
-  actionDetail: 17,
-  reasoning: 16,
-  verdict: 17,
-  closingText: 18,
-  energyCount: 15,
-  energyBarValue: 15,
-  date: 13,
-  posName: 12,
-  cardMeta: 12,
-  keywords: 12,
-  energyLabel: 13,
-  energyPct: 11,
-  energyBarLabel: 12,
-  epilogue: 12,
-  ctaHint: 11,
-};
-
-/** 截断文本到指定字数 */
-function truncate(text: string, max: number): string {
-  if (!text) return '';
-  return text.length > max ? text.slice(0, max) + '…' : text;
-}
+// ============================================================
+// 数据接口
+// ============================================================
 
 export interface ShareCardData {
   question: string;
@@ -227,27 +127,24 @@ interface ShareCardModalProps extends ShareCardData {
   onClose: () => void;
 }
 
-export default function ShareCardModal({
-  open,
-  onClose,
-  ...data
-}: ShareCardModalProps) {
+// ============================================================
+// 主组件
+// ============================================================
+
+export default function ShareCardModal({ open, onClose, ...data }: ShareCardModalProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'idle' | 'generating' | 'done' | 'error'>('idle');
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [posterStyle, setPosterStyle] = useState<PosterStyle>('dark');
   const [orientation, setOrientation] = useState<PosterOrientation>('portrait');
 
-  const palette = posterStyle === 'dark' ? DARK_PALETTE : LIGHT_PALETTE;
+  const palette = posterStyle === 'dark' ? DARK : LIGHT;
   const isPortrait = orientation === 'portrait';
-  const posterW = isPortrait ? PORTRAIT_W : LANDSCAPE_W;
-  const posterH = isPortrait ? PORTRAIT_H : LANDSCAPE_H;
-
-  // 预览宽度：竖屏窄一点，横屏宽一点
+  const canvasW = isPortrait ? PORTRAIT_W : LANDSCAPE_W;
+  const canvasH = isPortrait ? PORTRAIT_H : LANDSCAPE_H;
   const previewW = isPortrait ? 280 : 380;
-  const shareScale = previewW / posterW;
+  const scale = previewW / canvasW;
 
-  // 重置状态
   useEffect(() => {
     if (open) {
       setStatus('idle');
@@ -255,45 +152,37 @@ export default function ShareCardModal({
     }
   }, [open]);
 
-  // ESC 关闭
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
   }, [open, onClose]);
 
-  // 锁定背景滚动
+  // 切换选项时重置已生成图片
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
-  }, [open]);
+    setDataUrl(null);
+    setStatus('idle');
+  }, [posterStyle, orientation]);
 
   const handleGenerate = useCallback(async () => {
     const node = cardRef.current;
     if (!node) return;
     setStatus('generating');
     try {
-      if (document.fonts?.ready) {
-        await document.fonts.ready;
-      }
+      if (document.fonts?.ready) await document.fonts.ready;
       await new Promise((r) => setTimeout(r, 120));
-      // 用节点实际渲染尺寸，适配内容超出固定高度的情况
       const rect = node.getBoundingClientRect();
-      const actualW = Math.round(rect.width);
-      const actualH = Math.round(rect.height);
       const url = await toPng(node, {
         pixelRatio: 2,
         cacheBust: true,
-        width: actualW,
-        height: actualH,
-        backgroundColor: palette.bg0,
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        backgroundColor: palette.bg,
         style: { transform: 'none', margin: '0' },
       });
       setDataUrl(url);
@@ -302,25 +191,15 @@ export default function ShareCardModal({
       console.error('生成图片失败', err);
       setStatus('error');
     }
-  }, [palette.bg0]);
+  }, [palette.bg]);
 
   const handleDownload = useCallback(() => {
     if (!dataUrl) return;
     const link = document.createElement('a');
-    const date = new Date().toISOString().slice(0, 10);
-    link.download = `塔罗占卜_${date}.png`;
+    link.download = `塔罗占卜_${new Date().toISOString().slice(0, 10)}.png`;
     link.href = dataUrl;
     link.click();
   }, [dataUrl]);
-
-  // 切换样式/方向时清除已生成结果
-  useEffect(() => {
-    if (status === 'done') {
-      setDataUrl(null);
-      setStatus('idle');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [posterStyle, orientation]);
 
   return (
     <AnimatePresence>
@@ -334,15 +213,10 @@ export default function ShareCardModal({
           style={{ backgroundColor: 'rgba(5, 3, 20, 0.85)', backdropFilter: 'blur(8px)' }}
           onClick={onClose}
         >
-          {/* 关闭按钮 */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-mystic-gold/15"
-            style={{
-              backgroundColor: 'rgba(30, 18, 64, 0.6)',
-              border: `1px solid ${DARK_PALETTE.border}`,
-              color: DARK_PALETTE.textSoft,
-            }}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full flex items-center justify-center hover:bg-mystic-gold/15"
+            style={{ backgroundColor: 'rgba(30, 18, 64, 0.6)', border: `1px solid ${DARK.border}`, color: DARK.textSoft }}
             aria-label="关闭"
           >
             <X className="w-5 h-5" />
@@ -354,45 +228,31 @@ export default function ShareCardModal({
             exit={{ scale: 0.92, y: 20 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
             className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl"
-            style={{
-              backgroundColor: DARK_PALETTE.bg1,
-              border: `1px solid ${DARK_PALETTE.border}`,
-            }}
+            style={{ backgroundColor: DARK.bg, border: `1px solid ${DARK.border}` }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* 标题栏 */}
             <div
               className="flex items-center gap-2 px-5 py-3.5 sticky top-0 z-10"
-              style={{
-                borderBottom: `1px solid ${DARK_PALETTE.borderSoft}`,
-                backgroundColor: DARK_PALETTE.bg1,
-              }}
+              style={{ borderBottom: `1px solid ${DARK.borderSoft}`, backgroundColor: DARK.bg }}
             >
-              <ImageDown className="w-4 h-4" style={{ color: DARK_PALETTE.lightgold }} />
-              <span
-                className="font-title text-sm tracking-widest"
-                style={{ color: DARK_PALETTE.lightgold }}
-              >
+              <ImageDown className="w-4 h-4" style={{ color: DARK.lightgold }} />
+              <span className="font-title text-sm tracking-widest" style={{ color: DARK.lightgold }}>
                 生成分享海报
               </span>
             </div>
 
             <div className="flex flex-col lg:flex-row gap-5 p-5">
-              {/* 左侧：海报预览（实际被截图的节点） */}
-              <div className="flex-shrink-0 mx-auto lg:mx-0 flex items-start justify-center">
-                <PosterPreview
-                  previewW={previewW}
-                  posterW={posterW}
-                  posterH={posterH}
-                  shareScale={shareScale}
-                >
+              {/* 左侧：预览 */}
+              <div className="flex-shrink-0 mx-auto lg:mx-0">
+                <PosterPreview previewW={previewW} scale={scale}>
                   <ShareCard
                     ref={cardRef}
                     {...data}
                     palette={palette}
                     orientation={orientation}
-                    width={posterW}
-                    height={posterH}
+                    width={canvasW}
+                    minHeight={canvasH}
                   />
                 </PosterPreview>
               </div>
@@ -400,78 +260,36 @@ export default function ShareCardModal({
               {/* 右侧：操作区 */}
               <div className="flex-1 flex flex-col gap-4 min-w-0">
                 <div>
-                  <h3
-                    className="font-display text-xl mb-1.5"
-                    style={{ color: DARK_PALETTE.lightgold }}
-                  >
+                  <h3 className="font-display text-xl mb-1.5" style={{ color: DARK.lightgold }}>
                     一键生成分享海报
                   </h3>
-                  <p className="text-sm leading-relaxed" style={{ color: DARK_PALETTE.textSoft }}>
+                  <p className="text-sm leading-relaxed" style={{ color: DARK.textSoft }}>
                     选择样式与方向，将本次占卜凝练为精美图片。
                   </p>
                 </div>
 
-                {/* === 选项：海报样式 === */}
                 <OptionGroup label="海报样式">
-                  <OptionButton
-                    active={posterStyle === 'dark'}
-                    onClick={() => setPosterStyle('dark')}
-                    icon={<Moon className="w-3.5 h-3.5" />}
-                    label="黑夜"
-                  />
-                  <OptionButton
-                    active={posterStyle === 'light'}
-                    onClick={() => setPosterStyle('light')}
-                    icon={<Sun className="w-3.5 h-3.5" />}
-                    label="白天"
-                  />
+                  <OptionButton active={posterStyle === 'dark'} onClick={() => setPosterStyle('dark')} icon={<Moon className="w-3.5 h-3.5" />} label="黑夜" />
+                  <OptionButton active={posterStyle === 'light'} onClick={() => setPosterStyle('light')} icon={<Sun className="w-3.5 h-3.5" />} label="白天" />
                 </OptionGroup>
 
-                {/* === 选项：海报方向 === */}
                 <OptionGroup label="海报方向">
-                  <OptionButton
-                    active={orientation === 'portrait'}
-                    onClick={() => setOrientation('portrait')}
-                    icon={<Smartphone className="w-3.5 h-3.5" />}
-                    label="竖屏"
-                  />
-                  <OptionButton
-                    active={orientation === 'landscape'}
-                    onClick={() => setOrientation('landscape')}
-                    icon={<Monitor className="w-3.5 h-3.5" />}
-                    label="横屏"
-                  />
+                  <OptionButton active={orientation === 'portrait'} onClick={() => setOrientation('portrait')} icon={<Smartphone className="w-3.5 h-3.5" />} label="竖屏" />
+                  <OptionButton active={orientation === 'landscape'} onClick={() => setOrientation('landscape')} icon={<Monitor className="w-3.5 h-3.5" />} label="横屏" />
                 </OptionGroup>
 
-                {/* 状态展示 */}
                 {status === 'done' && dataUrl && (
-                  <div
-                    className="rounded-xl p-3 flex items-center gap-2.5"
-                    style={{
-                      backgroundColor: 'rgba(52, 211, 153, 0.1)',
-                      border: '1px solid rgba(52, 211, 153, 0.35)',
-                    }}
-                  >
-                    <Check className="w-4 h-4 shrink-0" style={{ color: DARK_PALETTE.emerald }} />
-                    <span className="text-sm" style={{ color: DARK_PALETTE.emerald }}>
-                      图片已生成，点击下方按钮保存
-                    </span>
+                  <div className="rounded-xl p-3 flex items-center gap-2.5" style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.35)' }}>
+                    <Check className="w-4 h-4 shrink-0" style={{ color: DARK.emerald }} />
+                    <span className="text-sm" style={{ color: DARK.emerald }}>图片已生成，点击下方按钮保存</span>
                   </div>
                 )}
                 {status === 'error' && (
-                  <div
-                    className="rounded-xl p-3 text-sm"
-                    style={{
-                      backgroundColor: 'rgba(251, 113, 133, 0.1)',
-                      border: '1px solid rgba(251, 113, 133, 0.35)',
-                      color: DARK_PALETTE.rose,
-                    }}
-                  >
-                    生成失败，请重试。若多次失败，可尝试用截图工具手动截取。
+                  <div className="rounded-xl p-3 text-sm" style={{ backgroundColor: 'rgba(251, 113, 133, 0.1)', border: '1px solid rgba(251, 113, 133, 0.35)', color: DARK.rose }}>
+                    生成失败，请重试。
                   </div>
                 )}
 
-                {/* 操作按钮 */}
                 <div className="flex flex-col gap-2.5">
                   {status !== 'done' && (
                     <button
@@ -479,25 +297,16 @@ export default function ShareCardModal({
                       disabled={status === 'generating'}
                       className="w-full py-3 rounded-full font-title text-sm tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-60"
                       style={{
-                        background:
-                          status === 'generating'
-                            ? DARK_PALETTE.panel
-                            : 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)',
-                        color: status === 'generating' ? DARK_PALETTE.textSoft : '#0a0824',
-                        border: `1px solid ${DARK_PALETTE.border}`,
+                        background: status === 'generating' ? DARK.panel : 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)',
+                        color: status === 'generating' ? DARK.textSoft : '#0a0824',
+                        border: `1px solid ${DARK.border}`,
                         cursor: status === 'generating' ? 'wait' : 'pointer',
                       }}
                     >
                       {status === 'generating' ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          正在生成…
-                        </>
+                        <><Loader2 className="w-4 h-4 animate-spin" />正在生成…</>
                       ) : (
-                        <>
-                          <ImageDown className="w-4 h-4" />
-                          生成海报
-                        </>
+                        <><ImageDown className="w-4 h-4" />生成海报</>
                       )}
                     </button>
                   )}
@@ -506,28 +315,14 @@ export default function ShareCardModal({
                       <button
                         onClick={handleDownload}
                         className="w-full py-3 rounded-full font-title text-sm tracking-widest transition-all flex items-center justify-center gap-2 hover:brightness-110"
-                        style={{
-                          background: 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)',
-                          color: '#0a0824',
-                          border: `1px solid ${DARK_PALETTE.border}`,
-                          cursor: 'pointer',
-                        }}
+                        style={{ background: 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)', color: '#0a0824', border: `1px solid ${DARK.border}`, cursor: 'pointer' }}
                       >
-                        <Download className="w-4 h-4" />
-                        保存图片
+                        <Download className="w-4 h-4" />保存图片
                       </button>
                       <button
-                        onClick={() => {
-                          setDataUrl(null);
-                          setStatus('idle');
-                        }}
+                        onClick={() => { setDataUrl(null); setStatus('idle'); }}
                         className="w-full py-2.5 rounded-full font-title text-xs tracking-widest transition-all hover:bg-mystic-gold/10"
-                        style={{
-                          backgroundColor: 'transparent',
-                          color: DARK_PALETTE.textSoft,
-                          border: `1px solid ${DARK_PALETTE.borderSoft}`,
-                          cursor: 'pointer',
-                        }}
+                        style={{ backgroundColor: 'transparent', color: DARK.textSoft, border: `1px solid ${DARK.borderSoft}`, cursor: 'pointer' }}
                       >
                         重新生成
                       </button>
@@ -535,21 +330,10 @@ export default function ShareCardModal({
                   )}
                 </div>
 
-                {/* 预览缩略图 */}
                 {dataUrl && (
                   <div className="mt-1">
-                    <div
-                      className="text-[10px] font-title tracking-widest mb-1.5"
-                      style={{ color: DARK_PALETTE.textMute }}
-                    >
-                      生成结果预览
-                    </div>
-                    <img
-                      src={dataUrl}
-                      alt="占卜海报预览"
-                      className="w-full rounded-lg"
-                      style={{ border: `1px solid ${DARK_PALETTE.borderSoft}` }}
-                    />
+                    <div className="text-[10px] font-title tracking-widest mb-1.5" style={{ color: DARK.textMute }}>生成结果预览</div>
+                    <img src={dataUrl} alt="占卜海报预览" className="w-full rounded-lg" style={{ border: `1px solid ${DARK.borderSoft}` }} />
                   </div>
                 )}
               </div>
@@ -561,31 +345,64 @@ export default function ShareCardModal({
   );
 }
 
-// === 选项小组件 ===
+// ============================================================
+// 预览容器：动态测量内层实际高度
+// ============================================================
+
+function PosterPreview({
+  previewW,
+  scale,
+  children,
+}: {
+  previewW: number;
+  scale: number;
+  children: React.ReactNode;
+}) {
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [renderedH, setRenderedH] = useState(0);
+
+  useLayoutEffect(() => {
+    const node = innerRef.current;
+    if (!node) return;
+    const measure = () => {
+      const h = node.getBoundingClientRect().height;
+      if (h > 0) setRenderedH(h);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div
+      className="overflow-hidden rounded-lg"
+      style={{ width: previewW, height: renderedH * scale }}
+    >
+      <div ref={innerRef} style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// 选项小组件
+// ============================================================
+
 function OptionGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div
-        className="text-[10px] font-title tracking-widest mb-2"
-        style={{ color: DARK_PALETTE.textMute }}
-      >
-        {label}
-      </div>
+      <div className="text-[10px] font-title tracking-widest mb-2" style={{ color: DARK.textMute }}>{label}</div>
       <div className="flex gap-2">{children}</div>
     </div>
   );
 }
 
 function OptionButton({
-  active,
-  onClick,
-  icon,
-  label,
+  active, onClick, icon, label,
 }: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
+  active: boolean; onClick: () => void; icon: React.ReactNode; label: string;
 }) {
   return (
     <button
@@ -593,116 +410,40 @@ function OptionButton({
       className="flex-1 py-2 px-3 rounded-lg text-xs font-title tracking-wider transition-all flex items-center justify-center gap-1.5"
       style={{
         backgroundColor: active ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
-        border: `1px solid ${active ? DARK_PALETTE.border : DARK_PALETTE.borderSoft}`,
-        color: active ? DARK_PALETTE.lightgold : DARK_PALETTE.textSoft,
+        border: `1px solid ${active ? DARK.border : DARK.borderSoft}`,
+        color: active ? DARK.lightgold : DARK.textSoft,
         cursor: 'pointer',
       }}
     >
-      {icon}
-      {label}
+      {icon}{label}
     </button>
   );
 }
 
-// === 元素能量计算 ===
-const ELEMENT_META: Record<string, { label: string; icon: string }> = {
-  fire: { label: '火', icon: '△' },
-  water: { label: '水', icon: '▽' },
-  air: { label: '风', icon: '◌' },
-  earth: { label: '土', icon: '□' },
-  spirit: { label: '灵', icon: '✦' },
-};
+// ============================================================
+// 海报本体
+// ============================================================
 
-function computeElementEnergy(cards: DrawnCard[]) {
-  const counts: Record<string, number> = {};
-  cards.forEach((c) => {
-    const e = c.card.element || 'spirit';
-    counts[e] = (counts[e] || 0) + 1;
-  });
-  return Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([el, count]) => ({
-      element: el,
-      count,
-      label: ELEMENT_META[el]?.label || el,
-      icon: ELEMENT_META[el]?.icon || '✦',
-    }));
-}
-
-const SITE_DOMAIN = 'taluopai.tbit.xin';
-
-// === 海报预览容器（自适应内层实际高度） ===
-function PosterPreview({
-  previewW,
-  posterW,
-  posterH,
-  shareScale,
-  children,
-}: {
-  previewW: number;
-  posterW: number;
-  posterH: number;
-  shareScale: number;
-  children: React.ReactNode;
-}) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [actualH, setActualH] = useState(posterH);
-
-  useLayoutEffect(() => {
-    const node = wrapperRef.current;
-    if (!node) return;
-    const update = () => {
-      const h = node.getBoundingClientRect().height;
-      if (h > 0) setActualH(h);
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(node);
-    return () => ro.disconnect();
-  }, [posterH]);
-
-  return (
-    <div
-      className="origin-top-left overflow-hidden rounded-lg"
-      style={{ width: previewW, height: actualH * shareScale }}
-    >
-      <div
-        ref={wrapperRef}
-        style={{
-          width: posterW,
-          transform: `scale(${shareScale})`,
-          transformOrigin: 'top left',
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// === 海报本体 ===
 interface ShareCardProps extends ShareCardData {
   palette: Palette;
   orientation: PosterOrientation;
   width: number;
-  height: number;
+  minHeight: number;
 }
 
 const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
-  { question, drawnCards, positions, spreadName, theme, directAnswer, actionPlan, closingText, palette, orientation, width, height },
+  { question, drawnCards, positions, spreadName, theme, directAnswer, actionPlan, closingText, palette, orientation, width, minHeight },
   ref,
 ) {
-  const date = new Date();
-  const dateStr = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
-  const verdictColor = palette[VERDICT_COLOR_KEY[directAnswer.verdict]];
-  const pct = Math.round(((directAnswer.score + 100) / 200) * 100);
   const isPortrait = orientation === 'portrait';
-  const typo = isPortrait ? TYPO_PORTRAIT : TYPO_LANDSCAPE;
+  const dateStr = formatDate(new Date());
+  const verdictColor = palette[VERDICT_COLOR[directAnswer.verdict]];
+  const energyPct = Math.round(((directAnswer.score + 100) / 200) * 100);
 
-  const cardStyle: CSSProperties = {
+  const rootStyle: CSSProperties = {
     width,
-    minHeight: height,
-    background: `linear-gradient(160deg, ${palette.bg0} 0%, ${palette.bg1} 40%, ${palette.bg2} 100%)`,
+    minHeight,
+    background: `linear-gradient(160deg, ${palette.bg} 0%, ${palette.bg} 60%, ${palette.bg} 100%)`,
     fontFamily: "'Cormorant Garamond', 'Noto Serif SC', serif",
     color: palette.textBase,
     position: 'relative',
@@ -712,13 +453,10 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
   };
 
   return (
-    <div ref={ref} style={cardStyle}>
-      {/* 背景装饰光晕 */}
-      <Glow top={-120} right={-100} size={360} color={palette.glowGold} />
-      <Glow bottom={-80} left={-80} size={300} color={palette.glowAccent} />
-
+    <div ref={ref} style={rootStyle}>
+      <BackgroundDecor palette={palette} />
       {isPortrait ? (
-        <PortraitLayout
+        <PortraitBody
           question={question}
           drawnCards={drawnCards}
           positions={positions}
@@ -729,12 +467,11 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
           closingText={closingText}
           palette={palette}
           verdictColor={verdictColor}
-          pct={pct}
+          energyPct={energyPct}
           dateStr={dateStr}
-          typo={typo}
         />
       ) : (
-        <LandscapeLayout
+        <LandscapeBody
           question={question}
           drawnCards={drawnCards}
           positions={positions}
@@ -745,251 +482,153 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
           closingText={closingText}
           palette={palette}
           verdictColor={verdictColor}
-          pct={pct}
+          energyPct={energyPct}
           dateStr={dateStr}
-          typo={typo}
         />
       )}
     </div>
   );
 });
 
-// === 竖屏布局 ===
-function PortraitLayout({
-  question,
-  drawnCards,
-  positions,
-  spreadName,
-  theme,
-  directAnswer,
-  actionPlan,
-  closingText,
-  palette,
-  verdictColor,
-  pct,
-  dateStr,
-  typo,
-}: {
-  question: string;
-  drawnCards: DrawnCard[];
-  positions: SpreadPosition[];
-  spreadName: string;
-  theme: QuestionTheme;
-  directAnswer: DirectAnswerType;
-  actionPlan: ActionItem[];
-  closingText: string;
-  palette: Palette;
-  verdictColor: string;
-  pct: number;
-  dateStr: string;
-  typo: Typo;
-}) {
-  const elements = computeElementEnergy(drawnCards);
-  const totalCards = drawnCards.length || 1;
+// ============================================================
+// 竖屏布局（单栏纵向流）
+// ============================================================
 
+function PortraitBody({
+  question, drawnCards, positions, spreadName, theme, directAnswer, actionPlan, closingText,
+  palette, verdictColor, energyPct, dateStr,
+}: BodyProps) {
   return (
-    <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', padding: '36px 42px 24px' }}>
-      {/* 顶部品牌 —— L1 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: palette.gold, fontSize: typo.brand }}>✦</span>
-          <span style={{ fontFamily: "'Cinzel Decorative', 'Cinzel', serif", fontSize: typo.brand, letterSpacing: '0.08em', color: palette.lightgold, fontWeight: 600 }}>
-            塔罗秘境
-          </span>
-        </div>
-        <span style={{ fontSize: typo.date, color: palette.textMute, fontFamily: "'Inter', sans-serif" }}>
-          {dateStr}
-        </span>
-      </div>
+    <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', padding: '40px 44px 32px' }}>
+      {/* 顶部品牌行 */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <BrandMark palette={palette} size={28} />
+        <span style={{ fontSize: 15, color: palette.textMute, fontFamily: "'Inter', sans-serif" }}>{dateStr}</span>
+      </header>
 
       <Divider palette={palette} />
 
-      {/* 问题 —— L1 焦点 */}
-      <Section palette={palette} typo={typo} tag="你所问" marginTop={16} marginBottom={16}>
-        <p style={{ fontSize: typo.question, lineHeight: 1.55, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '12px 0 0', minHeight: 30 }}>
+      {/* 问题 */}
+      <Section title="你所问" palette={palette} titleSize={17}>
+        <p style={{ fontSize: 24, lineHeight: 1.5, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '12px 0 0' }}>
           {question ? `「${truncate(question, 60)}」` : '— 静心冥想此刻的疑问 —'}
         </p>
-        <div style={{
-          display: 'inline-block', marginTop: 12, fontSize: typo.date, padding: '5px 16px', borderRadius: 999,
-          color: palette.lightgold, border: `1px solid ${palette.border}`, backgroundColor: 'rgba(212,175,55,0.08)',
-        }}>
-          {theme.label}主题 · {spreadName}
-        </div>
+        <Tag palette={palette} marginTop={12}>{theme.label}主题 · {spreadName}</Tag>
       </Section>
 
       <Divider palette={palette} />
 
-      {/* 牌阵（含关键词） —— 牌名 L1，其余 L3 */}
-      <Section palette={palette} typo={typo} tag="你的牌阵" marginTop={14} marginBottom={14}>
-        <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-          {drawnCards.map((c, i) => {
-            const pos = positions[c.position];
-            return (
-              <div key={i} style={{
-                flex: '1 1 30%', minWidth: 80, maxWidth: 150, padding: '12px 10px', borderRadius: 12,
-                backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`, textAlign: 'center',
-              }}>
-                <div style={{ fontSize: typo.posName, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.1em', marginBottom: 5 }}>
-                  {pos?.name || `第${i + 1}张`}
-                </div>
-                <div style={{ fontSize: typo.cardName, color: palette.lightgold, fontWeight: 600, lineHeight: 1.3 }}>
-                  {c.card.name.cn}
-                </div>
-                <div style={{ fontSize: typo.cardMeta, color: c.reversed ? palette.rose : palette.textMute, marginTop: 4, marginBottom: 6 }}>
-                  {c.reversed ? '逆位' : '正位'} · {(ELEMENT_META[c.card.element]?.label) || '灵'}
-                </div>
-                <div style={{ fontSize: typo.keywords, color: palette.textSoft, lineHeight: 1.4 }}>
-                  {c.card.keywords.slice(0, 2).join(' · ')}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {/* 牌阵 */}
+      <Section title="你的牌阵" palette={palette} titleSize={17}>
+        <CardGrid cards={drawnCards} positions={positions} palette={palette} landscape={false} />
       </Section>
 
       <Divider palette={palette} />
 
-      {/* 塔罗师回应 —— headline L1 */}
-      <Section palette={palette} typo={typo} tag="塔罗师的回应" marginTop={14} marginBottom={14}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12 }}>
-          <div style={{
-            padding: '7px 20px', borderRadius: 999, fontSize: typo.verdict, fontWeight: 600, color: verdictColor,
-            border: `1px solid ${verdictColor}66`, backgroundColor: `${verdictColor}14`,
-            fontFamily: "'Cinzel', 'Noto Serif SC', serif", letterSpacing: '0.1em', whiteSpace: 'nowrap',
-          }}>
-            {VERDICT_LABEL[directAnswer.verdict]}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: typo.energyBarLabel, color: palette.textMute, marginBottom: 5 }}>
-              <span>能量值</span>
-              <span style={{ color: palette.lightgold, fontWeight: 600, fontSize: typo.energyBarValue }}>{pct}</span>
-            </div>
-            <div style={{ height: 6, borderRadius: 999, backgroundColor: palette.barTrack, overflow: 'hidden' }}>
-              <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: `linear-gradient(90deg, ${verdictColor}, ${palette.gold})` }} />
-            </div>
-          </div>
-        </div>
-        <p style={{ fontSize: typo.headline, lineHeight: 1.6, color: palette.textStrong, fontWeight: 500, margin: '12px 0 0' }}>
+      {/* 塔罗师回应 */}
+      <Section title="塔罗师的回应" palette={palette} titleSize={17}>
+        <VerdictBar verdict={directAnswer.verdict} verdictColor={verdictColor} energyPct={energyPct} palette={palette} landscape={false} />
+        <p style={{ fontSize: 20, lineHeight: 1.6, color: palette.textStrong, fontWeight: 500, margin: '14px 0 0' }}>
           {truncate(directAnswer.headline, 80)}
         </p>
       </Section>
 
-      <Divider palette={palette} />
-
-      {/* 塔罗师深度解读 —— L2 */}
       {directAnswer.reasoning && (
-        <Section palette={palette} typo={typo} tag="牌面背后的脉络" marginTop={14} marginBottom={14}>
-          <p style={{ fontSize: typo.reasoning, lineHeight: 1.8, color: palette.textSoft, margin: '12px 0 0', fontStyle: 'italic' }}>
-            {truncate(directAnswer.reasoning, 130)}
-          </p>
-        </Section>
+        <>
+          <Divider palette={palette} />
+          <Section title="牌面背后的脉络" palette={palette} titleSize={17}>
+            <p style={{ fontSize: 16, lineHeight: 1.8, color: palette.textSoft, margin: '12px 0 0', fontStyle: 'italic' }}>
+              {truncate(directAnswer.reasoning, 120)}
+            </p>
+          </Section>
+        </>
       )}
 
-      <Divider palette={palette} />
-
-      {/* 元素能量分布 —— 数字 L2，标签 L3 */}
-      <Section palette={palette} typo={typo} tag="元素能量" marginTop={14} marginBottom={14}>
-        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-          {elements.map((e) => (
-            <div key={e.element} style={{
-              display: 'flex', alignItems: 'center', gap: 7, padding: '6px 14px', borderRadius: 999,
-              backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`,
-            }}>
-              <span style={{ fontSize: typo.energyCount, color: palette.gold }}>{e.icon}</span>
-              <span style={{ fontSize: typo.energyLabel, color: palette.textBase, fontFamily: "'Cinzel', serif", letterSpacing: '0.08em' }}>
-                {e.label}元素
-              </span>
-              <span style={{ fontSize: typo.energyCount, color: palette.lightgold, fontWeight: 600 }}>
-                ×{e.count}
-              </span>
-              <span style={{ fontSize: typo.energyPct, color: palette.textMute }}>
-                {Math.round((e.count / totalCards) * 100)}%
-              </span>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Divider palette={palette} />
-
-      {/* 行动指引 —— detail L2 */}
       {actionPlan.length > 0 && (
-        <Section palette={palette} typo={typo} tag="行动指引" marginTop={14} marginBottom={14}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
-            {actionPlan.slice(0, 3).map((item, i) => (
-              <div key={i} style={{
-                display: 'flex', gap: 11, padding: '11px 15px', borderRadius: 10,
-                backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`,
-              }}>
-                <span style={{ fontSize: typo.actionDetail, color: item.kind === 'warning' ? palette.rose : palette.lightgold, lineHeight: 1.5, flexShrink: 0 }}>
-                  {ACTION_ICON[item.kind]}
-                </span>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: typo.posName, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', marginBottom: 4 }}>
-                    {ACTION_LABEL[item.kind]}
-                  </div>
-                  <div style={{ fontSize: typo.actionDetail, lineHeight: 1.5, color: palette.textBase }}>
-                    {truncate(item.detail, 50)}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
+        <>
+          <Divider palette={palette} />
+          <Section title="行动指引" palette={palette} titleSize={17}>
+            <ActionList items={actionPlan} palette={palette} landscape={false} />
+          </Section>
+        </>
       )}
 
-      {/* 底部域名 CTA 区 —— 收束语 L2，域名 L1，其余 L3 */}
-      <div style={{ marginTop: 18 }}>
-        <Divider palette={palette} />
-        <div style={{
-          textAlign: 'center', padding: '18px 20px 0',
-          background: `linear-gradient(180deg, transparent 0%, ${palette.glowGold} 100%)`,
-        }}>
-          <p style={{ fontFamily: "'Cinzel', 'Noto Serif SC', serif", fontSize: typo.closingText, color: palette.gold, letterSpacing: '0.12em', marginBottom: 10, fontWeight: 500 }}>
-            ✦ {truncate(closingText, 20)} ✦
-          </p>
-          <p style={{ fontSize: typo.epilogue, color: palette.textMute, lineHeight: 1.6, fontStyle: 'italic', marginBottom: 14 }}>
-            塔罗不预测命运，而是照亮当下。
-          </p>
-          {/* 域名 CTA —— L1 */}
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 11, padding: '10px 24px', borderRadius: 999,
-            border: `1px solid ${palette.border}`, backgroundColor: 'rgba(212,175,55,0.08)',
-          }}>
-            <span style={{ fontSize: typo.domain, color: palette.gold }}>✧</span>
-            <span style={{
-              fontSize: typo.domain, color: palette.lightgold, fontFamily: "'Inter', sans-serif",
-              fontWeight: 600, letterSpacing: '0.08em',
-            }}>
-              {SITE_DOMAIN}
-            </span>
-            <span style={{ fontSize: typo.domain, color: palette.gold }}>✧</span>
-          </div>
-          <p style={{ fontSize: typo.ctaHint, color: palette.textMute, marginTop: 10, marginBottom: 4, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}>
-            扫码或访问 · 开启你的专属占卜
-          </p>
+      <Divider palette={palette} />
+
+      {/* 底部收束 */}
+      <Footer palette={palette} closingText={closingText} landscape={false} />
+    </div>
+  );
+}
+
+// ============================================================
+// 横屏布局（左右双栏）
+// ============================================================
+
+function LandscapeBody({
+  question, drawnCards, positions, spreadName, theme, directAnswer, actionPlan, closingText,
+  palette, verdictColor, energyPct, dateStr,
+}: BodyProps) {
+  return (
+    <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', padding: '32px 40px 24px' }}>
+      {/* 左栏 */}
+      <div style={{ flex: '1 1 48%', display: 'flex', flexDirection: 'column', paddingRight: 28, borderRight: `1px solid ${palette.borderSoft}` }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+          <BrandMark palette={palette} size={24} />
+          <span style={{ fontSize: 13, color: palette.textMute, fontFamily: "'Inter', sans-serif" }}>{dateStr}</span>
+        </header>
+
+        <SectionTitle text="你所问" palette={palette} size={15} />
+        <p style={{ fontSize: 20, lineHeight: 1.45, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '10px 0 0' }}>
+          {question ? `「${truncate(question, 40)}」` : '— 静心冥想此刻的疑问 —'}
+        </p>
+        <Tag palette={palette} marginTop={10}>{theme.label}主题 · {spreadName}</Tag>
+
+        <div style={{ marginTop: 22 }}>
+          <SectionTitle text="你的牌阵" palette={palette} size={15} />
+          <CardGrid cards={drawnCards} positions={positions} palette={palette} landscape />
         </div>
+
+        <div style={{ flex: 1 }} />
+        <FooterLeft palette={palette} closingText={closingText} />
+      </div>
+
+      {/* 右栏 */}
+      <div style={{ flex: '1 1 52%', display: 'flex', flexDirection: 'column', paddingLeft: 28 }}>
+        <SectionTitle text="塔罗师的回应" palette={palette} size={15} />
+        <VerdictBar verdict={directAnswer.verdict} verdictColor={verdictColor} energyPct={energyPct} palette={palette} landscape />
+        <p style={{ fontSize: 18, lineHeight: 1.5, color: palette.textStrong, fontWeight: 500, margin: '12px 0 0' }}>
+          {truncate(directAnswer.headline, 70)}
+        </p>
+
+        {directAnswer.reasoning && (
+          <div style={{ marginTop: 20 }}>
+            <SectionTitle text="牌面背后的脉络" palette={palette} size={15} />
+            <p style={{ fontSize: 14, lineHeight: 1.7, color: palette.textSoft, margin: '10px 0 0', fontStyle: 'italic' }}>
+              {truncate(directAnswer.reasoning, 100)}
+            </p>
+          </div>
+        )}
+
+        {actionPlan.length > 0 && (
+          <div style={{ marginTop: 20 }}>
+            <SectionTitle text="行动指引" palette={palette} size={15} />
+            <ActionList items={actionPlan} palette={palette} landscape />
+          </div>
+        )}
+
+        <div style={{ flex: 1 }} />
+        <FooterRight palette={palette} />
       </div>
     </div>
   );
 }
 
-// === 横屏布局（左右双栏） ===
-function LandscapeLayout({
-  question,
-  drawnCards,
-  positions,
-  spreadName,
-  theme,
-  directAnswer,
-  actionPlan,
-  closingText,
-  palette,
-  verdictColor,
-  pct,
-  dateStr,
-  typo,
-}: {
+// ============================================================
+// 共享子组件
+// ============================================================
+
+interface BodyProps {
   question: string;
   drawnCards: DrawnCard[];
   positions: SpreadPosition[];
@@ -1000,274 +639,253 @@ function LandscapeLayout({
   closingText: string;
   palette: Palette;
   verdictColor: string;
-  pct: number;
+  energyPct: number;
   dateStr: string;
-  typo: Typo;
-}) {
-  const elements = computeElementEnergy(drawnCards);
-  const totalCards = drawnCards.length || 1;
+}
 
+function BrandMark({ palette, size }: { palette: Palette; size: number }) {
   return (
-    <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', padding: '28px 40px 20px' }}>
-      {/* 左栏：问题 + 牌阵 + 元素能量 */}
-      <div style={{ flex: '1 1 48%', display: 'flex', flexDirection: 'column', paddingRight: 24, borderRight: `1px solid ${palette.borderSoft}` }}>
-        {/* 顶部品牌 —— L1 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ color: palette.gold, fontSize: typo.brand }}>✦</span>
-            <span style={{ fontFamily: "'Cinzel Decorative', 'Cinzel', serif", fontSize: typo.brand, letterSpacing: '0.08em', color: palette.lightgold, fontWeight: 600 }}>
-              塔罗秘境
-            </span>
-          </div>
-          <span style={{ fontSize: typo.date, color: palette.textMute, fontFamily: "'Inter', sans-serif" }}>
-            {dateStr}
-          </span>
-        </div>
-
-        {/* 问题 —— L1 焦点 */}
-        <SectionTag text="你所问" palette={palette} typo={typo} />
-        <p style={{ fontSize: typo.question, lineHeight: 1.45, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '10px 0 0', minHeight: 24 }}>
-          {question ? `「${truncate(question, 40)}」` : '— 静心冥想此刻的疑问 —'}
-        </p>
-        <div style={{
-          display: 'inline-block', marginTop: 10, fontSize: typo.date, padding: '4px 13px', borderRadius: 999,
-          color: palette.lightgold, border: `1px solid ${palette.border}`, backgroundColor: 'rgba(212,175,55,0.08)',
-        }}>
-          {theme.label}主题 · {spreadName}
-        </div>
-
-        {/* 牌阵（含关键词） —— 牌名 L1，其余 L3 */}
-        <div style={{ marginTop: 16 }}>
-          <SectionTag text="你的牌阵" palette={palette} typo={typo} />
-          <div style={{ display: 'flex', gap: 9, marginTop: 11, flexWrap: 'wrap' }}>
-            {drawnCards.map((c, i) => {
-              const pos = positions[c.position];
-              return (
-                <div key={i} style={{
-                  flex: '1 1 28%', minWidth: 70, maxWidth: 125, padding: '10px 8px', borderRadius: 10,
-                  backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`, textAlign: 'center',
-                }}>
-                  <div style={{ fontSize: typo.posName, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.1em', marginBottom: 4 }}>
-                    {pos?.name || `第${i + 1}张`}
-                  </div>
-                  <div style={{ fontSize: typo.cardName, color: palette.lightgold, fontWeight: 600, lineHeight: 1.3 }}>
-                    {c.card.name.cn}
-                  </div>
-                  <div style={{ fontSize: typo.cardMeta, color: c.reversed ? palette.rose : palette.textMute, marginTop: 3, marginBottom: 4 }}>
-                    {c.reversed ? '逆位' : '正位'} · {(ELEMENT_META[c.card.element]?.label) || '灵'}
-                  </div>
-                  <div style={{ fontSize: typo.keywords, color: palette.textSoft, lineHeight: 1.3 }}>
-                    {c.card.keywords.slice(0, 2).join(' · ')}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 元素能量分布 —— 数字 L2，标签 L3 */}
-        <div style={{ marginTop: 14 }}>
-          <SectionTag text="元素能量" palette={palette} typo={typo} />
-          <div style={{ display: 'flex', gap: 7, marginTop: 11, flexWrap: 'wrap' }}>
-            {elements.map((e) => (
-              <div key={e.element} style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999,
-                backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`,
-              }}>
-                <span style={{ fontSize: typo.energyCount, color: palette.gold }}>{e.icon}</span>
-                <span style={{ fontSize: typo.energyLabel, color: palette.textBase, fontFamily: "'Cinzel', serif", letterSpacing: '0.06em' }}>
-                  {e.label}
-                </span>
-                <span style={{ fontSize: typo.energyCount, color: palette.lightgold, fontWeight: 600 }}>×{e.count}</span>
-                <span style={{ fontSize: typo.energyPct, color: palette.textMute }}>
-                  {Math.round((e.count / totalCards) * 100)}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 底部域名 CTA —— 域名 L1 */}
-        <div style={{ marginTop: 16 }}>
-          <p style={{ fontFamily: "'Cinzel', 'Noto Serif SC', serif", fontSize: typo.closingText, color: palette.gold, letterSpacing: '0.12em', marginBottom: 8, fontWeight: 500 }}>
-            ✦ {truncate(closingText, 16)} ✦
-          </p>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10, padding: '8px 18px', borderRadius: 999,
-            border: `1px solid ${palette.border}`, backgroundColor: 'rgba(212,175,55,0.08)',
-          }}>
-            <span style={{ fontSize: typo.domain, color: palette.gold }}>✧</span>
-            <span style={{
-              fontSize: typo.domain, color: palette.lightgold, fontFamily: "'Inter', sans-serif",
-              fontWeight: 600, letterSpacing: '0.08em',
-            }}>
-              {SITE_DOMAIN}
-            </span>
-            <span style={{ fontSize: typo.domain, color: palette.gold }}>✧</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 右栏：回应 + 解读 + 行动指引 */}
-      <div style={{ flex: '1 1 52%', display: 'flex', flexDirection: 'column', paddingLeft: 24 }}>
-        {/* 塔罗师回应 —— headline L1 */}
-        <SectionTag text="塔罗师的回应" palette={palette} typo={typo} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginTop: 11 }}>
-          <div style={{
-            padding: '6px 18px', borderRadius: 999, fontSize: typo.verdict, fontWeight: 600, color: verdictColor,
-            border: `1px solid ${verdictColor}66`, backgroundColor: `${verdictColor}14`,
-            fontFamily: "'Cinzel', 'Noto Serif SC', serif", letterSpacing: '0.1em', whiteSpace: 'nowrap',
-          }}>
-            {VERDICT_LABEL[directAnswer.verdict]}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: typo.energyBarLabel, color: palette.textMute, marginBottom: 4 }}>
-              <span>能量值</span>
-              <span style={{ color: palette.lightgold, fontWeight: 600, fontSize: typo.energyBarValue }}>{pct}</span>
-            </div>
-            <div style={{ height: 6, borderRadius: 999, backgroundColor: palette.barTrack, overflow: 'hidden' }}>
-              <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: `linear-gradient(90deg, ${verdictColor}, ${palette.gold})` }} />
-            </div>
-          </div>
-        </div>
-        <p style={{ fontSize: typo.headline, lineHeight: 1.5, color: palette.textStrong, fontWeight: 500, margin: '11px 0 0' }}>
-          {truncate(directAnswer.headline, 70)}
-        </p>
-
-        {/* 塔罗师深度解读 —— L2 */}
-        {directAnswer.reasoning && (
-          <div style={{ marginTop: 14 }}>
-            <SectionTag text="牌面背后的脉络" palette={palette} typo={typo} />
-            <p style={{ fontSize: typo.reasoning, lineHeight: 1.7, color: palette.textSoft, margin: '10px 0 0', fontStyle: 'italic' }}>
-              {truncate(directAnswer.reasoning, 110)}
-            </p>
-          </div>
-        )}
-
-        {/* 行动指引 —— detail L2 */}
-        {actionPlan.length > 0 && (
-          <div style={{ marginTop: 14 }}>
-            <SectionTag text="行动指引" palette={palette} typo={typo} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 11 }}>
-              {actionPlan.slice(0, 3).map((item, i) => (
-                <div key={i} style={{
-                  display: 'flex', gap: 10, padding: '10px 13px', borderRadius: 9,
-                  backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`,
-                }}>
-                  <span style={{ fontSize: typo.actionDetail, color: item.kind === 'warning' ? palette.rose : palette.lightgold, lineHeight: 1.45, flexShrink: 0 }}>
-                    {ACTION_ICON[item.kind]}
-                  </span>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: typo.posName, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', marginBottom: 3 }}>
-                      {ACTION_LABEL[item.kind]}
-                    </div>
-                    <div style={{ fontSize: typo.actionDetail, lineHeight: 1.45, color: palette.textBase }}>
-                      {truncate(item.detail, 40)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 底部箴言 + CTA —— L3 */}
-        <div style={{ marginTop: 14, textAlign: 'right' }}>
-          <p style={{ fontSize: typo.epilogue, color: palette.textMute, lineHeight: 1.55, fontStyle: 'italic', marginBottom: 7 }}>
-            塔罗不预测命运，而是照亮当下。
-          </p>
-          <p style={{ fontSize: typo.ctaHint, color: palette.textMute, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em', marginBottom: 8 }}>
-            扫码或访问 · 开启你的专属占卜
-          </p>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 9, padding: '7px 16px', borderRadius: 999,
-            border: `1px solid ${palette.border}`, backgroundColor: 'rgba(212,175,55,0.06)',
-          }}>
-            <span style={{ fontSize: typo.domain, color: palette.gold }}>✧</span>
-            <span style={{
-              fontSize: typo.domain, color: palette.lightgold, fontFamily: "'Inter', sans-serif",
-              fontWeight: 600, letterSpacing: '0.08em',
-            }}>
-              {SITE_DOMAIN}
-            </span>
-            <span style={{ fontSize: typo.domain, color: palette.gold }}>✧</span>
-          </div>
-        </div>
-      </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{ color: palette.gold, fontSize: size }}>✦</span>
+      <span style={{ fontFamily: "'Cinzel Decorative', 'Cinzel', serif", fontSize: size, letterSpacing: '0.08em', color: palette.lightgold, fontWeight: 600 }}>
+        塔罗秘境
+      </span>
     </div>
   );
 }
 
-// === 共享小组件 ===
 function Section({
-  tag,
-  children,
-  palette,
-  typo,
-  marginTop,
-  marginBottom,
+  title, children, palette, titleSize,
 }: {
-  tag: string;
-  children: React.ReactNode;
-  palette: Palette;
-  typo: Typo;
-  marginTop: number;
-  marginBottom: number;
+  title: string; children: React.ReactNode; palette: Palette; titleSize: number;
 }) {
   return (
-    <div style={{ marginTop, marginBottom }}>
-      <SectionTag text={tag} palette={palette} typo={typo} />
+    <section style={{ margin: '18px 0' }}>
+      <SectionTitle text={title} palette={palette} size={titleSize} />
       {children}
-    </div>
+    </section>
   );
 }
 
-function SectionTag({ text, palette, typo }: { text: string; palette: Palette; typo: Typo }) {
+function SectionTitle({ text, palette, size }: { text: string; palette: Palette; size: number }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <span style={{ width: 18, height: 1.5, background: palette.gold, opacity: 0.7 }} />
-      <span style={{ fontFamily: "'Cinzel', 'Noto Serif SC', serif", fontSize: typo.sectionTag, color: palette.gold, letterSpacing: '0.15em', fontWeight: 500 }}>
+      <span style={{ fontFamily: "'Cinzel', 'Noto Serif SC', serif", fontSize: size, color: palette.gold, letterSpacing: '0.15em', fontWeight: 500 }}>
         {text}
       </span>
     </div>
   );
 }
 
-function Divider({ palette }: { palette: Palette }) {
+function Tag({ children, palette, marginTop }: { children: React.ReactNode; palette: Palette; marginTop: number }) {
   return (
-    <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${palette.divider}, transparent)` }} />
+    <div style={{
+      display: 'inline-block', marginTop, fontSize: 14, padding: '5px 16px', borderRadius: 999,
+      color: palette.lightgold, border: `1px solid ${palette.border}`, backgroundColor: 'rgba(212,175,55,0.08)',
+    }}>
+      {children}
+    </div>
   );
 }
 
-function Glow({
-  top,
-  right,
-  bottom,
-  left,
-  size,
-  color,
+function Divider({ palette }: { palette: Palette }) {
+  return <div style={{ height: 1, background: `linear-gradient(90deg, transparent, ${palette.border}, transparent)` }} />;
+}
+
+function CardGrid({
+  cards, positions, palette, landscape,
 }: {
-  top?: number;
-  right?: number;
-  bottom?: number;
-  left?: number;
-  size: number;
-  color: string;
+  cards: DrawnCard[]; positions: SpreadPosition[]; palette: Palette; landscape: boolean;
 }) {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top,
-        right,
-        bottom,
-        left,
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-        pointerEvents: 'none',
-      }}
-    />
+    <div style={{ display: 'flex', gap: landscape ? 9 : 12, marginTop: 14, flexWrap: 'wrap' }}>
+      {cards.map((c, i) => {
+        const pos = positions[c.position];
+        const elemLabel = ELEMENT_LABEL[c.card.element || 'spirit'] || '灵';
+        return (
+          <div key={i} style={{
+            flex: landscape ? '1 1 28%' : '1 1 30%',
+            minWidth: landscape ? 70 : 80,
+            maxWidth: landscape ? 120 : 150,
+            padding: landscape ? '10px 8px' : '12px 10px',
+            borderRadius: 10,
+            backgroundColor: palette.panel,
+            border: `1px solid ${palette.borderSoft}`,
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: landscape ? 12 : 14, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.1em', marginBottom: 5 }}>
+              {pos?.name || `第${i + 1}张`}
+            </div>
+            <div style={{ fontSize: landscape ? 18 : 22, color: palette.lightgold, fontWeight: 600, lineHeight: 1.3 }}>
+              {c.card.name.cn}
+            </div>
+            <div style={{ fontSize: landscape ? 12 : 14, color: c.reversed ? palette.rose : palette.textMute, marginTop: 5, marginBottom: 6 }}>
+              {c.reversed ? '逆位' : '正位'} · {elemLabel}
+            </div>
+            <div style={{ fontSize: landscape ? 11 : 13, color: palette.textSoft, lineHeight: 1.4 }}>
+              {c.card.keywords.slice(0, 2).join(' · ')}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
+}
+
+function VerdictBar({
+  verdict, verdictColor, energyPct, palette, landscape,
+}: {
+  verdict: Verdict; verdictColor: string; energyPct: number; palette: Palette; landscape: boolean;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 14 }}>
+      <div style={{
+        padding: landscape ? '6px 18px' : '8px 22px',
+        borderRadius: 999,
+        fontSize: landscape ? 15 : 18,
+        fontWeight: 600,
+        color: verdictColor,
+        border: `1px solid ${verdictColor}66`,
+        backgroundColor: `${verdictColor}14`,
+        fontFamily: "'Cinzel', 'Noto Serif SC', serif",
+        letterSpacing: '0.1em',
+        whiteSpace: 'nowrap',
+      }}>
+        {VERDICT_LABEL[verdict]}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: landscape ? 12 : 14, color: palette.textMute, marginBottom: 5 }}>
+          <span>能量值</span>
+          <span style={{ color: palette.lightgold, fontWeight: 600, fontSize: landscape ? 15 : 17 }}>{energyPct}</span>
+        </div>
+        <div style={{ height: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+          <div style={{ width: `${energyPct}%`, height: '100%', borderRadius: 999, background: `linear-gradient(90deg, ${verdictColor}, ${palette.gold})` }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActionList({
+  items, palette, landscape,
+}: {
+  items: ActionItem[]; palette: Palette; landscape: boolean;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: landscape ? 8 : 10, marginTop: 14 }}>
+      {items.slice(0, 3).map((item, i) => (
+        <div key={i} style={{
+          display: 'flex', gap: 11,
+          padding: landscape ? '10px 14px' : '12px 16px',
+          borderRadius: 10,
+          backgroundColor: palette.panel,
+          border: `1px solid ${palette.borderSoft}`,
+        }}>
+          <span style={{ fontSize: landscape ? 16 : 18, color: item.kind === 'warning' ? palette.rose : palette.lightgold, lineHeight: 1.5, flexShrink: 0 }}>
+            {ACTION_ICON[item.kind]}
+          </span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: landscape ? 11 : 13, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', marginBottom: 4 }}>
+              {ACTION_LABEL[item.kind]}
+            </div>
+            <div style={{ fontSize: landscape ? 14 : 16, lineHeight: 1.5, color: palette.textBase }}>
+              {truncate(item.detail, landscape ? 40 : 50)}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// 竖屏底部：居中收束语 + 箴言 + 域名 CTA + 提示
+function Footer({ palette, closingText, landscape }: { palette: Palette; closingText: string; landscape: boolean }) {
+  return (
+    <div style={{ marginTop: 24, textAlign: 'center' }}>
+      <p style={{ fontFamily: "'Cinzel', 'Noto Serif SC', serif", fontSize: landscape ? 16 : 18, color: palette.gold, letterSpacing: '0.12em', marginBottom: 10, fontWeight: 500 }}>
+        ✦ {truncate(closingText, 24)} ✦
+      </p>
+      <p style={{ fontSize: 13, color: palette.textMute, lineHeight: 1.6, fontStyle: 'italic', marginBottom: 16 }}>
+        塔罗不预测命运，而是照亮当下。
+      </p>
+      <DomainPill palette={palette} size={landscape ? 'sm' : 'md'} />
+      <p style={{ fontSize: 12, color: palette.textMute, marginTop: 12, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}>
+        扫码或访问 · 开启你的专属占卜
+      </p>
+    </div>
+  );
+}
+
+// 横屏左栏底部：收束语 + 域名
+function FooterLeft({ palette, closingText }: { palette: Palette; closingText: string }) {
+  return (
+    <div style={{ marginTop: 16 }}>
+      <p style={{ fontFamily: "'Cinzel', 'Noto Serif SC', serif", fontSize: 15, color: palette.gold, letterSpacing: '0.12em', marginBottom: 10, fontWeight: 500 }}>
+        ✦ {truncate(closingText, 18)} ✦
+      </p>
+      <DomainPill palette={palette} size="sm" />
+    </div>
+  );
+}
+
+// 横屏右栏底部：箴言 + 域名
+function FooterRight({ palette }: { palette: Palette }) {
+  return (
+    <div style={{ marginTop: 16, textAlign: 'right' }}>
+      <p style={{ fontSize: 12, color: palette.textMute, lineHeight: 1.55, fontStyle: 'italic', marginBottom: 8 }}>
+        塔罗不预测命运，而是照亮当下。
+      </p>
+      <p style={{ fontSize: 11, color: palette.textMute, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em', marginBottom: 10 }}>
+        扫码或访问 · 开启你的专属占卜
+      </p>
+      <DomainPill palette={palette} size="sm" />
+    </div>
+  );
+}
+
+function DomainPill({ palette, size }: { palette: Palette; size: 'sm' | 'md' }) {
+  const fontSize = size === 'md' ? 20 : 16;
+  const padding = size === 'md' ? '11px 24px' : '8px 18px';
+  const gap = size === 'md' ? 11 : 9;
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap, padding, borderRadius: 999,
+      border: `1px solid ${palette.border}`, backgroundColor: 'rgba(212,175,55,0.08)',
+    }}>
+      <span style={{ fontSize, color: palette.gold, marginRight: gap }}>✧</span>
+      <span style={{ fontSize, color: palette.lightgold, fontFamily: "'Inter', sans-serif", fontWeight: 600, letterSpacing: '0.08em' }}>
+        {SITE_DOMAIN}
+      </span>
+      <span style={{ fontSize, color: palette.gold, marginLeft: gap }}>✧</span>
+    </div>
+  );
+}
+
+function BackgroundDecor({ palette }: { palette: Palette }) {
+  return (
+    <>
+      <div style={{
+        position: 'absolute', top: -120, right: -100, width: 360, height: 360, borderRadius: '50%',
+        background: `radial-gradient(circle, ${palette.border} 0%, transparent 70%)`, pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: -80, left: -80, width: 300, height: 300, borderRadius: '50%',
+        background: `radial-gradient(circle, ${palette.borderSoft} 0%, transparent 70%)`, pointerEvents: 'none',
+      }} />
+    </>
+  );
+}
+
+// ============================================================
+// 工具函数
+// ============================================================
+
+function truncate(text: string, max: number): string {
+  if (!text) return '';
+  return text.length > max ? text.slice(0, max) + '…' : text;
+}
+
+function formatDate(d: Date): string {
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 }
