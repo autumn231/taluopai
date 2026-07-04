@@ -191,46 +191,53 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
     if (!dataUrl) return;
     const fileName = `塔罗占卜_${new Date().toISOString().slice(0, 10)}.png`;
 
-    // 方案 1：Web Share API — 调起系统分享面板，可直接保存到相册（Android Chrome 支持）
-    if (navigator.share && navigator.canShare) {
+    // 检测是否为移动端（触摸设备）
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    if (isTouchDevice) {
+      // === 手机端：Web Share API → 系统分享面板 → 保存到相册 ===
       try {
         const res = await fetch(dataUrl);
         const blob = await res.blob();
         const file = new File([blob], fileName, { type: 'image/png' });
-        if (navigator.canShare({ files: [file] })) {
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
           await navigator.share({ files: [file], title: '塔罗占卜海报' });
           setDownloadHint('已调起分享面板，选择「保存到相册」即可');
-          setTimeout(() => setDownloadHint(null), 8000);
+          setTimeout(() => setDownloadHint(null), 6000);
           return;
         }
       } catch (err: any) {
-        // 用户取消分享不报错
         if (err?.name === 'AbortError') { setDownloadHint(null); return; }
         console.error('Web Share 失败', err);
       }
+      // 兜底：新标签页打开，长按保存
+      window.open(dataUrl, '_blank');
+      setDownloadHint('已在新标签页打开，长按图片即可保存');
+      setTimeout(() => setDownloadHint(null), 6000);
+    } else {
+      // === 电脑端：Blob download → 浏览器保存对话框，用户自选位置 ===
+      try {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+        setDownloadHint('已开始下载，请查看下载文件夹');
+        setTimeout(() => setDownloadHint(null), 4000);
+      } catch (err) {
+        console.error('下载失败', err);
+        // 兜底
+        window.open(dataUrl, '_blank');
+        setDownloadHint('已在新标签页打开，右键图片可另存为');
+        setTimeout(() => setDownloadHint(null), 6000);
+      }
     }
-
-    // 方案 2：Blob download（桌面端 Chrome/Edge）
-    try {
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = fileName;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
-    } catch (err) {
-      console.error('Blob 下载失败', err);
-    }
-
-    // 方案 3：新标签页打开图片（夸克/UC/Safari 长按保存）
-    setTimeout(() => { window.open(dataUrl, '_blank'); }, 300);
-    setDownloadHint('已打开图片，长按图片即可保存到相册');
-    setTimeout(() => setDownloadHint(null), 8000);
   }, [dataUrl]);
 
   return (
