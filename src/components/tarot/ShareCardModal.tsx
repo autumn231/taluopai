@@ -193,15 +193,36 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
     }
   }, [palette.bg]);
 
-  const handleDownload = useCallback(() => {
+  const [downloadHint, setDownloadHint] = useState<string | null>(null);
+
+  const handleDownload = useCallback(async () => {
     if (!dataUrl) return;
-    const link = document.createElement('a');
-    link.download = `塔罗占卜_${new Date().toISOString().slice(0, 10)}.png`;
-    link.href = dataUrl;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const fileName = `塔罗占卜_${new Date().toISOString().slice(0, 10)}.png`;
+    try {
+      // 转 Blob 再用 object URL，兼容 iOS Safari（data: URL 的 download 在 iOS 基本失效）
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+
+      // iOS Safari 仍可能只在新标签打开图片；给出长按保存提示
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      setDownloadHint(isIOS ? '若未自动下载，请在打开的图片上长按「存储图像」' : '已开始下载，请查看下载文件夹');
+    } catch (err) {
+      console.error('下载失败', err);
+      // 兜底：新标签页打开原图，用户长按保存
+      window.open(dataUrl, '_blank');
+      setDownloadHint('已在新标签页打开，长按图片即可保存');
+    }
+    setTimeout(() => setDownloadHint(null), 6000);
   }, [dataUrl]);
 
   return (
@@ -322,6 +343,11 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
                       >
                         <Download className="w-4 h-4" />保存图片
                       </button>
+                      {downloadHint && (
+                        <div className="rounded-lg p-2.5 text-xs leading-relaxed text-center" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', border: `1px solid ${DARK.borderSoft}`, color: DARK.lightgold }}>
+                          {downloadHint}
+                        </div>
+                      )}
                       <button
                         onClick={() => { setDataUrl(null); setStatus('idle'); }}
                         className="w-full py-2.5 rounded-full font-title text-xs tracking-widest transition-all hover:bg-mystic-gold/10"
