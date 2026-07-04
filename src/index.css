@@ -467,6 +467,53 @@
   }
 }
 
+/* ========== 移动端性能降级 ==========
+ * 移动端 GPU 较弱，关闭最耗性能的 CSS 效果：
+ * 1. backdrop-filter: blur() — 每帧重新模糊背景，滚动时极卡
+ * 2. animate-pulse-glow — filter: blur() 动画化，最贵的 CSS 动画
+ * 3. gradientShift — 每个标题都在跑 background-position 动画
+ */
+@media (max-width: 767px) {
+  /* 关闭毛玻璃模糊，用纯色替代 */
+  .glass-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg-panel-strong) !important;
+  }
+  .glass-panel-strong {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--bg-panel-strong) !important;
+  }
+
+  /* 关闭脉冲发光（filter blur 动画） */
+  .animate-pulse-glow {
+    animation: none !important;
+    filter: blur(20px) !important;
+    opacity: 0.5 !important;
+  }
+
+  /* 关闭标题渐变流动 */
+  .text-gold-gradient {
+    animation: none !important;
+  }
+
+  /* 降低发光文字阴影强度 */
+  .glow-text {
+    text-shadow:
+      0 0 6px rgba(212, 175, 55, 0.4),
+      0 0 12px rgba(212, 175, 55, 0.2) !important;
+  }
+
+  /* 降低大范围 box-shadow 发光 */
+  .shadow-gold-glow {
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.25) !important;
+  }
+  .shadow-gold-glow-lg {
+    box-shadow: 0 0 25px rgba(212, 175, 55, 0.35) !important;
+  }
+}
+
 /* Hide scrollbar in special containers */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
