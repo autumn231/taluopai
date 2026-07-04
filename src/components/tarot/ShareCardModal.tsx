@@ -214,7 +214,7 @@ export default function ShareCardModal({
                 className="font-title text-sm tracking-widest"
                 style={{ color: C.lightgold }}
               >
-                生成结果分析图片
+                生成分享海报
               </span>
             </div>
 
@@ -245,7 +245,7 @@ export default function ShareCardModal({
                     className="font-display text-xl mb-1.5"
                     style={{ color: C.lightgold }}
                   >
-                    一键生成占卜海报
+                    一键生成分享海报
                   </h3>
                   <p className="text-sm leading-relaxed" style={{ color: C.textSoft }}>
                     将本次占卜的核心解读凝练为一张精美图片，
@@ -306,7 +306,7 @@ export default function ShareCardModal({
                       ) : (
                         <>
                           <ImageDown className="w-4 h-4" />
-                          生成图片
+                          生成海报
                         </>
                       )}
                     </button>
