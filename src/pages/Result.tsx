@@ -10,6 +10,15 @@ import { useReadingUI, useReadingActions } from '@/store/selectors';
 import { SPREADS, getSpreadPositions, THREE_MODES } from '@/data/spreads';
 import { getQuestionTheme, type CardDimension, type QuestionTheme, type ThreeMode } from '@/data/questionThemes';
 import { cn } from '@/lib/utils';
+import {
+  analyzeSynergy,
+  generateDirectAnswer,
+  generateActionPlan,
+} from '@/lib/interpretation';
+import DirectAnswer from '@/components/tarot/DirectAnswer';
+import CardSynergy from '@/components/tarot/CardSynergy';
+import ActionPlan from '@/components/tarot/ActionPlan';
+import FollowUpChat from '@/components/tarot/FollowUpChat';
 import type { DrawnCard, SpreadType, TarotCard as TarotCardType, SpreadPosition } from '@/types';
 
 export default function Result() {
@@ -24,6 +33,24 @@ export default function Result() {
     }
   }, [drawnCards, spreadType, navigate]);
 
+  // 主题与解读引擎（hooks 须在早返回之前调用，故在此带守卫计算）
+  const theme = useMemo(() => getQuestionTheme(question), [question]);
+  const synergy = useMemo(
+    () => (drawnCards.length ? analyzeSynergy(drawnCards) : null),
+    [drawnCards],
+  );
+  const directAnswer = useMemo(
+    () =>
+      spreadType && drawnCards.length
+        ? generateDirectAnswer(question, drawnCards, theme, spreadType)
+        : null,
+    [question, drawnCards, theme, spreadType],
+  );
+  const actionPlan = useMemo(
+    () => (drawnCards.length ? generateActionPlan(drawnCards, theme) : []),
+    [drawnCards, theme],
+  );
+
   if (drawnCards.length === 0 || !spreadType) {
     return null;
   }
@@ -31,7 +58,6 @@ export default function Result() {
   const spread = SPREADS[spreadType];
   // 三张牌阵根据 threeMode 拿位置
   const positions = getSpreadPositions(spreadType, threeMode);
-  const theme = getQuestionTheme(question);
   const modeLabel = spreadType === 'three' ? THREE_MODES[threeMode] : null;
 
   return (
@@ -136,6 +162,16 @@ export default function Result() {
           />
         </motion.section>
 
+        {/* 塔罗师的直接回应 */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mb-10 sm:mb-14"
+        >
+          <DirectAnswer answer={directAnswer!} question={question} />
+        </motion.section>
+
         {/* 单牌解读 - 翻页式 + 可展开，默认只看一张牌的概览 */}
         <motion.section
           id="card-pager"
@@ -158,6 +194,21 @@ export default function Result() {
           />
         </motion.section>
 
+        {/* 能量关系 - 牌与牌的呼应 */}
+        <motion.section
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="mb-10 sm:mb-14"
+        >
+          <SectionLabel
+            step="03"
+            kicker="能量关系"
+            help="牌与牌如何相互呼应或牵扯"
+          />
+          <CardSynergy report={synergy!} />
+        </motion.section>
+
         {/* 综合解读 - 最后总览 */}
         <motion.section
           initial={{ opacity: 0, y: 30 }}
@@ -166,7 +217,7 @@ export default function Result() {
           className="mb-12 sm:mb-16"
         >
           <SectionLabel
-            step="03"
+            step="04"
             kicker="综合解读"
             help="把所有牌的线索连成画面"
             accent
@@ -200,6 +251,41 @@ export default function Result() {
               </div>
             </div>
           </div>
+        </motion.section>
+
+        {/* 行动方案 - 塔罗师给你的功课 */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9 }}
+          className="mb-10 sm:mb-14"
+        >
+          <SectionLabel
+            step="05"
+            kicker="行动方案"
+            help="把解读变成可落地的一步步"
+          />
+          <ActionPlan items={actionPlan} />
+        </motion.section>
+
+        {/* 追问塔罗师 - 对话式深挖 */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1 }}
+          className="mb-12 sm:mb-16"
+        >
+          <SectionLabel
+            step="06"
+            kicker="追问塔罗师"
+            help="还有什么想问的，直接开口"
+            accent
+          />
+          <FollowUpChat
+            cards={drawnCards}
+            theme={theme}
+            question={question}
+          />
         </motion.section>
 
         {/* 底部操作 */}
