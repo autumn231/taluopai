@@ -741,9 +741,9 @@ function PortraitLayout({
   const totalCards = drawnCards.length || 1;
 
   return (
-    <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', padding: '44px 42px 0' }}>
+    <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', padding: '36px 42px 24px' }}>
       {/* 顶部品牌 —— L1 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ color: palette.gold, fontSize: typo.brand }}>✦</span>
           <span style={{ fontFamily: "'Cinzel Decorative', 'Cinzel', serif", fontSize: typo.brand, letterSpacing: '0.08em', color: palette.lightgold, fontWeight: 600 }}>
@@ -758,7 +758,7 @@ function PortraitLayout({
       <Divider palette={palette} />
 
       {/* 问题 —— L1 焦点 */}
-      <Section palette={palette} typo={typo} tag="你所问" marginTop={20} marginBottom={20}>
+      <Section palette={palette} typo={typo} tag="你所问" marginTop={16} marginBottom={16}>
         <p style={{ fontSize: typo.question, lineHeight: 1.55, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '12px 0 0', minHeight: 30 }}>
           {question ? `「${truncate(question, 60)}」` : '— 静心冥想此刻的疑问 —'}
         </p>
@@ -773,22 +773,22 @@ function PortraitLayout({
       <Divider palette={palette} />
 
       {/* 牌阵（含关键词） —— 牌名 L1，其余 L3 */}
-      <Section palette={palette} typo={typo} tag="你的牌阵" marginTop={20} marginBottom={20}>
-        <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+      <Section palette={palette} typo={typo} tag="你的牌阵" marginTop={14} marginBottom={14}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
           {drawnCards.map((c, i) => {
             const pos = positions[c.position];
             return (
               <div key={i} style={{
-                flex: '1 1 30%', minWidth: 80, maxWidth: 150, padding: '14px 12px', borderRadius: 12,
+                flex: '1 1 30%', minWidth: 80, maxWidth: 150, padding: '12px 10px', borderRadius: 12,
                 backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`, textAlign: 'center',
               }}>
-                <div style={{ fontSize: typo.posName, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.1em', marginBottom: 6 }}>
+                <div style={{ fontSize: typo.posName, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.1em', marginBottom: 5 }}>
                   {pos?.name || `第${i + 1}张`}
                 </div>
                 <div style={{ fontSize: typo.cardName, color: palette.lightgold, fontWeight: 600, lineHeight: 1.3 }}>
                   {c.card.name.cn}
                 </div>
-                <div style={{ fontSize: typo.cardMeta, color: c.reversed ? palette.rose : palette.textMute, marginTop: 5, marginBottom: 7 }}>
+                <div style={{ fontSize: typo.cardMeta, color: c.reversed ? palette.rose : palette.textMute, marginTop: 4, marginBottom: 6 }}>
                   {c.reversed ? '逆位' : '正位'} · {(ELEMENT_META[c.card.element]?.label) || '灵'}
                 </div>
                 <div style={{ fontSize: typo.keywords, color: palette.textSoft, lineHeight: 1.4 }}>
@@ -803,27 +803,27 @@ function PortraitLayout({
       <Divider palette={palette} />
 
       {/* 塔罗师回应 —— headline L1 */}
-      <Section palette={palette} typo={typo} tag="塔罗师的回应" marginTop={20} marginBottom={20}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 16 }}>
+      <Section palette={palette} typo={typo} tag="塔罗师的回应" marginTop={14} marginBottom={14}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12 }}>
           <div style={{
-            padding: '8px 22px', borderRadius: 999, fontSize: typo.verdict, fontWeight: 600, color: verdictColor,
+            padding: '7px 20px', borderRadius: 999, fontSize: typo.verdict, fontWeight: 600, color: verdictColor,
             border: `1px solid ${verdictColor}66`, backgroundColor: `${verdictColor}14`,
             fontFamily: "'Cinzel', 'Noto Serif SC', serif", letterSpacing: '0.1em', whiteSpace: 'nowrap',
           }}>
             {VERDICT_LABEL[directAnswer.verdict]}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: typo.energyBarLabel, color: palette.textMute, marginBottom: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: typo.energyBarLabel, color: palette.textMute, marginBottom: 5 }}>
               <span>能量值</span>
               <span style={{ color: palette.lightgold, fontWeight: 600, fontSize: typo.energyBarValue }}>{pct}</span>
             </div>
-            <div style={{ height: 7, borderRadius: 999, backgroundColor: palette.barTrack, overflow: 'hidden' }}>
+            <div style={{ height: 6, borderRadius: 999, backgroundColor: palette.barTrack, overflow: 'hidden' }}>
               <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: `linear-gradient(90deg, ${verdictColor}, ${palette.gold})` }} />
             </div>
           </div>
         </div>
-        <p style={{ fontSize: typo.headline, lineHeight: 1.65, color: palette.textStrong, fontWeight: 500, margin: '16px 0 0' }}>
-          {truncate(directAnswer.headline, 90)}
+        <p style={{ fontSize: typo.headline, lineHeight: 1.6, color: palette.textStrong, fontWeight: 500, margin: '12px 0 0' }}>
+          {truncate(directAnswer.headline, 80)}
         </p>
       </Section>
 
@@ -831,9 +831,9 @@ function PortraitLayout({
 
       {/* 塔罗师深度解读 —— L2 */}
       {directAnswer.reasoning && (
-        <Section palette={palette} typo={typo} tag="牌面背后的脉络" marginTop={20} marginBottom={20}>
-          <p style={{ fontSize: typo.reasoning, lineHeight: 1.85, color: palette.textSoft, margin: '14px 0 0', fontStyle: 'italic' }}>
-            {truncate(directAnswer.reasoning, 150)}
+        <Section palette={palette} typo={typo} tag="牌面背后的脉络" marginTop={14} marginBottom={14}>
+          <p style={{ fontSize: typo.reasoning, lineHeight: 1.8, color: palette.textSoft, margin: '12px 0 0', fontStyle: 'italic' }}>
+            {truncate(directAnswer.reasoning, 130)}
           </p>
         </Section>
       )}
@@ -841,11 +841,11 @@ function PortraitLayout({
       <Divider palette={palette} />
 
       {/* 元素能量分布 —— 数字 L2，标签 L3 */}
-      <Section palette={palette} typo={typo} tag="元素能量" marginTop={20} marginBottom={20}>
-        <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+      <Section palette={palette} typo={typo} tag="元素能量" marginTop={14} marginBottom={14}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
           {elements.map((e) => (
             <div key={e.element} style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 999,
+              display: 'flex', alignItems: 'center', gap: 7, padding: '6px 14px', borderRadius: 999,
               backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`,
             }}>
               <span style={{ fontSize: typo.energyCount, color: palette.gold }}>{e.icon}</span>
@@ -867,22 +867,22 @@ function PortraitLayout({
 
       {/* 行动指引 —— detail L2 */}
       {actionPlan.length > 0 && (
-        <Section palette={palette} typo={typo} tag="行动指引" marginTop={20} marginBottom={20}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+        <Section palette={palette} typo={typo} tag="行动指引" marginTop={14} marginBottom={14}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
             {actionPlan.slice(0, 3).map((item, i) => (
               <div key={i} style={{
-                display: 'flex', gap: 12, padding: '14px 18px', borderRadius: 12,
+                display: 'flex', gap: 11, padding: '11px 15px', borderRadius: 10,
                 backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`,
               }}>
                 <span style={{ fontSize: typo.actionDetail, color: item.kind === 'warning' ? palette.rose : palette.lightgold, lineHeight: 1.5, flexShrink: 0 }}>
                   {ACTION_ICON[item.kind]}
                 </span>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: typo.posName, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', marginBottom: 5 }}>
+                  <div style={{ fontSize: typo.posName, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', marginBottom: 4 }}>
                     {ACTION_LABEL[item.kind]}
                   </div>
-                  <div style={{ fontSize: typo.actionDetail, lineHeight: 1.55, color: palette.textBase }}>
-                    {truncate(item.detail, 55)}
+                  <div style={{ fontSize: typo.actionDetail, lineHeight: 1.5, color: palette.textBase }}>
+                    {truncate(item.detail, 50)}
                   </div>
                 </div>
               </div>
@@ -892,21 +892,21 @@ function PortraitLayout({
       )}
 
       {/* 底部域名 CTA 区 —— 收束语 L2，域名 L1，其余 L3 */}
-      <div style={{ marginTop: 'auto' }}>
+      <div style={{ marginTop: 18 }}>
         <Divider palette={palette} />
         <div style={{
-          textAlign: 'center', padding: '26px 20px 30px',
+          textAlign: 'center', padding: '18px 20px 0',
           background: `linear-gradient(180deg, transparent 0%, ${palette.glowGold} 100%)`,
         }}>
-          <p style={{ fontFamily: "'Cinzel', 'Noto Serif SC', serif", fontSize: typo.closingText, color: palette.gold, letterSpacing: '0.12em', marginBottom: 12, fontWeight: 500 }}>
-            ✦ {truncate(closingText, 22)} ✦
+          <p style={{ fontFamily: "'Cinzel', 'Noto Serif SC', serif", fontSize: typo.closingText, color: palette.gold, letterSpacing: '0.12em', marginBottom: 10, fontWeight: 500 }}>
+            ✦ {truncate(closingText, 20)} ✦
           </p>
-          <p style={{ fontSize: typo.epilogue, color: palette.textMute, lineHeight: 1.65, fontStyle: 'italic', marginBottom: 18 }}>
-            塔罗不预测命运，而是照亮当下。<br />每一次占卜，都是与内心的深度对话。
+          <p style={{ fontSize: typo.epilogue, color: palette.textMute, lineHeight: 1.6, fontStyle: 'italic', marginBottom: 14 }}>
+            塔罗不预测命运，而是照亮当下。
           </p>
           {/* 域名 CTA —— L1 */}
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 12, padding: '12px 26px', borderRadius: 999,
+            display: 'inline-flex', alignItems: 'center', gap: 11, padding: '10px 24px', borderRadius: 999,
             border: `1px solid ${palette.border}`, backgroundColor: 'rgba(212,175,55,0.08)',
           }}>
             <span style={{ fontSize: typo.domain, color: palette.gold }}>✧</span>
@@ -918,7 +918,7 @@ function PortraitLayout({
             </span>
             <span style={{ fontSize: typo.domain, color: palette.gold }}>✧</span>
           </div>
-          <p style={{ fontSize: typo.ctaHint, color: palette.textMute, marginTop: 12, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}>
+          <p style={{ fontSize: typo.ctaHint, color: palette.textMute, marginTop: 10, marginBottom: 4, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}>
             扫码或访问 · 开启你的专属占卜
           </p>
         </div>
@@ -961,11 +961,11 @@ function LandscapeLayout({
   const totalCards = drawnCards.length || 1;
 
   return (
-    <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', padding: '32px 44px 0' }}>
+    <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', padding: '28px 40px 20px' }}>
       {/* 左栏：问题 + 牌阵 + 元素能量 */}
-      <div style={{ flex: '1 1 48%', display: 'flex', flexDirection: 'column', paddingRight: 28, borderRight: `1px solid ${palette.borderSoft}` }}>
+      <div style={{ flex: '1 1 48%', display: 'flex', flexDirection: 'column', paddingRight: 24, borderRight: `1px solid ${palette.borderSoft}` }}>
         {/* 顶部品牌 —— L1 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ color: palette.gold, fontSize: typo.brand }}>✦</span>
             <span style={{ fontFamily: "'Cinzel Decorative', 'Cinzel', serif", fontSize: typo.brand, letterSpacing: '0.08em', color: palette.lightgold, fontWeight: 600 }}>
@@ -979,34 +979,34 @@ function LandscapeLayout({
 
         {/* 问题 —— L1 焦点 */}
         <SectionTag text="你所问" palette={palette} typo={typo} />
-        <p style={{ fontSize: typo.question, lineHeight: 1.5, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '12px 0 0', minHeight: 24 }}>
-          {question ? `「${truncate(question, 44)}」` : '— 静心冥想此刻的疑问 —'}
+        <p style={{ fontSize: typo.question, lineHeight: 1.45, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '10px 0 0', minHeight: 24 }}>
+          {question ? `「${truncate(question, 40)}」` : '— 静心冥想此刻的疑问 —'}
         </p>
         <div style={{
-          display: 'inline-block', marginTop: 12, fontSize: typo.date, padding: '4px 14px', borderRadius: 999,
+          display: 'inline-block', marginTop: 10, fontSize: typo.date, padding: '4px 13px', borderRadius: 999,
           color: palette.lightgold, border: `1px solid ${palette.border}`, backgroundColor: 'rgba(212,175,55,0.08)',
         }}>
           {theme.label}主题 · {spreadName}
         </div>
 
         {/* 牌阵（含关键词） —— 牌名 L1，其余 L3 */}
-        <div style={{ marginTop: 22 }}>
+        <div style={{ marginTop: 16 }}>
           <SectionTag text="你的牌阵" palette={palette} typo={typo} />
-          <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 9, marginTop: 11, flexWrap: 'wrap' }}>
             {drawnCards.map((c, i) => {
               const pos = positions[c.position];
               return (
                 <div key={i} style={{
-                  flex: '1 1 28%', minWidth: 70, maxWidth: 125, padding: '12px 9px', borderRadius: 10,
+                  flex: '1 1 28%', minWidth: 70, maxWidth: 125, padding: '10px 8px', borderRadius: 10,
                   backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`, textAlign: 'center',
                 }}>
-                  <div style={{ fontSize: typo.posName, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.1em', marginBottom: 5 }}>
+                  <div style={{ fontSize: typo.posName, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.1em', marginBottom: 4 }}>
                     {pos?.name || `第${i + 1}张`}
                   </div>
                   <div style={{ fontSize: typo.cardName, color: palette.lightgold, fontWeight: 600, lineHeight: 1.3 }}>
                     {c.card.name.cn}
                   </div>
-                  <div style={{ fontSize: typo.cardMeta, color: c.reversed ? palette.rose : palette.textMute, marginTop: 4, marginBottom: 5 }}>
+                  <div style={{ fontSize: typo.cardMeta, color: c.reversed ? palette.rose : palette.textMute, marginTop: 3, marginBottom: 4 }}>
                     {c.reversed ? '逆位' : '正位'} · {(ELEMENT_META[c.card.element]?.label) || '灵'}
                   </div>
                   <div style={{ fontSize: typo.keywords, color: palette.textSoft, lineHeight: 1.3 }}>
@@ -1019,12 +1019,12 @@ function LandscapeLayout({
         </div>
 
         {/* 元素能量分布 —— 数字 L2，标签 L3 */}
-        <div style={{ marginTop: 20 }}>
+        <div style={{ marginTop: 14 }}>
           <SectionTag text="元素能量" palette={palette} typo={typo} />
-          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 7, marginTop: 11, flexWrap: 'wrap' }}>
             {elements.map((e) => (
               <div key={e.element} style={{
-                display: 'flex', alignItems: 'center', gap: 7, padding: '7px 13px', borderRadius: 999,
+                display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999,
                 backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`,
               }}>
                 <span style={{ fontSize: typo.energyCount, color: palette.gold }}>{e.icon}</span>
@@ -1041,12 +1041,12 @@ function LandscapeLayout({
         </div>
 
         {/* 底部域名 CTA —— 域名 L1 */}
-        <div style={{ marginTop: 'auto', paddingTop: 18 }}>
-          <p style={{ fontFamily: "'Cinzel', 'Noto Serif SC', serif", fontSize: typo.closingText, color: palette.gold, letterSpacing: '0.12em', marginBottom: 10, fontWeight: 500 }}>
-            ✦ {truncate(closingText, 18)} ✦
+        <div style={{ marginTop: 16 }}>
+          <p style={{ fontFamily: "'Cinzel', 'Noto Serif SC', serif", fontSize: typo.closingText, color: palette.gold, letterSpacing: '0.12em', marginBottom: 8, fontWeight: 500 }}>
+            ✦ {truncate(closingText, 16)} ✦
           </p>
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10, padding: '9px 20px', borderRadius: 999,
+            display: 'inline-flex', alignItems: 'center', gap: 10, padding: '8px 18px', borderRadius: 999,
             border: `1px solid ${palette.border}`, backgroundColor: 'rgba(212,175,55,0.08)',
           }}>
             <span style={{ fontSize: typo.domain, color: palette.gold }}>✧</span>
@@ -1062,60 +1062,60 @@ function LandscapeLayout({
       </div>
 
       {/* 右栏：回应 + 解读 + 行动指引 */}
-      <div style={{ flex: '1 1 52%', display: 'flex', flexDirection: 'column', paddingLeft: 28 }}>
+      <div style={{ flex: '1 1 52%', display: 'flex', flexDirection: 'column', paddingLeft: 24 }}>
         {/* 塔罗师回应 —— headline L1 */}
         <SectionTag text="塔罗师的回应" palette={palette} typo={typo} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginTop: 11 }}>
           <div style={{
-            padding: '7px 20px', borderRadius: 999, fontSize: typo.verdict, fontWeight: 600, color: verdictColor,
+            padding: '6px 18px', borderRadius: 999, fontSize: typo.verdict, fontWeight: 600, color: verdictColor,
             border: `1px solid ${verdictColor}66`, backgroundColor: `${verdictColor}14`,
             fontFamily: "'Cinzel', 'Noto Serif SC', serif", letterSpacing: '0.1em', whiteSpace: 'nowrap',
           }}>
             {VERDICT_LABEL[directAnswer.verdict]}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: typo.energyBarLabel, color: palette.textMute, marginBottom: 5 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: typo.energyBarLabel, color: palette.textMute, marginBottom: 4 }}>
               <span>能量值</span>
               <span style={{ color: palette.lightgold, fontWeight: 600, fontSize: typo.energyBarValue }}>{pct}</span>
             </div>
-            <div style={{ height: 7, borderRadius: 999, backgroundColor: palette.barTrack, overflow: 'hidden' }}>
+            <div style={{ height: 6, borderRadius: 999, backgroundColor: palette.barTrack, overflow: 'hidden' }}>
               <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: `linear-gradient(90deg, ${verdictColor}, ${palette.gold})` }} />
             </div>
           </div>
         </div>
-        <p style={{ fontSize: typo.headline, lineHeight: 1.6, color: palette.textStrong, fontWeight: 500, margin: '14px 0 0' }}>
-          {truncate(directAnswer.headline, 80)}
+        <p style={{ fontSize: typo.headline, lineHeight: 1.5, color: palette.textStrong, fontWeight: 500, margin: '11px 0 0' }}>
+          {truncate(directAnswer.headline, 70)}
         </p>
 
         {/* 塔罗师深度解读 —— L2 */}
         {directAnswer.reasoning && (
-          <div style={{ marginTop: 20 }}>
+          <div style={{ marginTop: 14 }}>
             <SectionTag text="牌面背后的脉络" palette={palette} typo={typo} />
-            <p style={{ fontSize: typo.reasoning, lineHeight: 1.8, color: palette.textSoft, margin: '12px 0 0', fontStyle: 'italic' }}>
-              {truncate(directAnswer.reasoning, 130)}
+            <p style={{ fontSize: typo.reasoning, lineHeight: 1.7, color: palette.textSoft, margin: '10px 0 0', fontStyle: 'italic' }}>
+              {truncate(directAnswer.reasoning, 110)}
             </p>
           </div>
         )}
 
         {/* 行动指引 —— detail L2 */}
         {actionPlan.length > 0 && (
-          <div style={{ marginTop: 20 }}>
+          <div style={{ marginTop: 14 }}>
             <SectionTag text="行动指引" palette={palette} typo={typo} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginTop: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 11 }}>
               {actionPlan.slice(0, 3).map((item, i) => (
                 <div key={i} style={{
-                  display: 'flex', gap: 11, padding: '12px 15px', borderRadius: 10,
+                  display: 'flex', gap: 10, padding: '10px 13px', borderRadius: 9,
                   backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`,
                 }}>
-                  <span style={{ fontSize: typo.actionDetail, color: item.kind === 'warning' ? palette.rose : palette.lightgold, lineHeight: 1.5, flexShrink: 0 }}>
+                  <span style={{ fontSize: typo.actionDetail, color: item.kind === 'warning' ? palette.rose : palette.lightgold, lineHeight: 1.45, flexShrink: 0 }}>
                     {ACTION_ICON[item.kind]}
                   </span>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: typo.posName, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', marginBottom: 4 }}>
+                    <div style={{ fontSize: typo.posName, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', marginBottom: 3 }}>
                       {ACTION_LABEL[item.kind]}
                     </div>
-                    <div style={{ fontSize: typo.actionDetail, lineHeight: 1.5, color: palette.textBase }}>
-                      {truncate(item.detail, 45)}
+                    <div style={{ fontSize: typo.actionDetail, lineHeight: 1.45, color: palette.textBase }}>
+                      {truncate(item.detail, 40)}
                     </div>
                   </div>
                 </div>
@@ -1125,8 +1125,8 @@ function LandscapeLayout({
         )}
 
         {/* 底部箴言 + CTA —— L3 */}
-        <div style={{ marginTop: 'auto', paddingTop: 16, textAlign: 'right' }}>
-          <p style={{ fontSize: typo.epilogue, color: palette.textMute, lineHeight: 1.6, fontStyle: 'italic', marginBottom: 7 }}>
+        <div style={{ marginTop: 14, textAlign: 'right' }}>
+          <p style={{ fontSize: typo.epilogue, color: palette.textMute, lineHeight: 1.55, fontStyle: 'italic', marginBottom: 5 }}>
             塔罗不预测命运，而是照亮当下。
           </p>
           <p style={{ fontSize: typo.ctaHint, color: palette.textMute, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}>
