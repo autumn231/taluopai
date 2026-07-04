@@ -6,6 +6,7 @@ import MysticRing from '@/components/effects/MysticRing';
 import RuneShower from '@/components/effects/RuneShower';
 import SparkleTrail from '@/components/effects/SparkleTrail';
 import TarotCard from '@/components/tarot/TarotCard';
+import CardOfTheDay from '@/components/tarot/CardOfTheDay';
 import { TAROT_CARDS } from '@/data/tarotCards';
 import { SPREADS } from '@/data/spreads';
 
@@ -277,6 +278,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ================== 每日一牌 ================== */}
+      <CardOfTheDay />
 
       {/* ================== 特性 ================== */}
       <section className="relative px-4 sm:px-6 py-16 sm:py-24">

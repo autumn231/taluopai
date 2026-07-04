@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useMemo, useCallback, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RotateCw, History, Sparkles, Heart, Briefcase, Coins, Users, Sprout, Compass, ChevronLeft, ChevronRight, EyeOff, BookMarked, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, RotateCw, History, Sparkles, Heart, Briefcase, Coins, Users, Sprout, Compass, ChevronLeft, ChevronRight, EyeOff, BookMarked, Copy, Check, type LucideIcon } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import TarotCard from '@/components/tarot/TarotCard';
 import EnergyVortex from '@/components/effects/EnergyVortex';
@@ -417,11 +417,29 @@ function CardPager({
   currentIdx: number;
   onChange: (i: number) => void;
 }) {
+  const goPrev = useCallback(() => onChange((currentIdx - 1 + cards.length) % cards.length), [onChange, currentIdx, cards.length]);
+  const goNext = useCallback(() => onChange((currentIdx + 1) % cards.length), [onChange, currentIdx, cards.length]);
+
+  // 键盘左右翻页
+  useEffect(() => {
+    if (cards.length <= 1) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goPrev();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goNext();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [goPrev, goNext, cards.length]);
+
   if (cards.length === 0) return null;
   const current = cards[currentIdx];
   const position = positions[current.position];
-  const goPrev = () => onChange((currentIdx - 1 + cards.length) % cards.length);
-  const goNext = () => onChange((currentIdx + 1) % cards.length);
 
   return (
     <div>
@@ -524,6 +542,16 @@ function CardPager({
             </span>
             <ChevronRight className="w-3.5 h-3.5 shrink-0" />
           </button>
+        </div>
+      )}
+
+      {/* 键盘提示 */}
+      {cards.length > 1 && (
+        <div className="mt-3 text-center text-[10px] text-midnight-300/50 font-sans-ui">
+          可使用
+          <kbd className="mx-1 px-1.5 py-0.5 rounded border border-mystic-gold/25 bg-midnight-900/40 text-mystic-gold/80 text-[10px]">←</kbd>
+          <kbd className="mx-0.5 px-1.5 py-0.5 rounded border border-mystic-gold/25 bg-midnight-900/40 text-mystic-gold/80 text-[10px]">→</kbd>
+          键翻页
         </div>
       )}
     </div>
@@ -921,40 +949,37 @@ function SynthesisReading({
   question: string;
 }) {
   const theme = getQuestionTheme(question);
-  const readingOf = (c: DrawnCard) => (c.reversed ? c.card.reversed : c.card.upright);
-  const nameOf = (c: DrawnCard) => {
-    const orientation = c.reversed ? '（逆）' : '（正）';
-    return `${c.card.name.cn}${orientation}`;
-  };
-  const dim = theme.primaryDimension;
+  const [copied, setCopied] = useState(false);
 
-  // === 锚点：单牌=本身 / 三牌=当下 / 凯尔特=最终结果 ===
-  const anchorIdx = spreadType === 'single' ? 0 : spreadType === 'three' ? 1 : cards.length - 1;
-  const anchor = cards[anchorIdx];
-  const anchorR = readingOf(anchor);
-  const reversedCount = cards.filter((c) => c.reversed).length;
+  // 用 useMemo 一次性算出三段文本，避免渲染时重复调用
+  const { echoText, storyTexts, guidanceText, anchor, closingText } = useMemo(() => {
+    const readingOf = (c: DrawnCard) => (c.reversed ? c.card.reversed : c.card.upright);
+    const nameOf = (c: DrawnCard) => {
+      const orientation = c.reversed ? '（逆）' : '（正）';
+      return `${c.card.name.cn}${orientation}`;
+    };
+    const dim = theme.primaryDimension;
+    const anchorIdx = spreadType === 'single' ? 0 : spreadType === 'three' ? 1 : cards.length - 1;
+    const anchorCard = cards[anchorIdx];
+    const anchorR = readingOf(anchorCard);
+    const reversedCount = cards.filter((c) => c.reversed).length;
 
-  // === 1. 整体映照：1 段话，描绘这组牌的能量基调（不重复罗列牌名） ===
-  const overallEcho = (): string => {
-    const parts: string[] = [];
-
+    // === 1. 整体映照 ===
+    const echoParts: string[] = [];
     if (cards.length === 1) {
-      parts.push(`你抽到的是「${nameOf(cards[0])}」。`);
+      echoParts.push(`你抽到的是「${nameOf(cards[0])}」。`);
     } else {
-      parts.push(`这组牌由「${nameOf(cards[0])}」启程，到「${nameOf(cards[cards.length - 1])}」收束。`);
+      echoParts.push(`这组牌由「${nameOf(cards[0])}」启程，到「${nameOf(cards[cards.length - 1])}」收束。`);
     }
-
     if (reversedCount === 0) {
-      parts.push('全部正位登场——这是一段没有遮掩的对话，牌面把门直接推开。');
+      echoParts.push('全部正位登场——这是一段没有遮掩的对话，牌面把门直接推开。');
     } else if (reversedCount === cards.length) {
-      parts.push('所有牌均呈逆位——提示你：外在的转向必须先从内在的功课开始。');
+      echoParts.push('所有牌均呈逆位——提示你：外在的转向必须先从内在的功课开始。');
     } else if (reversedCount > cards.length / 2) {
-      parts.push('逆位占多数，整体能量偏向内省、暂停与修正。');
+      echoParts.push('逆位占多数，整体能量偏向内省、暂停与修正。');
     } else {
-      parts.push('正位主导，逆位牌则精准指出你需要留意的暗面。');
+      echoParts.push('正位主导，逆位牌则精准指出你需要留意的暗面。');
     }
-
-    // 主调元素（仅在足够集中时提及）
     const elCount: Record<string, number> = {};
     cards.forEach((c) => {
       const e = c.card.element || 'spirit';
@@ -969,27 +994,20 @@ function SynthesisReading({
         earth: '稳定与物质的根基',
         spirit: '觉知与超越的召唤',
       };
-      parts.push(`主调色是${elDesc[sorted[0][0]]}。`);
+      echoParts.push(`主调色是${elDesc[sorted[0][0]]}。`);
     }
+    const echoText = echoParts.join('');
 
-    return parts.join('');
-  };
-
-  // === 2. 牌的故事：每张牌一段叙述性文字（按牌阵位置语境展开） ===
-  const storyParagraphs = (): string[] => {
-    const paras: string[] = [];
-
+    // === 2. 牌的故事 ===
+    const storyTexts: string[] = [];
     if (cards.length === 1) {
       const c = cards[0];
       const r = readingOf(c);
       const kw = c.card.keywords.slice(0, 3).join('、');
-      paras.push(
+      storyTexts.push(
         `${c.card.name.cn}${c.reversed ? '逆位' : '正位'}登场，把「${kw}」这一组能量摆到你面前——${r[dim]}`,
       );
-      return paras;
-    }
-
-    if (cards.length === 3 && spreadType === 'three') {
+    } else if (cards.length === 3 && spreadType === 'three') {
       const modeNames: Record<ThreeMode, [string, string, string]> = {
         time: ['过去的因', '当下的势', '未来的果'],
         mind: ['你的心', '你的行', 'TA 的应'],
@@ -997,32 +1015,19 @@ function SynthesisReading({
       };
       const [n0, n1, n2] = modeNames[threeMode];
       const focus = theme.positionFocus.three[threeMode];
-
-      paras.push(
-        `「${n0}」是${nameOf(cards[0])}——${focus.past}${readingOf(cards[0])[dim]}`,
-      );
-      paras.push(
-        `「${n1}」是${nameOf(cards[1])}——${focus.present}${readingOf(cards[1])[dim]}`,
-      );
-      paras.push(
-        `「${n2}」是${nameOf(cards[2])}——${focus.future}${readingOf(cards[2])[dim]}`,
-      );
-
-      // 演化方向（首尾正逆对比）
+      storyTexts.push(`「${n0}」是${nameOf(cards[0])}——${focus.past}${readingOf(cards[0])[dim]}`);
+      storyTexts.push(`「${n1}」是${nameOf(cards[1])}——${focus.present}${readingOf(cards[1])[dim]}`);
+      storyTexts.push(`「${n2}」是${nameOf(cards[2])}——${focus.future}${readingOf(cards[2])[dim]}`);
       const c0 = cards[0];
       const c2 = cards[2];
       if (c0.reversed && !c2.reversed) {
-        paras.push('从首到尾，是由逆位过渡到正位——你正在走出某段阴霾，向清晰靠近。');
+        storyTexts.push('从首到尾，是由逆位过渡到正位——你正在走出某段阴霾，向清晰靠近。');
       } else if (!c0.reversed && c2.reversed) {
-        paras.push('从首到尾，是由正位走入逆位——需要主动调整，否则会陷入旧的模式。');
+        storyTexts.push('从首到尾，是由正位走入逆位——需要主动调整，否则会陷入旧的模式。');
       } else {
-        paras.push('首尾一致——这是一个连续递进的过程，没有断点。');
+        storyTexts.push('首尾一致——这是一个连续递进的过程，没有断点。');
       }
-      return paras;
-    }
-
-    // 凯尔特：聚焦 5 张关键牌
-    if (cards.length >= 5) {
+    } else if (cards.length >= 5) {
       const positions: { idx: number; label: string; hint: string }[] = [
         { idx: 0, label: '当下核心', hint: '此刻你站的位置——' },
         { idx: 1, label: '主要挑战', hint: '横亘在你面前的课题——' },
@@ -1033,44 +1038,98 @@ function SynthesisReading({
       positions.forEach((p) => {
         if (p.idx >= cards.length) return;
         const c = cards[p.idx];
-        paras.push(`【${p.label}】${nameOf(c)}：${p.hint}${readingOf(c)[dim]}`);
+        storyTexts.push(`【${p.label}】${nameOf(c)}：${p.hint}${readingOf(c)[dim]}`);
       });
-      return paras;
     }
 
-    return paras;
-  };
-
-  // === 3. 给你的指引：把 行动 + 时机 + 留意 合为一段，避免重复 ===
-  const guidance = (): string => {
-    const parts: string[] = [];
-
-    // 核心行动（优先取牌本身的 advice，缺时用主题级 advice）
+    // === 3. 给你的指引 ===
+    const guidanceParts: string[] = [];
     const action = anchorR.advice || theme.advice;
-    if (action) parts.push(action);
-
-    // 时间提示（仅当牌本身有时机信息时给出）
-    if (anchorR.timing) parts.push(anchorR.timing);
-
-    // 需要留意（优先取牌本身的 warning，缺时用主题级 caution）
+    if (action) guidanceParts.push(action);
+    if (anchorR.timing) guidanceParts.push(anchorR.timing);
     const caution = anchorR.warning || theme.caution;
-    if (caution) parts.push(caution);
+    if (caution) guidanceParts.push(caution);
+    const guidanceText = guidanceParts.join(' ');
 
-    return parts.join(' ');
-  };
+    return {
+      echoText,
+      storyTexts,
+      guidanceText,
+      anchor: anchorCard,
+      closingText: theme.closing,
+    };
+  }, [cards, spreadType, threeMode, theme]);
 
-  const hasGuidance = guidance().length > 0;
+  const hasGuidance = guidanceText.length > 0;
+
+  // 复制完整解读到剪贴板
+  const handleCopy = useCallback(async () => {
+    const lines: string[] = [];
+    if (question) lines.push(`【问题】${question}`);
+    lines.push('');
+    lines.push('【整体映照】');
+    lines.push(echoText);
+    lines.push('');
+    lines.push('【牌的故事】');
+    storyTexts.forEach((p) => lines.push(p));
+    if (hasGuidance) {
+      lines.push('');
+      lines.push('【给你的指引】');
+      lines.push(guidanceText);
+    }
+    lines.push('');
+    lines.push(`✦ ${closingText} ✦`);
+    const text = lines.join('\n');
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // 降级：选中文本
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        // 静默失败
+      }
+      document.body.removeChild(ta);
+    }
+  }, [question, echoText, storyTexts, guidanceText, hasGuidance, closingText]);
 
   return (
     <div className="space-y-6 sm:space-y-8 font-body text-sm sm:text-base leading-relaxed text-midnight-100/90">
+      {/* 复制按钮 */}
+      <div className="flex justify-end -mb-3">
+        <button
+          onClick={handleCopy}
+          className={cn(
+            'text-xs px-3 py-1.5 rounded-full border transition-all inline-flex items-center gap-1.5',
+            copied
+              ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-300'
+              : 'border-mystic-gold/30 bg-mystic-gold/5 text-mystic-gold/90 hover:bg-mystic-gold/15 hover:border-mystic-gold/50',
+          )}
+        >
+          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+          {copied ? '已复制' : '复制解读'}
+        </button>
+      </div>
+
       {/* === 1. 整体映照（首段，开门见山） === */}
       <p className="text-base sm:text-lg text-midnight-100/95 leading-relaxed font-body">
-        {overallEcho()}
+        {echoText}
       </p>
 
       {/* === 2. 牌的故事（按牌位展开的叙述） === */}
       <div className="glass-panel rounded-xl p-5 sm:p-6 space-y-4 border-l-2 border-mystic-gold/40">
-        {storyParagraphs().map((p, i) => (
+        {storyTexts.map((p, i) => (
           <p
             key={i}
             className="text-sm sm:text-base text-midnight-100/90 leading-relaxed"
@@ -1091,7 +1150,7 @@ function SynthesisReading({
                 给你的指引
               </div>
               <p className="text-sm sm:text-base text-midnight-100/95 leading-relaxed">
-                {guidance()}
+                {guidanceText}
               </p>
               <div className="mt-2 text-[10px] text-mystic-gold/60 tracking-widest">
                 — 取自 {anchor.card.name.cn}{anchor.reversed ? '（逆）' : '（正）'}
@@ -1104,7 +1163,7 @@ function SynthesisReading({
       {/* === 收束 === */}
       <div className="text-center pt-2">
         <p className="font-title text-sm sm:text-base text-mystic-gold/90 tracking-widest">
-          ✦ {theme.closing} ✦
+          ✦ {closingText} ✦
         </p>
         <p className="mt-3 text-xs sm:text-sm text-midnight-200/70 italic">
           塔罗不预测命运，而是照亮当下。每一次占卜都是与自己内心的一次深度对话。

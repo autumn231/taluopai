@@ -1,21 +1,45 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Trash2, History as HistoryIcon, Eye, Calendar, RotateCcw } from 'lucide-react';
+import { Trash2, History as HistoryIcon, Eye, Calendar, RotateCcw, Search, X } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import TarotCard from '@/components/tarot/TarotCard';
 import { useHistoryStore } from '@/store/useHistoryStore';
 import { useReadingStore } from '@/store/useReadingStore';
 import { SPREADS, THREE_MODES } from '@/data/spreads';
-import { formatDate } from '@/lib/utils';
-import type { ReadingRecord } from '@/types';
+import { formatDate, cn } from '@/lib/utils';
+import type { ReadingRecord, SpreadType } from '@/types';
+
+type HistoryFilter = 'all' | SpreadType;
+
+const FILTERS: { key: HistoryFilter; label: string }[] = [
+  { key: 'all', label: '全部' },
+  { key: 'single', label: '单张' },
+  { key: 'three', label: '三张' },
+  { key: 'celtic', label: '凯尔特' },
+];
 
 export default function History() {
   const { records, removeRecord, clear } = useHistoryStore();
   const [confirmClear, setConfirmClear] = useState(false);
+  const [filter, setFilter] = useState<HistoryFilter>('all');
+  const [search, setSearch] = useState('');
 
-  // 按日期分组 - 适配阅读习惯：先看最近，再按时间回溯
+  // 应用筛选 + 搜索后再按日期分组
   const grouped = useMemo(() => {
+    let list = records;
+    if (filter !== 'all') {
+      list = list.filter((r) => r.spreadType === filter);
+    }
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (r) =>
+          r.question?.toLowerCase().includes(q) ||
+          r.cards.some((c) => c.card.name.cn.toLowerCase().includes(q)),
+      );
+    }
+
     const groups: { label: string; items: ReadingRecord[] }[] = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -24,7 +48,7 @@ export default function History() {
     const weekAgo = new Date(today);
     weekAgo.setDate(today.getDate() - 7);
 
-    records.forEach((r) => {
+    list.forEach((r) => {
       const d = new Date(r.timestamp);
       d.setHours(0, 0, 0, 0);
       let label: string;
@@ -41,7 +65,9 @@ export default function History() {
       g.items.push(r);
     });
     return groups;
-  }, [records]);
+  }, [records, filter, search]);
+
+  const totalFiltered = grouped.reduce((sum, g) => sum + g.items.length, 0);
 
   return (
     <PageLayout>
@@ -79,10 +105,10 @@ export default function History() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="flex items-center justify-between mb-6 sm:mb-8"
+              className="flex items-center justify-between mb-5 sm:mb-6"
             >
               <div className="text-xs sm:text-sm font-sans-ui text-midnight-300/70">
-                共 {records.length} 条记录
+                共 {records.length} 条 · 当前 {totalFiltered} 条
               </div>
               {confirmClear ? (
                 <div className="flex items-center gap-2">
@@ -114,34 +140,97 @@ export default function History() {
               )}
             </motion.div>
 
-            {/* 记录列表 - 按时间分组 */}
-            <div className="space-y-8 sm:space-y-10">
-              {grouped.map((group) => (
-                <div key={group.label}>
-                  {/* 分组标题 */}
-                  <div className="flex items-baseline gap-3 mb-3 sm:mb-4">
-                    <span className="text-xs sm:text-sm font-title tracking-widest text-mystic-gold/80">
-                      {group.label}
-                    </span>
-                    <div className="flex-1 h-px bg-mystic-gold/10" />
-                    <span className="text-[10px] text-midnight-300/50 font-sans-ui">
-                      {group.items.length} 条
-                    </span>
-                  </div>
+            {/* 筛选 + 搜索 */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="mb-6 sm:mb-8 space-y-3"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                {FILTERS.map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setFilter(f.key)}
+                    className={cn(
+                      'px-3 py-1 rounded-full text-[11px] font-title tracking-wider transition-all',
+                      filter === f.key
+                        ? 'bg-mystic-gold/20 border border-mystic-gold text-mystic-lightgold shadow-gold-glow'
+                        : 'border border-mystic-gold/15 text-midnight-200 hover:border-mystic-gold/40',
+                    )}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-mystic-gold/60" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="搜索问题或牌名……"
+                  className="w-full pl-9 pr-9 py-2 bg-midnight-900/40 border border-mystic-gold/20 rounded-full text-sm text-midnight-100 placeholder:text-midnight-300/50 focus:outline-none focus:border-mystic-gold/50 transition-all"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-midnight-300/60 hover:text-mystic-gold"
+                    aria-label="清除搜索"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </motion.div>
 
-                  {/* 该组下的记录 */}
-                  <div className="space-y-4 sm:space-y-5">
-                    {group.items.map((record) => (
-                      <HistoryItem
-                        key={record.id}
-                        record={record}
-                        onRemove={() => removeRecord(record.id)}
-                      />
-                    ))}
+            {/* 记录列表 - 按时间分组 */}
+            {totalFiltered === 0 ? (
+              <div className="text-center py-16">
+                <p className="font-body italic text-midnight-200/60">
+                  没有匹配的记录
+                </p>
+                {(filter !== 'all' || search) && (
+                  <button
+                    onClick={() => {
+                      setFilter('all');
+                      setSearch('');
+                    }}
+                    className="mt-4 text-xs text-mystic-gold/80 hover:text-mystic-lightgold transition-colors"
+                  >
+                    清除筛选条件
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-8 sm:space-y-10">
+                {grouped.map((group) => (
+                  <div key={group.label}>
+                    {/* 分组标题 */}
+                    <div className="flex items-baseline gap-3 mb-3 sm:mb-4">
+                      <span className="text-xs sm:text-sm font-title tracking-widest text-mystic-gold/80">
+                        {group.label}
+                      </span>
+                      <div className="flex-1 h-px bg-mystic-gold/10" />
+                      <span className="text-[10px] text-midnight-300/50 font-sans-ui">
+                        {group.items.length} 条
+                      </span>
+                    </div>
+
+                    {/* 该组下的记录 */}
+                    <div className="space-y-4 sm:space-y-5">
+                      {group.items.map((record) => (
+                        <HistoryItem
+                          key={record.id}
+                          record={record}
+                          onRemove={() => removeRecord(record.id)}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
