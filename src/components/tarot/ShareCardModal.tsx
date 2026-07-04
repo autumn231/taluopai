@@ -244,10 +244,9 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
    * 
    * 兼容性优先级（从高到低）：
    * 1. Web Share API + File（Chrome/Edge/Safari 原生分享面板）
-   * 2. window.open(dataUrl) 新窗口显示图片（浏览器原生处理，用户通过菜单保存）
-   * 3. 当前页面模态框显示图片 + 长按保存（最后兜底）
+   * 2. 当前页面模态框 + 显式下载按钮（避免弹窗拦截）
    */
-  const saveOnMobile = useCallback(async (blob: Blob, dataUrl: string, fileName: string) => {
+  const saveOnMobile = useCallback(async (blob: Blob, fileName: string) => {
     // 方案 1: Web Share API
     try {
       const file = new File([blob], fileName, { type: 'image/png' });
@@ -262,45 +261,10 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
       console.warn('Web Share 不可用或失败', err);
     }
 
-    // 方案 2: 新窗口打开 data URL
-    // 注意：夸克/UC 等浏览器无法处理 data URL，会显示 about:blank
-    try {
-      const newWin = window.open(dataUrl, '_blank');
-      if (newWin) {
-        // 延迟检测新窗口是否成功加载
-        setTimeout(() => {
-          let isAboutBlank = false;
-          try {
-            // 尝试读取 location —— 如果跨域会抛异常
-            isAboutBlank = newWin.location.href === 'about:blank';
-          } catch (e) {
-            // 跨域异常说明窗口已打开且导航到了不同源（data URL 通常同域，但夸克可能特殊处理）
-            // 这种情况下假设成功打开了
-            setDownloadHint('已在新窗口打开图片，请通过浏览器菜单保存');
-            setTimeout(() => setDownloadHint(null), 5000);
-            return;
-          }
-
-          if (isAboutBlank) {
-            // 浏览器不支持 data URL，关闭空白页并显示模态框
-            try { newWin.close(); } catch {}
-            setShowImageModal(true);
-            setDownloadHint('长按图片可保存');
-            setTimeout(() => setDownloadHint(null), 5000);
-          } else {
-            setDownloadHint('已在新窗口打开图片，请通过浏览器菜单保存');
-            setTimeout(() => setDownloadHint(null), 5000);
-          }
-        }, 500);
-        return;
-      }
-    } catch (err) {
-      console.warn('window.open 被拦截', err);
-    }
-
-    // 方案 3: 当前页面模态框（最后兜底）
+    // 方案 2: 模态框 + 显式下载按钮（避免弹窗拦截）
+    // 不用 window.open —— 浏览器会拦截非直接点击触发的弹窗
     setShowImageModal(true);
-    setDownloadHint('长按图片可保存');
+    setDownloadHint('点击按钮下载或长按图片保存');
     setTimeout(() => setDownloadHint(null), 5000);
   }, []);
 
@@ -314,8 +278,11 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
     if (isTouchDevice) {
-      // 手机端：多级降级策略
-      await saveOnMobile(blob, dataUrl, fileName);
+      // 手机端：直接弹出模态框，提供下载按钮
+      // 不用 window.open —— 浏览器会拦截非首次的弹窗
+      setShowImageModal(true);
+      setDownloadHint('点击按钮下载或长按图片保存');
+      setTimeout(() => setDownloadHint(null), 5000);
     } else {
       // === 电脑端：优先用 File System Access API 弹出「另存为」对话框 ===
       try {
