@@ -190,6 +190,27 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   const handleDownload = useCallback(async () => {
     if (!dataUrl) return;
     const fileName = `塔罗占卜_${new Date().toISOString().slice(0, 10)}.png`;
+
+    // 方案 1：Web Share API — 调起系统分享面板，可直接保存到相册（Android Chrome 支持）
+    if (navigator.share && navigator.canShare) {
+      try {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], fileName, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: '塔罗占卜海报' });
+          setDownloadHint('已调起分享面板，选择「保存到相册」即可');
+          setTimeout(() => setDownloadHint(null), 8000);
+          return;
+        }
+      } catch (err: any) {
+        // 用户取消分享不报错
+        if (err?.name === 'AbortError') { setDownloadHint(null); return; }
+        console.error('Web Share 失败', err);
+      }
+    }
+
+    // 方案 2：Blob download（桌面端 Chrome/Edge）
     try {
       const res = await fetch(dataUrl);
       const blob = await res.blob();
@@ -205,6 +226,8 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
     } catch (err) {
       console.error('Blob 下载失败', err);
     }
+
+    // 方案 3：新标签页打开图片（夸克/UC/Safari 长按保存）
     setTimeout(() => { window.open(dataUrl, '_blank'); }, 300);
     setDownloadHint('已打开图片，长按图片即可保存到相册');
     setTimeout(() => setDownloadHint(null), 8000);
