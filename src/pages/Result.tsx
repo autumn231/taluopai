@@ -18,7 +18,6 @@ import {
 import DirectAnswer from '@/components/tarot/DirectAnswer';
 import CardSynergy from '@/components/tarot/CardSynergy';
 import ActionPlan from '@/components/tarot/ActionPlan';
-import FollowUpChat from '@/components/tarot/FollowUpChat';
 import ShareCardModal from '@/components/tarot/ShareCardModal';
 import type { DrawnCard, SpreadType, TarotCard as TarotCardType, SpreadPosition } from '@/types';
 
@@ -277,26 +276,6 @@ export default function Result() {
             help="把解读变成可落地的一步步"
           />
           <ActionPlan items={actionPlan} />
-        </motion.section>
-
-        {/* 追问塔罗师 - 对话式深挖 */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1 }}
-          className="mb-12 sm:mb-16"
-        >
-          <SectionLabel
-            step="06"
-            kicker="追问塔罗师"
-            help="还有什么想问的，直接开口"
-            accent
-          />
-          <FollowUpChat
-            cards={drawnCards}
-            theme={theme}
-            question={question}
-          />
         </motion.section>
 
         {/* 底部操作 */}
