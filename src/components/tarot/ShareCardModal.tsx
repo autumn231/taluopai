@@ -140,7 +140,6 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   const [posterStyle, setPosterStyle] = useState<PosterStyle>('dark');
   const [orientation, setOrientation] = useState<PosterOrientation>('portrait');
   const [downloadHint, setDownloadHint] = useState<string | null>(null);
-  const [showImageModal, setShowImageModal] = useState(false);
 
   const palette = posterStyle === 'dark' ? DARK : LIGHT;
   const isPortrait = orientation === 'portrait';
@@ -167,7 +166,6 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
       setStatus('idle');
       revokeImageUrl();
       setDownloadHint(null);
-      setShowImageModal(false);
     }
   }, [open, revokeImageUrl]);
 
@@ -240,31 +238,89 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   }, [canvasW, canvasH, palette.bg]);
 
   /**
-   * 手机端保存图片 - 多级降级策略
-   * 
-   * 兼容性优先级（从高到低）：
-   * 1. Web Share API + File（Chrome/Edge/Safari 原生分享面板）
-   * 2. 当前页面模态框 + 显式下载按钮（避免弹窗拦截）
+   * 手机端保存图片 - 新窗口自动下载（最兼容模式）
+   *
+   * 统一策略：在用户点击「保存图片」的同步上下文里 window.open 一个新窗口，
+   * 写入自包含 HTML（内嵌 data URL 图片 + 下载按钮 + 自动点击脚本）。
+   *
+   * 兼容性要点：
+   * - 同步用户手势内调用 window.open，不会被弹窗拦截
+   * - 用 data URL（而非 blob:）—— 夸克/QQ/UC 等浏览器对 blob: 下载拦截更严
+   * - 自动 click 下载链接；浏览器若拦截程序化下载，用户可手动点按钮或长按图片
+   * - 新窗口里同时显示图片，长按「保存到相册」是兜底
    */
-  const saveOnMobile = useCallback(async (blob: Blob, fileName: string) => {
-    // 方案 1: Web Share API
-    try {
-      const file = new File([blob], fileName, { type: 'image/png' });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: '塔罗占卜海报' });
-        setDownloadHint('已调起分享面板，选择「保存到相册」即可');
-        setTimeout(() => setDownloadHint(null), 5000);
-        return;
-      }
-    } catch (err: any) {
-      if (err?.name === 'AbortError') { setDownloadHint(null); return; }
-      console.warn('Web Share 不可用或失败', err);
+  const openMobileDownloadWindow = useCallback((dataUrl: string, fileName: string) => {
+    const win = window.open('', '_blank');
+    if (!win) {
+      // 弹窗被拦截 → 降级到当前页直接触发下载
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setDownloadHint('已开始下载，请查看下载文件夹；若未下载可长按图片保存');
+      setTimeout(() => setDownloadHint(null), 5000);
+      return;
     }
 
-    // 方案 2: 模态框 + 显式下载按钮（避免弹窗拦截）
-    // 不用 window.open —— 浏览器会拦截非直接点击触发的弹窗
-    setShowImageModal(true);
-    setDownloadHint('点击按钮下载或长按图片保存');
+    const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>保存塔罗海报</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #0e0828;
+    color: #f5f3ff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    gap: 14px;
+  }
+  h1 { font-size: 17px; color: #f4d03f; font-weight: 600; letter-spacing: 0.08em; }
+  .img-wrap { max-width: 100%; display: flex; justify-content: center; }
+  .img-wrap img {
+    max-width: 100%; max-height: 65vh; object-fit: contain; border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.45);
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 36px; border-radius: 999px;
+    background: linear-gradient(135deg, #f4d03f 0%, #d4af37 100%);
+    color: #0a0824; text-decoration: none; font-weight: 600;
+    font-size: 15px; letter-spacing: 0.1em; border: 1px solid #d4af37; cursor: pointer;
+  }
+  .hint { font-size: 12px; color: #c4b8d8; text-align: center; line-height: 1.6; }
+</style>
+</head>
+<body>
+  <h1>✦ 塔罗占卜海报</h1>
+  <div class="img-wrap"><img src="${dataUrl}" alt="塔罗占卜海报" /></div>
+  <a id="dl" class="btn" href="${dataUrl}" download="${fileName}">⬇ 下载到手机</a>
+  <p class="hint">若未自动下载，请点击上方按钮<br/>或长按图片「保存到相册」</p>
+  <script>
+    (function () {
+      var btn = document.getElementById('dl');
+      // 略微延迟，等图片渲染稳定后再触发下载
+      setTimeout(function () { try { btn.click(); } catch (e) {} }, 400);
+    })();
+  </script>
+</body>
+</html>`;
+
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    setDownloadHint('已在新窗口打开，请按提示保存');
     setTimeout(() => setDownloadHint(null), 5000);
   }, []);
 
@@ -278,11 +334,8 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
     if (isTouchDevice) {
-      // 手机端：直接弹出模态框，提供下载按钮
-      // 不用 window.open —— 浏览器会拦截非首次的弹窗
-      setShowImageModal(true);
-      setDownloadHint('点击按钮下载或长按图片保存');
-      setTimeout(() => setDownloadHint(null), 5000);
+      // 手机端：新窗口打开 + 自动下载（最兼容模式，所有浏览器统一）
+      openMobileDownloadWindow(dataUrl, fileName);
     } else {
       // === 电脑端：优先用 File System Access API 弹出「另存为」对话框 ===
       try {
@@ -321,7 +374,7 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         setTimeout(() => setDownloadHint(null), 4000);
       }
     }
-  }, [imageUrl, saveOnMobile]);
+  }, [imageUrl, openMobileDownloadWindow]);
 
   return (
     <>
@@ -445,53 +498,6 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* 手机端图片保存模态框：用 Blob URL 显示，提供下载按钮 + 长按两种保存方式 */}
-      {showImageModal && imageUrl && (
-        <div
-          className="fixed inset-0 z-[60] flex flex-col items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(5, 3, 20, 0.95)' }}
-          onClick={() => setShowImageModal(false)}
-        >
-          <button
-            onClick={() => setShowImageModal(false)}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: 'rgba(30, 18, 64, 0.8)', border: `1px solid ${DARK.border}`, color: DARK.textSoft }}
-            aria-label="关闭"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
-          <div
-            className="flex flex-col items-center gap-4 max-w-full max-h-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={imageUrl}
-              alt="塔罗占卜海报"
-              className="max-w-full max-h-[68vh] object-contain rounded-lg"
-              style={{ touchAction: 'manipulation' }}
-            />
-            {/* 显式下载按钮：用 data URL —— 夸克可能拦截 blob: 下载 */}
-            <a
-              href={dataUrlRef.current || imageUrl}
-              download={`塔罗占卜_${new Date().toISOString().slice(0, 10)}.png`}
-              className="py-3 px-8 rounded-full font-title text-sm tracking-widest transition-all flex items-center gap-2 active:scale-95"
-              style={{
-                background: 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)',
-                color: '#0a0824',
-                border: `1px solid ${DARK.border}`,
-                textDecoration: 'none',
-              }}
-            >
-              <Download className="w-4 h-4" />下载到手机
-            </a>
-            <p className="text-xs text-center px-4 leading-relaxed" style={{ color: DARK.textSoft }}>
-              点击按钮即可下载到手机
-            </p>
-          </div>
-        </div>
-      )}
     </>
   );
 }
