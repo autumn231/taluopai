@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Trash2, History as HistoryIcon, Eye, Calendar, RotateCcw, Search, X } from 'lucide-react';
@@ -26,12 +26,6 @@ export default function History() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [filter, setFilter] = useState<HistoryFilter>('all');
   const [search, setSearch] = useState('');
-
-  // 调试：组件挂载时打印记录
-  useEffect(() => {
-    console.log('[History] 组件挂载，当前记录数:', records.length);
-    console.log('[History] 记录:', records);
-  }, [records]);
 
   // 应用筛选 + 搜索后再按日期分组
   const grouped = useMemo(() => {
