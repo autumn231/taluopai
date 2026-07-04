@@ -315,13 +315,6 @@ export default function Result() {
             真正决定未来的，是你接下来的每一个选择。
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-            <button
-              onClick={() => setShareOpen(true)}
-              className="btn-mystic"
-            >
-              <ImageDown className="w-4 h-4 mr-2" />
-              生成分享海报
-            </button>
             <Link
               to="/reading"
               onClick={() => reset()}
