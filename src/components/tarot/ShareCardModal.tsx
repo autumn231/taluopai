@@ -235,18 +235,26 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
 
   const handleDownload = useCallback(async () => {
     const blob = blobRef.current;
-    if (!blob || !imageUrl) return;
+    const dataUrl = dataUrlRef.current;
+    if (!blob || !dataUrl || !imageUrl) return;
     const fileName = `塔罗占卜_${new Date().toISOString().slice(0, 10)}.png`;
 
     // 检测是否为移动端（触摸设备）
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
     if (isTouchDevice) {
-      // === 手机端：直接弹出模态框，提供下载按钮 ===
-      // 跳过 Web Share API —— 夸克浏览器的 Web Share 会丢失文件数据（显示 0B）
-      setShowImageModal(true);
-      setDownloadHint('点击「下载到手机」按钮即可保存');
-      setTimeout(() => setDownloadHint(null), 5000);
+      // === 手机端：直接用 data URL + <a download> 触发浏览器自动下载 ===
+      // 夸克浏览器不支持 Web Share（0B）、长按保存（看图模式禁用）、blob: 下载
+      // data URL 是唯一可靠的方案
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setDownloadHint('已开始下载');
+      setTimeout(() => setDownloadHint(null), 4000);
     } else {
       // === 电脑端：优先用 File System Access API 弹出「另存为」对话框 ===
       try {
@@ -281,8 +289,8 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         setTimeout(() => setDownloadHint(null), 4000);
       } catch (err) {
         console.error('下载失败', err);
-        setDownloadHint('下载失败，请长按预览图保存');
-        setTimeout(() => setDownloadHint(null), 6000);
+        setDownloadHint('下载失败');
+        setTimeout(() => setDownloadHint(null), 4000);
       }
     }
   }, [imageUrl]);
