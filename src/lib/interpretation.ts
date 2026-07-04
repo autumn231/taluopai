@@ -1,15 +1,14 @@
 /**
  * 塔罗解读引擎 —— 用本地规则模拟塔罗师的解读逻辑
  *
- * 提供 4 个核心能力（无需后端 AI）：
+ * 提供 3 个核心能力（无需后端 AI）：
  *  1. analyzeSynergy       牌与牌的能量关系（元素尊严、格局）
  *  2. generateDirectAnswer 对问题给出"倾向是 / 倾向否 / 中立"的直接回应
  *  3. generateActionPlan   个性化行动方案（行动 / 留意 / 时机）
- *  4. answerFollowUp       追问答复（按关键词匹配维度与最相关的牌）
  */
 
 import type { DrawnCard, TarotCard, Element, SpreadType } from '@/types';
-import type { QuestionTheme, CardDimension } from '@/data/questionThemes';
+import type { QuestionTheme } from '@/data/questionThemes';
 
 // === 元素映射 ===
 export const ELEMENT_CN: Record<Element, string> = {
@@ -365,184 +364,6 @@ export function generateActionPlan(cards: DrawnCard[], theme: QuestionTheme): Ac
   }
 
   return items.slice(0, 3);
-}
-
-// === 4. 追问答复 ===
-export interface FollowUpAnswer {
-  text: string;
-  sourceCard: string;
-  sourceDimension: string;
-  /** 是否为兜底回复（无法匹配时） */
-  fallback: boolean;
-}
-
-type DimKey = CardDimension | 'advice' | 'warning' | 'timing' | 'health' | 'relationship' | 'spiritual';
-
-const DIMENSION_KEYWORDS: { dim: DimKey; label: string; keywords: string[] }[] = [
-  { dim: 'love', label: '感情', keywords: ['感情', '爱', '恋爱', '喜欢', '他', '她', '对方', '心意', '另一半', '伴侣', '对象', '前任', '复合', '桃花', '暗恋', '心动', 'TA', '婚姻', '在一起', '分开', '关系', '相亲', '表白', '分手'] },
-  { dim: 'career', label: '事业', keywords: ['工作', '事业', '职业', '升职', '跳槽', '面试', '创业', '项目', '同事', '老板', '求职', '岗位', '团队', 'offer', '离职', '转行', '上班', '职场'] },
-  { dim: 'wealth', label: '财富', keywords: ['钱', '财', '收入', '工资', '投资', '理财', '股票', '基金', '副业', '生意', '经济', '存款', '财富', '加薪', '亏', '赚', '财运'] },
-  { dim: 'advice', label: '行动建议', keywords: ['怎么办', '该不该', '如何', '怎样', '建议', '做法', '行动', '该做', '选择', '决定', '要不要', '应该', '主动', '放弃', '坚持'] },
-  { dim: 'warning', label: '风险提示', keywords: ['风险', '注意', '危险', '陷阱', '问题', '不好', '坏', '坑', '隐患', '担忧', '怕', '担心', '避免', '雷'] },
-  { dim: 'timing', label: '时机', keywords: ['什么时候', '何时', '时间', '多久', '几月', '哪天', '时候', '近期', '时机', '转机', '多久能'] },
-  { dim: 'health', label: '身心', keywords: ['健康', '身体', '病', '失眠', '疲惫', '累', '状态', '精力', '情绪'] },
-  { dim: 'relationship', label: '人际', keywords: ['朋友', '家人', '父母', '亲子', '家庭', '社交', '人际', '同学', '室友', '长辈'] },
-  { dim: 'spiritual', label: '灵性', keywords: ['灵性', '内心', '成长', '意义', '觉醒', '冥想', '潜意识', '直觉', '灵魂', '修行'] },
-];
-
-function detectDimension(q: string): { dim: DimKey; label: string } {
-  const lower = q.toLowerCase();
-  for (const item of DIMENSION_KEYWORDS) {
-    if (item.keywords.some((k) => lower.includes(k.toLowerCase()))) {
-      return { dim: item.dim, label: item.label };
-    }
-  }
-  return { dim: 'general', label: '综合' };
-}
-
-/** 取某张牌某维度的文本（若不存在返回空串） */
-function getDimText(c: DrawnCard, dim: DimKey): string {
-  const r = readingOf(c);
-  switch (dim) {
-    case 'general':
-      return r.general;
-    case 'love':
-      return r.love;
-    case 'career':
-      return r.career;
-    case 'wealth':
-      return r.wealth;
-    case 'advice':
-      return r.advice || '';
-    case 'warning':
-      return r.warning || '';
-    case 'timing':
-      return r.timing || '';
-    case 'health':
-      return r.health || '';
-    case 'relationship':
-      return r.relationship || '';
-    case 'spiritual':
-      return r.spiritual || '';
-    default:
-      return '';
-  }
-}
-
-export function answerFollowUp(
-  userQuestion: string,
-  cards: DrawnCard[],
-  theme: QuestionTheme,
-): FollowUpAnswer {
-  const q = userQuestion.trim();
-  if (!q) {
-    return {
-      text: '请把你想追问的事说出来，我会从牌面里找对应的回应。',
-      sourceCard: '',
-      sourceDimension: '',
-      fallback: true,
-    };
-  }
-
-  const { dim, label } = detectDimension(q);
-
-  // 1. 若问题里提到某张牌的牌名，直接用那张牌
-  const named = cards.find((c) => q.includes(c.card.name.cn));
-  if (named) {
-    const text = getDimText(named, dim) || named.card.upright.general;
-    return {
-      text: buildAnswerText(q, dim, text, named, label),
-      sourceCard: nameOf(named),
-      sourceDimension: label,
-      fallback: false,
-    };
-  }
-
-  // 2. 在所有牌里挑该维度文本最长（信息量最大）的一张
-  let best: DrawnCard | null = null;
-  let bestLen = -1;
-  for (const c of cards) {
-    const t = getDimText(c, dim);
-    if (t && t.length > bestLen) {
-      bestLen = t.length;
-      best = c;
-    }
-  }
-
-  if (best && bestLen > 0) {
-    const text = getDimText(best, dim);
-    return {
-      text: buildAnswerText(q, dim, text, best, label),
-      sourceCard: nameOf(best),
-      sourceDimension: label,
-      fallback: false,
-    };
-  }
-
-  // 3. 兜底：用结果位牌的 general + 主题指引
-  const outcome = outcomeCard(cards, cards.length === 1 ? 'single' : cards.length === 3 ? 'three' : 'celtic');
-  const text = readingOf(outcome).general;
-  return {
-    text: `关于「${q}」，牌面没有给出特别细的分支，但从整体看：${text}。${theme.guidance}`,
-    sourceCard: nameOf(outcome),
-    sourceDimension: '综合',
-    fallback: true,
-  };
-}
-
-function buildAnswerText(
-  _q: string,
-  dim: DimKey,
-  text: string,
-  card: DrawnCard,
-  label: string,
-): string {
-  const prefix =
-    dim === 'advice'
-      ? `从「${card.card.name.cn}」来看，给你的行动建议是——`
-      : dim === 'warning'
-        ? `「${card.card.name.cn}」提醒你需要留意——`
-        : dim === 'timing'
-          ? `时机上，「${card.card.name.cn}」的提示是——`
-          : dim === 'general'
-            ? `从整体看，「${card.card.name.cn}」的回应是——`
-            : `关于${label}，「${card.card.name.cn}」的回应是——`;
-  return `${prefix}${text}`;
-}
-
-/** 生成追问建议（基于主题与牌面） */
-export function suggestFollowUps(theme: QuestionTheme, cards: DrawnCard[]): string[] {
-  const suggestions: string[] = [];
-  const outcome = outcomeCard(cards, cards.length === 1 ? 'single' : cards.length === 3 ? 'three' : 'celtic');
-
-  // 主题相关的追问
-  if (theme.key === 'love') {
-    suggestions.push('我接下来该主动还是顺其自然？');
-    suggestions.push('对方现在对我是什么感觉？');
-  } else if (theme.key === 'career') {
-    suggestions.push('我接下来最该避免什么？');
-    suggestions.push('这个机会值得我全力以赴吗？');
-  } else if (theme.key === 'wealth') {
-    suggestions.push('近期我该保守还是可以冒险？');
-    suggestions.push('钱的机会大概在什么时候出现？');
-  } else {
-    suggestions.push('我接下来最该做的一件事是什么？');
-    suggestions.push('有什么是我现在没看到的风险？');
-  }
-
-  // 通用追问
-  if (readingOf(outcome).timing) {
-    suggestions.push('事情大概什么时候会有转机？');
-  }
-  suggestions.push('给我一句最重要的叮嘱。');
-
-  // 去重并限 4 条
-  return Array.from(new Set(suggestions)).slice(0, 4);
-}
-
-// === 工具：供组件复用 ===
-export function getOutcomeCard(cards: DrawnCard[], spreadType: SpreadType): DrawnCard {
-  return outcomeCard(cards, spreadType);
 }
 
 export { ELEMENT_TRAIT, ELEMENT_COLOR };
