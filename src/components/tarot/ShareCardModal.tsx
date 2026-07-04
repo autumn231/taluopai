@@ -2,6 +2,7 @@ import {
   forwardRef,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -283,11 +284,15 @@ export default function ShareCardModal({
         await document.fonts.ready;
       }
       await new Promise((r) => setTimeout(r, 120));
+      // 用节点实际渲染尺寸，适配内容超出固定高度的情况
+      const rect = node.getBoundingClientRect();
+      const actualW = Math.round(rect.width);
+      const actualH = Math.round(rect.height);
       const url = await toPng(node, {
         pixelRatio: 2,
         cacheBust: true,
-        width: posterW,
-        height: posterH,
+        width: actualW,
+        height: actualH,
         backgroundColor: palette.bg0,
         style: { transform: 'none', margin: '0' },
       });
@@ -297,7 +302,7 @@ export default function ShareCardModal({
       console.error('生成图片失败', err);
       setStatus('error');
     }
-  }, [posterW, posterH, palette.bg0]);
+  }, [palette.bg0]);
 
   const handleDownload = useCallback(() => {
     if (!dataUrl) return;
@@ -375,28 +380,21 @@ export default function ShareCardModal({
             <div className="flex flex-col lg:flex-row gap-5 p-5">
               {/* 左侧：海报预览（实际被截图的节点） */}
               <div className="flex-shrink-0 mx-auto lg:mx-0 flex items-start justify-center">
-                <div
-                  className="origin-top-left overflow-hidden rounded-lg"
-                  style={{ width: previewW, height: previewW * (posterH / posterW) }}
+                <PosterPreview
+                  previewW={previewW}
+                  posterW={posterW}
+                  posterH={posterH}
+                  shareScale={shareScale}
                 >
-                  <div
-                    style={{
-                      width: posterW,
-                      height: posterH,
-                      transform: `scale(${shareScale})`,
-                      transformOrigin: 'top left',
-                    }}
-                  >
-                    <ShareCard
-                      ref={cardRef}
-                      {...data}
-                      palette={palette}
-                      orientation={orientation}
-                      width={posterW}
-                      height={posterH}
-                    />
-                  </div>
-                </div>
+                  <ShareCard
+                    ref={cardRef}
+                    {...data}
+                    palette={palette}
+                    orientation={orientation}
+                    width={posterW}
+                    height={posterH}
+                  />
+                </PosterPreview>
               </div>
 
               {/* 右侧：操作区 */}
@@ -633,6 +631,55 @@ function computeElementEnergy(cards: DrawnCard[]) {
 
 const SITE_DOMAIN = 'taluopai.tbit.xin';
 
+// === 海报预览容器（自适应内层实际高度） ===
+function PosterPreview({
+  previewW,
+  posterW,
+  posterH,
+  shareScale,
+  children,
+}: {
+  previewW: number;
+  posterW: number;
+  posterH: number;
+  shareScale: number;
+  children: React.ReactNode;
+}) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [actualH, setActualH] = useState(posterH);
+
+  useLayoutEffect(() => {
+    const node = wrapperRef.current;
+    if (!node) return;
+    const update = () => {
+      const h = node.getBoundingClientRect().height;
+      if (h > 0) setActualH(h);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, [posterH]);
+
+  return (
+    <div
+      className="origin-top-left overflow-hidden rounded-lg"
+      style={{ width: previewW, height: actualH * shareScale }}
+    >
+      <div
+        ref={wrapperRef}
+        style={{
+          width: posterW,
+          transform: `scale(${shareScale})`,
+          transformOrigin: 'top left',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 // === 海报本体 ===
 interface ShareCardProps extends ShareCardData {
   palette: Palette;
@@ -654,7 +701,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
 
   const cardStyle: CSSProperties = {
     width,
-    height,
+    minHeight: height,
     background: `linear-gradient(160deg, ${palette.bg0} 0%, ${palette.bg1} 40%, ${palette.bg2} 100%)`,
     fontFamily: "'Cormorant Garamond', 'Noto Serif SC', serif",
     color: palette.textBase,
@@ -1126,12 +1173,25 @@ function LandscapeLayout({
 
         {/* 底部箴言 + CTA —— L3 */}
         <div style={{ marginTop: 14, textAlign: 'right' }}>
-          <p style={{ fontSize: typo.epilogue, color: palette.textMute, lineHeight: 1.55, fontStyle: 'italic', marginBottom: 5 }}>
+          <p style={{ fontSize: typo.epilogue, color: palette.textMute, lineHeight: 1.55, fontStyle: 'italic', marginBottom: 7 }}>
             塔罗不预测命运，而是照亮当下。
           </p>
-          <p style={{ fontSize: typo.ctaHint, color: palette.textMute, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}>
+          <p style={{ fontSize: typo.ctaHint, color: palette.textMute, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em', marginBottom: 8 }}>
             扫码或访问 · 开启你的专属占卜
           </p>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 9, padding: '7px 16px', borderRadius: 999,
+            border: `1px solid ${palette.border}`, backgroundColor: 'rgba(212,175,55,0.06)',
+          }}>
+            <span style={{ fontSize: typo.domain, color: palette.gold }}>✧</span>
+            <span style={{
+              fontSize: typo.domain, color: palette.lightgold, fontFamily: "'Inter', sans-serif",
+              fontWeight: 600, letterSpacing: '0.08em',
+            }}>
+              {SITE_DOMAIN}
+            </span>
+            <span style={{ fontSize: typo.domain, color: palette.gold }}>✧</span>
+          </div>
         </div>
       </div>
     </div>
