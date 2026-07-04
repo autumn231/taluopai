@@ -136,6 +136,7 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   const [posterStyle, setPosterStyle] = useState<PosterStyle>('dark');
   const [orientation, setOrientation] = useState<PosterOrientation>('portrait');
   const [downloadHint, setDownloadHint] = useState<string | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   const palette = posterStyle === 'dark' ? DARK : LIGHT;
   const isPortrait = orientation === 'portrait';
@@ -146,7 +147,7 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   const previewH = canvasH * scale;
 
   useEffect(() => {
-    if (open) { setStatus('idle'); setDataUrl(null); setDownloadHint(null); }
+    if (open) { setStatus('idle'); setDataUrl(null); setDownloadHint(null); setShowImageModal(false); }
   }, [open]);
 
   useEffect(() => {
@@ -210,26 +211,9 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         if (err?.name === 'AbortError') { setDownloadHint(null); return; }
         console.error('Web Share 失败', err);
       }
-      // 兜底：用新窗口 document.write 直接渲染图片（夸克/UC 等浏览器 blob: 和 data: URL 都会被拦截）
-      const newWin = window.open('', '_blank');
-      if (newWin) {
-        newWin.document.write(`
-          <!DOCTYPE html>
-          <html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-          <title>塔罗占卜海报</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: sans-serif; }
-            img { max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px; }
-            .tip { color: #d4af37; margin-top: 16px; font-size: 14px; text-align: center; padding: 0 16px; }
-          </style></head><body>
-          <img src="${dataUrl}" alt="塔罗占卜海报">
-          <p class="tip">长按图片 → 保存图片 / 存储图像</p>
-          </body></html>
-        `);
-        newWin.document.close();
-      }
-      setDownloadHint('已打开图片，长按图片即可保存');
+      // 兜底：在当前页面显示图片模态框，用户长按保存（夸克/UC 等浏览器无法处理新窗口的 data: URL）
+      setShowImageModal(true);
+      setDownloadHint('长按图片即可保存');
       setTimeout(() => setDownloadHint(null), 6000);
     } else {
       // === 电脑端：优先用 File System Access API 弹出「另存为」对话框 ===
@@ -287,126 +271,161 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   }, [dataUrl]);
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          transition={{ duration: 0.25 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(5, 3, 20, 0.85)', backdropFilter: 'blur(8px)' }}
-          onClick={onClose}
+    <>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(5, 3, 20, 0.85)', backdropFilter: 'blur(8px)' }}
+            onClick={onClose}
+          >
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full flex items-center justify-center hover:bg-mystic-gold/15"
+              style={{ backgroundColor: 'rgba(30, 18, 64, 0.6)', border: `1px solid ${DARK.border}`, color: DARK.textSoft }}
+              aria-label="关闭"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <motion.div
+              initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl"
+              style={{ backgroundColor: DARK.bg, border: `1px solid ${DARK.border}` }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2 px-5 py-3.5 sticky top-0 z-10" style={{ borderBottom: `1px solid ${DARK.borderSoft}`, backgroundColor: DARK.bg }}>
+                <ImageDown className="w-4 h-4" style={{ color: DARK.lightgold }} />
+                <span className="font-title text-sm tracking-widest" style={{ color: DARK.lightgold }}>生成分享海报</span>
+              </div>
+
+              <div className="flex flex-col lg:flex-row gap-5 p-5">
+                <div className="flex-shrink-0 mx-auto lg:mx-0">
+                  <PosterPreview previewW={previewW} previewH={previewH} scale={scale}>
+                    <ShareCard
+                      ref={cardRef}
+                      {...data}
+                      palette={palette}
+                      orientation={orientation}
+                      width={canvasW}
+                      height={canvasH}
+                    />
+                  </PosterPreview>
+                </div>
+
+                <div className="flex-1 flex flex-col gap-4 min-w-0">
+                  <div>
+                    <h3 className="font-display text-xl mb-1.5" style={{ color: DARK.lightgold }}>一键生成分享海报</h3>
+                    <p className="text-sm leading-relaxed" style={{ color: DARK.textSoft }}>
+                      选择样式与方向，将本次占卜凝练为精美图片。
+                    </p>
+                  </div>
+
+                  <OptionGroup label="海报样式">
+                    <OptionButton active={posterStyle === 'dark'} onClick={() => setPosterStyle('dark')} icon={<Moon className="w-3.5 h-3.5" />} label="黑夜" />
+                    <OptionButton active={posterStyle === 'light'} onClick={() => setPosterStyle('light')} icon={<Sun className="w-3.5 h-3.5" />} label="白天" />
+                  </OptionGroup>
+
+                  <OptionGroup label="海报方向">
+                    <OptionButton active={orientation === 'portrait'} onClick={() => setOrientation('portrait')} icon={<Smartphone className="w-3.5 h-3.5" />} label="竖屏" />
+                    <OptionButton active={orientation === 'landscape'} onClick={() => setOrientation('landscape')} icon={<Monitor className="w-3.5 h-3.5" />} label="横屏" />
+                  </OptionGroup>
+
+                  {status === 'done' && dataUrl && (
+                    <div className="rounded-xl p-3 flex items-center gap-2.5" style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.35)' }}>
+                      <Check className="w-4 h-4 shrink-0" style={{ color: DARK.emerald }} />
+                      <span className="text-sm" style={{ color: DARK.emerald }}>图片已生成，点击下方按钮保存</span>
+                    </div>
+                  )}
+                  {status === 'error' && (
+                    <div className="rounded-xl p-3 text-sm" style={{ backgroundColor: 'rgba(251, 113, 133, 0.1)', border: '1px solid rgba(251, 113, 133, 0.35)', color: DARK.rose }}>
+                      生成失败，请重试。
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-2.5">
+                    {status !== 'done' && (
+                      <button
+                        onClick={handleGenerate}
+                        disabled={status === 'generating'}
+                        className="w-full py-3 rounded-full font-title text-sm tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                        style={{
+                          background: status === 'generating' ? DARK.panel : 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)',
+                          color: status === 'generating' ? DARK.textSoft : '#0a0824',
+                          border: `1px solid ${DARK.border}`,
+                          cursor: status === 'generating' ? 'wait' : 'pointer',
+                        }}
+                      >
+                        {status === 'generating' ? <><Loader2 className="w-4 h-4 animate-spin" />正在生成…</> : <><ImageDown className="w-4 h-4" />生成海报</>}
+                      </button>
+                    )}
+                    {status === 'done' && (
+                      <>
+                        <button
+                          onClick={handleDownload}
+                          className="w-full py-3 rounded-full font-title text-sm tracking-widest transition-all flex items-center justify-center gap-2 hover:brightness-110"
+                          style={{ background: 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)', color: '#0a0824', border: `1px solid ${DARK.border}`, cursor: 'pointer' }}
+                        >
+                          <Download className="w-4 h-4" />保存图片
+                        </button>
+                        {downloadHint && (
+                          <div className="rounded-lg p-2.5 text-xs leading-relaxed text-center" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', border: `1px solid ${DARK.borderSoft}`, color: DARK.lightgold }}>
+                            {downloadHint}
+                          </div>
+                        )}
+                        <button
+                          onClick={() => { setDataUrl(null); setStatus('idle'); setDownloadHint(null); }}
+                          className="w-full py-2.5 rounded-full font-title text-xs tracking-widest transition-all hover:bg-mystic-gold/10"
+                          style={{ backgroundColor: 'transparent', color: DARK.textSoft, border: `1px solid ${DARK.borderSoft}`, cursor: 'pointer' }}
+                        >
+                          重新生成
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 手机端图片保存模态框：在当前页面显示图片，长按保存 */}
+      {showImageModal && dataUrl && (
+        <div
+          className="fixed inset-0 z-[60] flex flex-col items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(5, 3, 20, 0.95)' }}
+          onClick={() => setShowImageModal(false)}
         >
           <button
-            onClick={onClose}
-            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full flex items-center justify-center hover:bg-mystic-gold/15"
-            style={{ backgroundColor: 'rgba(30, 18, 64, 0.6)', border: `1px solid ${DARK.border}`, color: DARK.textSoft }}
+            onClick={() => setShowImageModal(false)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: 'rgba(30, 18, 64, 0.8)', border: `1px solid ${DARK.border}`, color: DARK.textSoft }}
             aria-label="关闭"
           >
             <X className="w-5 h-5" />
           </button>
 
-          <motion.div
-            initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl"
-            style={{ backgroundColor: DARK.bg, border: `1px solid ${DARK.border}` }}
+          <div
+            className="flex flex-col items-center gap-4 max-w-full max-h-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-2 px-5 py-3.5 sticky top-0 z-10" style={{ borderBottom: `1px solid ${DARK.borderSoft}`, backgroundColor: DARK.bg }}>
-              <ImageDown className="w-4 h-4" style={{ color: DARK.lightgold }} />
-              <span className="font-title text-sm tracking-widest" style={{ color: DARK.lightgold }}>生成分享海报</span>
-            </div>
-
-            <div className="flex flex-col lg:flex-row gap-5 p-5">
-              <div className="flex-shrink-0 mx-auto lg:mx-0">
-                <PosterPreview previewW={previewW} previewH={previewH} scale={scale}>
-                  <ShareCard
-                    ref={cardRef}
-                    {...data}
-                    palette={palette}
-                    orientation={orientation}
-                    width={canvasW}
-                    height={canvasH}
-                  />
-                </PosterPreview>
-              </div>
-
-              <div className="flex-1 flex flex-col gap-4 min-w-0">
-                <div>
-                  <h3 className="font-display text-xl mb-1.5" style={{ color: DARK.lightgold }}>一键生成分享海报</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: DARK.textSoft }}>
-                    选择样式与方向，将本次占卜凝练为精美图片。
-                  </p>
-                </div>
-
-                <OptionGroup label="海报样式">
-                  <OptionButton active={posterStyle === 'dark'} onClick={() => setPosterStyle('dark')} icon={<Moon className="w-3.5 h-3.5" />} label="黑夜" />
-                  <OptionButton active={posterStyle === 'light'} onClick={() => setPosterStyle('light')} icon={<Sun className="w-3.5 h-3.5" />} label="白天" />
-                </OptionGroup>
-
-                <OptionGroup label="海报方向">
-                  <OptionButton active={orientation === 'portrait'} onClick={() => setOrientation('portrait')} icon={<Smartphone className="w-3.5 h-3.5" />} label="竖屏" />
-                  <OptionButton active={orientation === 'landscape'} onClick={() => setOrientation('landscape')} icon={<Monitor className="w-3.5 h-3.5" />} label="横屏" />
-                </OptionGroup>
-
-                {status === 'done' && dataUrl && (
-                  <div className="rounded-xl p-3 flex items-center gap-2.5" style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.35)' }}>
-                    <Check className="w-4 h-4 shrink-0" style={{ color: DARK.emerald }} />
-                    <span className="text-sm" style={{ color: DARK.emerald }}>图片已生成，点击下方按钮保存</span>
-                  </div>
-                )}
-                {status === 'error' && (
-                  <div className="rounded-xl p-3 text-sm" style={{ backgroundColor: 'rgba(251, 113, 133, 0.1)', border: '1px solid rgba(251, 113, 133, 0.35)', color: DARK.rose }}>
-                    生成失败，请重试。
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-2.5">
-                  {status !== 'done' && (
-                    <button
-                      onClick={handleGenerate}
-                      disabled={status === 'generating'}
-                      className="w-full py-3 rounded-full font-title text-sm tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-                      style={{
-                        background: status === 'generating' ? DARK.panel : 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)',
-                        color: status === 'generating' ? DARK.textSoft : '#0a0824',
-                        border: `1px solid ${DARK.border}`,
-                        cursor: status === 'generating' ? 'wait' : 'pointer',
-                      }}
-                    >
-                      {status === 'generating' ? <><Loader2 className="w-4 h-4 animate-spin" />正在生成…</> : <><ImageDown className="w-4 h-4" />生成海报</>}
-                    </button>
-                  )}
-                  {status === 'done' && (
-                    <>
-                      <button
-                        onClick={handleDownload}
-                        className="w-full py-3 rounded-full font-title text-sm tracking-widest transition-all flex items-center justify-center gap-2 hover:brightness-110"
-                        style={{ background: 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)', color: '#0a0824', border: `1px solid ${DARK.border}`, cursor: 'pointer' }}
-                      >
-                        <Download className="w-4 h-4" />保存图片
-                      </button>
-                      {downloadHint && (
-                        <div className="rounded-lg p-2.5 text-xs leading-relaxed text-center" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', border: `1px solid ${DARK.borderSoft}`, color: DARK.lightgold }}>
-                          {downloadHint}
-                        </div>
-                      )}
-                      <button
-                        onClick={() => { setDataUrl(null); setStatus('idle'); setDownloadHint(null); }}
-                        className="w-full py-2.5 rounded-full font-title text-xs tracking-widest transition-all hover:bg-mystic-gold/10"
-                        style={{ backgroundColor: 'transparent', color: DARK.textSoft, border: `1px solid ${DARK.borderSoft}`, cursor: 'pointer' }}
-                      >
-                        重新生成
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
+            <img
+              src={dataUrl}
+              alt="塔罗占卜海报"
+              className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              style={{ touchAction: 'manipulation' }}
+            />
+            <p className="text-sm text-center px-4" style={{ color: DARK.lightgold }}>
+              长按图片 → 保存图片 / 存储图像
+            </p>
+          </div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }
 
