@@ -238,15 +238,16 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   }, [canvasW, canvasH, palette.bg]);
 
   /**
-   * 手机端保存图片 - 新窗口自动下载（最兼容模式）
+   * 手机端保存图片 - 新窗口手动下载（最兼容模式）
    *
    * 统一策略：在用户点击「保存图片」的同步上下文里 window.open 一个新窗口，
-   * 写入自包含 HTML（内嵌 data URL 图片 + 下载按钮 + 自动点击脚本）。
+   * 写入自包含 HTML（内嵌 data URL 图片 + 下载按钮 + 提示语）。
+   * 用户在新窗口点击按钮才触发下载，不自动下载。
    *
    * 兼容性要点：
    * - 同步用户手势内调用 window.open，不会被弹窗拦截
    * - 用 data URL（而非 blob:）—— 夸克/QQ/UC 等浏览器对 blob: 下载拦截更严
-   * - 自动 click 下载链接；浏览器若拦截程序化下载，用户可手动点按钮或长按图片
+   * - 用户手动点击下载按钮，触发最自然的下载流程
    * - 新窗口里同时显示图片，长按「保存到相册」是兜底
    */
   const openMobileDownloadWindow = useCallback((dataUrl: string, fileName: string) => {
@@ -305,22 +306,15 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
 <body>
   <h1>✦ 塔罗占卜海报</h1>
   <div class="img-wrap"><img src="${dataUrl}" alt="塔罗占卜海报" /></div>
-  <a id="dl" class="btn" href="${dataUrl}" download="${fileName}">⬇ 下载到手机</a>
-  <p class="hint">若未自动下载，请点击上方按钮<br/>或长按图片「保存到相册」</p>
-  <script>
-    (function () {
-      var btn = document.getElementById('dl');
-      // 略微延迟，等图片渲染稳定后再触发下载
-      setTimeout(function () { try { btn.click(); } catch (e) {} }, 400);
-    })();
-  </script>
+  <a class="btn" href="${dataUrl}" download="${fileName}">⬇ 点击下载到手机</a>
+  <p class="hint">请点击上方按钮下载<br/>也可长按图片「保存到相册」<br/>如果无法下载，请更换浏览器</p>
 </body>
 </html>`;
 
     win.document.open();
     win.document.write(html);
     win.document.close();
-    setDownloadHint('已在新窗口打开，请按提示保存');
+    setDownloadHint('已在新窗口打开，请点击按钮下载');
     setTimeout(() => setDownloadHint(null), 5000);
   }, []);
 
