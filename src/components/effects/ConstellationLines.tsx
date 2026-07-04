@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 interface Point {
   x: number;
@@ -16,6 +17,7 @@ interface ConstellationLinesProps {
 
 /**
  * 星座连线 - 在已翻开的牌之间绘制发光的线
+ * 移动端降级：关闭 offsetPath 动画和 SVG filter（这两项在移动端极卡）
  */
 export default function ConstellationLines({
   points,
@@ -26,6 +28,7 @@ export default function ConstellationLines({
 }: ConstellationLinesProps) {
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!containerEl) return;
@@ -40,6 +43,59 @@ export default function ConstellationLines({
 
   if (points.length < 2) return null;
 
+  // 移动端：简化连线，关闭 offsetPath 和 SVG filter
+  if (isMobile) {
+    return (
+      <div
+        ref={setContainerEl}
+        className={`absolute inset-0 pointer-events-none ${className}`}
+      >
+        <svg
+          className="absolute inset-0 w-full h-full"
+          viewBox={`0 0 ${size.w || 100} ${size.h || 100}`}
+          preserveAspectRatio="none"
+        >
+          {points.map((p, i) => {
+            if (i === points.length - 1) return null;
+            const next = points[i + 1];
+            return (
+              <motion.line
+                key={i}
+                x1={p.x}
+                y1={p.y}
+                x2={next.x}
+                y2={next.y}
+                stroke={color}
+                strokeWidth="1"
+                strokeLinecap="round"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: [0, 0.6, 0.3] }}
+                transition={{
+                  pathLength: { duration, delay: i * drawDelay, ease: 'easeInOut' },
+                  opacity: { duration: 0.4, delay: i * drawDelay },
+                }}
+              />
+            );
+          })}
+          {/* 简单节点 */}
+          {points.map((p, i) => (
+            <motion.circle
+              key={`node-${i}`}
+              cx={p.x}
+              cy={p.y}
+              r="2"
+              fill={color}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: [0, 1.2, 1], opacity: [0, 0.8, 0.5] }}
+              transition={{ duration: 0.4, delay: i * drawDelay }}
+            />
+          ))}
+        </svg>
+      </div>
+    );
+  }
+
+  // 桌面端：完整版（带 gradient、filter、offsetPath 流动光点）
   return (
     <div
       ref={setContainerEl}
