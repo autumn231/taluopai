@@ -198,7 +198,10 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
     const link = document.createElement('a');
     link.download = `塔罗占卜_${new Date().toISOString().slice(0, 10)}.png`;
     link.href = dataUrl;
+    link.style.display = 'none';
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   }, [dataUrl]);
 
   return (
