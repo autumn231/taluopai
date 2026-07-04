@@ -33,7 +33,6 @@ const safeLocalStorage = {
   },
   setItem: (name: string, value: { state?: PersistedHistoryState }) => {
     const records = value.state?.records ?? [];
-    console.log('[HistoryStore] persist setItem, records count:', records.length);
 
     // 软上限预裁剪：避免单次写入过大
     let targetCount = records.length;
@@ -79,14 +78,10 @@ export const useHistoryStore = create<HistoryState>()(
     (set) => ({
       records: [],
       maxRecords: DEFAULT_MAX_RECORDS,
-      addRecord: (record) => {
-        console.log('[HistoryStore] addRecord 被调用', { id: record.id, question: record.question, cardCount: record.cards.length });
-        set((state) => {
-          const newRecords = [record, ...state.records].slice(0, Math.max(MIN_RECORDS, state.maxRecords));
-          console.log('[HistoryStore] 更新后记录数:', newRecords.length);
-          return { records: newRecords };
-        });
-      },
+      addRecord: (record) =>
+        set((state) => ({
+          records: [record, ...state.records].slice(0, Math.max(MIN_RECORDS, state.maxRecords)),
+        })),
       removeRecord: (id) =>
         set((state) => ({
           records: state.records.filter((r) => r.id !== id),

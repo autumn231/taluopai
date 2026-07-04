@@ -59,21 +59,17 @@ export default function Reading() {
   }, [stage]);
 
   useEffect(() => {
-    console.log('[Reading] useEffect triggered', { stage, drawnCardsCount: drawnCards.length, savedRef: savedRef.current });
     if (stage === 'done' && drawnCards.length > 0 && !savedRef.current) {
-      console.log('[Reading] Saving history record');
       savedRef.current = true;
-      const record = {
+      // 保存到历史
+      addRecord({
         id: generateId(),
         timestamp: Date.now(),
         spreadType: spreadType,
         threeMode,
         question,
         cards: drawnCards,
-      };
-      console.log('[Reading] Record to save:', record);
-      addRecord(record);
-      console.log('[Reading] addRecord called');
+      });
       // 先显示传送门 1.2s，再跳转
       const portalTimer = setTimeout(() => setPortalActive(true), 400);
       const navigateTimer = setTimeout(() => navigate('/result', { replace: true }), 1700);
