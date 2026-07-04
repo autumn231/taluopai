@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RotateCw, History, Sparkles, Heart, Briefcase, Coins, Users, Sprout, Compass, ChevronLeft, ChevronRight, EyeOff, BookMarked, Copy, Check, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, RotateCw, History, Sparkles, Heart, Briefcase, Coins, Users, Sprout, Compass, ChevronLeft, ChevronRight, EyeOff, BookMarked, Copy, Check, ImageDown, type LucideIcon } from 'lucide-react';
 import PageLayout from '@/components/layout/PageLayout';
 import TarotCard from '@/components/tarot/TarotCard';
 import EnergyVortex from '@/components/effects/EnergyVortex';
@@ -19,6 +19,7 @@ import DirectAnswer from '@/components/tarot/DirectAnswer';
 import CardSynergy from '@/components/tarot/CardSynergy';
 import ActionPlan from '@/components/tarot/ActionPlan';
 import FollowUpChat from '@/components/tarot/FollowUpChat';
+import ShareCardModal from '@/components/tarot/ShareCardModal';
 import type { DrawnCard, SpreadType, TarotCard as TarotCardType, SpreadPosition } from '@/types';
 
 export default function Result() {
@@ -26,6 +27,7 @@ export default function Result() {
   const { drawnCards, spreadType, question, threeMode } = useReadingUI();
   const { reset } = useReadingActions();
   const [currentCardIdx, setCurrentCardIdx] = useState(0);
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     if (drawnCards.length === 0 || !spreadType) {
@@ -304,10 +306,17 @@ export default function Result() {
             真正决定未来的，是你接下来的每一个选择。
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <button
+              onClick={() => setShareOpen(true)}
+              className="btn-mystic"
+            >
+              <ImageDown className="w-4 h-4 mr-2" />
+              生成分析图片
+            </button>
             <Link
               to="/reading"
               onClick={() => reset()}
-              className="btn-mystic"
+              className="btn-ghost"
             >
               <RotateCw className="w-4 h-4 mr-2" />
               重新占卜
@@ -319,6 +328,20 @@ export default function Result() {
           </div>
         </motion.section>
       </div>
+
+      {/* 一键生成结果分析图片 */}
+      <ShareCardModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        question={question}
+        drawnCards={drawnCards}
+        positions={positions}
+        spreadName={spread.name + (modeLabel ? ` · ${modeLabel.name}` : '')}
+        theme={theme}
+        directAnswer={directAnswer!}
+        actionPlan={actionPlan}
+        closingText={theme.closing}
+      />
     </PageLayout>
   );
 }
