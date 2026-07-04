@@ -29,6 +29,7 @@ export default function FollowUpChat({
   const [thinking, setThinking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const replyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const suggestions = useMemo(
     () => suggestFollowUps(theme, cards),
@@ -53,6 +54,16 @@ export default function FollowUpChat({
     }
   }, [messages, thinking]);
 
+  // 卸载时清理定时器，防止在已卸载组件上 setState
+  useEffect(() => {
+    return () => {
+      if (replyTimerRef.current) {
+        clearTimeout(replyTimerRef.current);
+        replyTimerRef.current = null;
+      }
+    };
+  }, []);
+
   const ask = (text: string) => {
     const q = text.trim();
     if (!q || thinking) return;
@@ -64,7 +75,7 @@ export default function FollowUpChat({
 
     // 模拟塔罗师"思考"——给仪式感，也给计算缓冲
     const delay = 700 + Math.min(q.length * 30, 900);
-    window.setTimeout(() => {
+    replyTimerRef.current = setTimeout(() => {
       const ans = answerFollowUp(q, cards, theme);
       setMessages((prev) => [
         ...prev,
@@ -78,6 +89,7 @@ export default function FollowUpChat({
         },
       ]);
       setThinking(false);
+      replyTimerRef.current = null;
     }, delay);
   };
 

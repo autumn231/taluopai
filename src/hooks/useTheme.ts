@@ -2,11 +2,17 @@ import { useState, useEffect } from 'react';
 
 type Theme = 'light' | 'dark';
 
+const VALID_THEMES: Theme[] = ['light', 'dark'];
+
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    if (savedTheme) {
-      return savedTheme;
+    try {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme && VALID_THEMES.includes(savedTheme as Theme)) {
+        return savedTheme as Theme;
+      }
+    } catch {
+      // localStorage 不可用时静默回退
     }
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
@@ -14,7 +20,11 @@ export function useTheme() {
   useEffect(() => {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(theme);
-    localStorage.setItem('theme', theme);
+    try {
+      localStorage.setItem('theme', theme);
+    } catch {
+      // 隐私模式或配额满时静默失败
+    }
   }, [theme]);
 
   const toggleTheme = () => {
@@ -26,4 +36,4 @@ export function useTheme() {
     toggleTheme,
     isDark: theme === 'dark'
   };
-} 
+}

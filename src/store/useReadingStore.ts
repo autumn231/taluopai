@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { DrawnCard, SpreadType, TarotCard } from '@/types';
-import { drawCards, shouldReverse, shouldReversedSeeded, drawCardsByQuestion } from '@/utils/shuffle';
+import type { DrawnCard, SpreadType } from '@/types';
+import { shouldReverse, shouldReversedSeeded, drawCardsByQuestion } from '@/utils/shuffle';
 import { TAROT_CARDS } from '@/data/tarotCards';
 import { getSpread } from '@/data/spreads';
 import type { ThreeMode } from '@/data/questionThemes';
@@ -9,13 +9,12 @@ import type { ThreeMode } from '@/data/questionThemes';
 export type Stage = 'idle' | 'shuffle' | 'select' | 'reveal' | 'done';
 
 interface ReadingState {
-  spreadType: SpreadType | null;
+  spreadType: SpreadType;
   /** 三张牌阵的子模式 */
   threeMode: ThreeMode;
   stage: Stage;
   drawnCards: DrawnCard[];
   question: string;
-  deck: TarotCard[]; // 当前已抽完的牌组，供洗牌动画使用
 
   // Actions
   setSpread: (type: SpreadType) => void;
@@ -24,7 +23,6 @@ interface ReadingState {
   startShuffle: () => void;
   startSelect: () => void;
   selectCards: (positions: number[]) => void; // positions 数组的长度应为 spreadType 对应数量
-  revealCard: (index: number) => void;
   revealAll: () => void;
   reset: () => void;
 }
@@ -37,17 +35,12 @@ export const useReadingStore = create<ReadingState>()(
       stage: 'idle',
       drawnCards: [],
       question: '',
-      deck: [],
 
       setSpread: (type) => {
-        const spread = getSpread(type);
-        // 预生成一份洗好的牌组
-        const shuffledDeck = drawCards(TAROT_CARDS, spread.cardCount);
         set({
           spreadType: type,
           stage: 'idle',
           drawnCards: [],
-          deck: shuffledDeck,
           question: '',
         });
       },
@@ -57,17 +50,13 @@ export const useReadingStore = create<ReadingState>()(
       setQuestion: (q) => set({ question: q }),
 
       startShuffle: () => {
-        const spread = getSpread(get().spreadType!);
-        // 预览用的洗牌（用真随机让用户看到牌面在动）
-        const shuffledDeck = drawCards(TAROT_CARDS, spread.cardCount);
-        set({ stage: 'shuffle', deck: shuffledDeck });
+        set({ stage: 'shuffle' });
       },
 
       startSelect: () => set({ stage: 'select' }),
 
       selectCards: (positions) => {
         const { spreadType, question, threeMode } = get();
-        if (!spreadType) return;
         const spread = getSpread(spreadType);
 
         // 用问题作为种子抽牌 - 同样的问题会得到同样的牌
@@ -87,11 +76,7 @@ export const useReadingStore = create<ReadingState>()(
             : shouldReverse(),
           position: positions[idx] ?? idx,
         }));
-        set({ stage: 'reveal', drawnCards: drawn, deck: newDeck });
-      },
-
-      revealCard: () => {
-        // 单张翻牌（顺序揭晓由 UI 控制）
+        set({ stage: 'reveal', drawnCards: drawn });
       },
 
       revealAll: () => set({ stage: 'done' }),
@@ -103,7 +88,6 @@ export const useReadingStore = create<ReadingState>()(
           stage: 'idle',
           drawnCards: [],
           question: '',
-          deck: [],
         }),
     }),
     {

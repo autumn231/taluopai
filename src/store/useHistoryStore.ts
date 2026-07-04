@@ -22,7 +22,14 @@ const MAX_STORAGE_BYTES = 4 * 1024 * 1024; // 4MB 软上限，避免撑满 local
 const safeLocalStorage = {
   getItem: (name: string) => {
     const raw = localStorage.getItem(name);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      console.warn('[HistoryStore] localStorage 数据损坏，已重置');
+      localStorage.removeItem(name);
+      return null;
+    }
   },
   setItem: (name: string, value: { state?: PersistedHistoryState }) => {
     const records = value.state?.records ?? [];

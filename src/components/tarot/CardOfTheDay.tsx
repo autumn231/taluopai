@@ -105,7 +105,25 @@ export default function CardOfTheDay() {
     persist(c, r, false);
   };
 
-  if (!card) return null;
+  if (!card) {
+    return (
+      <section className="relative px-4 sm:px-6 py-16 sm:py-24">
+        <div className="max-w-5xl mx-auto">
+          <div className="glass-panel-strong rounded-2xl p-6 sm:p-10 relative overflow-hidden animate-pulse">
+            <div className="flex flex-col md:flex-row items-center gap-6 sm:gap-10">
+              <div className="w-[200px] h-[320px] rounded-xl bg-mystic-gold/10 border border-mystic-gold/20" />
+              <div className="flex-1 space-y-3">
+                <div className="h-3 w-24 rounded bg-mystic-gold/15" />
+                <div className="h-8 w-40 rounded bg-mystic-gold/15" />
+                <div className="h-3 w-32 rounded bg-mystic-gold/10" />
+                <div className="h-20 w-full rounded bg-mystic-gold/8" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   const reading = reversed ? card.reversed : card.upright;
 

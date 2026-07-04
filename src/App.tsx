@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { MotionConfig } from 'framer-motion';
+import ErrorBoundary from '@/components/layout/ErrorBoundary';
 
 const Home = lazy(() => import('@/pages/Home'));
 const Reading = lazy(() => import('@/pages/Reading'));
@@ -21,19 +22,21 @@ function PageLoader() {
 
 export default function App() {
   return (
-    <MotionConfig reducedMotion="user">
-      <Router>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/reading" element={<Reading />} />
-            <Route path="/result" element={<Result />} />
-            <Route path="/tarot" element={<Tarot />} />
-            <Route path="/history" element={<History />} />
-            <Route path="*" element={<Home />} />
-          </Routes>
-        </Suspense>
-      </Router>
-    </MotionConfig>
+    <ErrorBoundary>
+      <MotionConfig reducedMotion="user">
+        <Router>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/reading" element={<Reading />} />
+              <Route path="/result" element={<Result />} />
+              <Route path="/tarot" element={<Tarot />} />
+              <Route path="/history" element={<History />} />
+              <Route path="*" element={<Home />} />
+            </Routes>
+          </Suspense>
+        </Router>
+      </MotionConfig>
+    </ErrorBoundary>
   );
 }
