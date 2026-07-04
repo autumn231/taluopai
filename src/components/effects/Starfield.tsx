@@ -65,6 +65,9 @@ export default function Starfield({
     const baseCount = isMobile ? 80 : 200;
     const starCount = Math.floor(baseCount * density);
 
+    let lastW = 0;
+    let lastH = 0;
+
     const resize = () => {
       const rect = container.getBoundingClientRect();
       dpr = window.devicePixelRatio || 1;
@@ -73,7 +76,12 @@ export default function Starfield({
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
       ctx.scale(dpr, dpr);
-      initStars(rect.width, rect.height);
+      // 仅在尺寸真正变化时才重新初始化星星，避免动画期间 resize 事件导致闪烁
+      if (rect.width !== lastW || rect.height !== lastH) {
+        lastW = rect.width;
+        lastH = rect.height;
+        initStars(rect.width, rect.height);
+      }
     };
 
     const initStars = (w: number, h: number) => {
