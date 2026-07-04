@@ -66,14 +66,14 @@ export default function Reading() {
       addRecord({
         id: generateId(),
         timestamp: Date.now(),
-        spreadType: spreadType!,
+        spreadType: spreadType,
         threeMode,
         question,
         cards: drawnCards,
       });
       // 先显示传送门 1.2s，再跳转
       const portalTimer = setTimeout(() => setPortalActive(true), 400);
-      const navigateTimer = setTimeout(() => navigate('/result'), 1700);
+      const navigateTimer = setTimeout(() => navigate('/result', { replace: true }), 1700);
       return () => {
         clearTimeout(portalTimer);
         clearTimeout(navigateTimer);

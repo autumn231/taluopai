@@ -20,7 +20,9 @@ const FILTERS: { key: HistoryFilter; label: string }[] = [
 ];
 
 export default function History() {
-  const { records, removeRecord, clear } = useHistoryStore();
+  const records = useHistoryStore((s) => s.records);
+  const removeRecord = useHistoryStore((s) => s.removeRecord);
+  const clear = useHistoryStore((s) => s.clear);
   const [confirmClear, setConfirmClear] = useState(false);
   const [filter, setFilter] = useState<HistoryFilter>('all');
   const [search, setSearch] = useState('');
@@ -351,7 +353,6 @@ function HistoryItem({
         <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-2">
           <Link
             to="/result"
-            state={{ record }}
             onClick={() => {
               // 恢复历史到 store
               useReadingStore.setState({

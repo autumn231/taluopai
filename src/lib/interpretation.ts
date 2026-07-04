@@ -218,6 +218,7 @@ export interface DirectAnswer {
 
 /** 取结果位牌：单张=0，三张=最后一张（果/未来），凯尔特=最终结果(9) */
 function outcomeCard(cards: DrawnCard[], spreadType: SpreadType): DrawnCard {
+  if (cards.length === 0) return cards[0]; // 防御：空数组返回 undefined 由调用方守卫
   if (spreadType === 'single') return cards[0];
   if (spreadType === 'three') return cards[cards.length - 1];
   return cards[Math.min(9, cards.length - 1)];
