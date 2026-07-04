@@ -223,10 +223,31 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
       setDownloadHint('已在新标签页打开，长按图片即可保存');
       setTimeout(() => setDownloadHint(null), 6000);
     } else {
-      // === 电脑端：Blob download → 浏览器保存对话框，用户自选位置 ===
+      // === 电脑端：优先用 File System Access API 弹出「另存为」对话框 ===
       try {
         const res = await fetch(dataUrl);
         const blob = await res.blob();
+
+        // Chrome/Edge 支持 showSaveFilePicker，弹出系统文件选择器
+        if ('showSaveFilePicker' in window) {
+          try {
+            const handle = await (window as any).showSaveFilePicker({
+              suggestedName: fileName,
+              types: [{ description: 'PNG 图片', accept: { 'image/png': ['.png'] } }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            setDownloadHint('已保存');
+            setTimeout(() => setDownloadHint(null), 3000);
+            return;
+          } catch (pickerErr: any) {
+            if (pickerErr?.name === 'AbortError') { setDownloadHint(null); return; }
+            // showSaveFilePicker 失败则走兜底
+          }
+        }
+
+        // 兜底：Blob download（Firefox/Safari 等不支持 showSaveFilePicker）
         const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = blobUrl;
@@ -240,8 +261,16 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
         setTimeout(() => setDownloadHint(null), 4000);
       } catch (err) {
         console.error('下载失败', err);
-        // 兜底
-        window.open(dataUrl, '_blank');
+        // 兜底：Blob URL 新标签页打开
+        try {
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        } catch {
+          window.open(dataUrl, '_blank');
+        }
         setDownloadHint('已在新标签页打开，右键图片可另存为');
         setTimeout(() => setDownloadHint(null), 6000);
       }
