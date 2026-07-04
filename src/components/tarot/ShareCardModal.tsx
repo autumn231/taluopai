@@ -262,14 +262,36 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
       console.warn('Web Share 不可用或失败', err);
     }
 
-    // 方案 2: 新窗口打开 data URL（最兼容的方案）
-    // 夸克/UC/微信等浏览器会直接显示图片，用户可通过浏览器菜单保存
-    // 比 document.write 更可靠，因为浏览器把 data URL 当作独立资源处理
+    // 方案 2: 新窗口打开 data URL
+    // 注意：夸克/UC 等浏览器无法处理 data URL，会显示 about:blank
     try {
       const newWin = window.open(dataUrl, '_blank');
       if (newWin) {
-        setDownloadHint('已在新窗口打开图片，请通过浏览器菜单保存');
-        setTimeout(() => setDownloadHint(null), 5000);
+        // 延迟检测新窗口是否成功加载
+        setTimeout(() => {
+          let isAboutBlank = false;
+          try {
+            // 尝试读取 location —— 如果跨域会抛异常
+            isAboutBlank = newWin.location.href === 'about:blank';
+          } catch (e) {
+            // 跨域异常说明窗口已打开且导航到了不同源（data URL 通常同域，但夸克可能特殊处理）
+            // 这种情况下假设成功打开了
+            setDownloadHint('已在新窗口打开图片，请通过浏览器菜单保存');
+            setTimeout(() => setDownloadHint(null), 5000);
+            return;
+          }
+
+          if (isAboutBlank) {
+            // 浏览器不支持 data URL，关闭空白页并显示模态框
+            try { newWin.close(); } catch {}
+            setShowImageModal(true);
+            setDownloadHint('长按图片可保存');
+            setTimeout(() => setDownloadHint(null), 5000);
+          } else {
+            setDownloadHint('已在新窗口打开图片，请通过浏览器菜单保存');
+            setTimeout(() => setDownloadHint(null), 5000);
+          }
+        }, 500);
         return;
       }
     } catch (err) {
