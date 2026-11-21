@@ -517,3 +517,10 @@
 /* Hide scrollbar in special containers */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* 页面切到后台时暂停全部 CSS 动画（App.tsx 按 visibilitychange 打类），省电省 GPU */
+.fx-paused *,
+.fx-paused *::before,
+.fx-paused *::after {
+  animation-play-state: paused !important;
+}

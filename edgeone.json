@@ -1,6 +1,1 @@
-{
-  "name": "mystic-tarot",
-  "buildCommand": "pnpm build",
-  "outputDirectory": "dist",
-  "nodeVersion": "20.18.0"
-}
+{"buildCommand":"pnpm build","name":"mystic-tarot","nodeVersion":"20.18.0","outputDirectory":"dist","rewrites":[{"destination":"/index.html","source":"/*"}]}

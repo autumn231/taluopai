@@ -23,7 +23,6 @@ interface ReadingState {
   startShuffle: () => void;
   startSelect: () => void;
   selectCards: (positions: number[]) => void; // positions 数组的长度应为 spreadType 对应数量
-  revealAll: () => void;
   reset: () => void;
 }
 
@@ -69,8 +68,6 @@ export const useReadingStore = create<ReadingState>()(
         }));
         set({ stage: 'done', drawnCards: drawn });
       },
-
-      revealAll: () => {},
 
       reset: () =>
         set({

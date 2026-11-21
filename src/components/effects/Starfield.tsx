@@ -56,7 +56,7 @@ export default function Starfield({
       life: number;
       maxLife: number;
     }> = [];
-    let dpr = window.devicePixelRatio || 1;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     // 检测是否为移动端，降低密度
     const isMobile = window.innerWidth < 768;
@@ -72,7 +72,7 @@ export default function Starfield({
 
     const resize = () => {
       const rect = container.getBoundingClientRect();
-      dpr = window.devicePixelRatio || 1;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
       canvas.style.width = `${rect.width}px`;
@@ -233,6 +233,11 @@ export default function Starfield({
     const startTime = performance.now();
 
     const animate = (t: number) => {
+      // 页面切到后台时跳过绘制，只保留帧调度，省电省 GPU
+      if (document.hidden) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
       const rect = container.getBoundingClientRect();
       const w = rect.width;
       const h = rect.height;

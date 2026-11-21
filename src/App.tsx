@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { MotionConfig } from 'framer-motion';
 import ErrorBoundary from '@/components/layout/ErrorBoundary';
 
@@ -21,6 +21,15 @@ function PageLoader() {
 }
 
 export default function App() {
+  // 页面切后台时给 CSS 动画打暂停类（canvas 特效在各自组件内同样处理）
+  useEffect(() => {
+    const onVisibility = () =>
+      document.documentElement.classList.toggle('fx-paused', document.hidden);
+    document.addEventListener('visibilitychange', onVisibility);
+    onVisibility();
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, []);
+
   return (
     <ErrorBoundary>
       <MotionConfig reducedMotion="user">
