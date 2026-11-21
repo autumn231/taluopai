@@ -34,6 +34,11 @@ export default function Result() {
     }
   }, [drawnCards, spreadType, navigate]);
 
+  // 进入结果页回到顶部（从抽牌页跳入时浏览器会保留滚动位置，初始视口曾落在页面中段）
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // 主题与解读引擎（hooks 须在早返回之前调用，故在此带守卫计算）
   const theme = useMemo(() => getQuestionTheme(question), [question]);
   const synergy = useMemo(
@@ -742,6 +747,20 @@ function CardInterpretation({
               </button>
             </div>
           </div>
+
+          {/* 宽屏右侧：位置含义（填充折叠态右半的留白，给概览补上下文） */}
+          {position && (
+            <div className="hidden lg:block w-60 shrink-0 self-stretch border-l border-mystic-gold/15 pl-5">
+              <div className="text-[10px] font-title tracking-[0.25em] text-mystic-gold/60 mb-1.5">
+                这个位置
+              </div>
+              <div className="font-title text-sm text-mystic-lightgold mb-1.5">{position.name}</div>
+              <p className="text-xs leading-relaxed text-midnight-200/70">{position.meaning}</p>
+              <p className="text-xs leading-relaxed text-midnight-300/55 mt-1.5 line-clamp-3">
+                {position.description}
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
     );

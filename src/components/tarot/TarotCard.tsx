@@ -1,5 +1,5 @@
-import { useState, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef, memo } from 'react';
+import { motion, AnimatePresence, useAnimationControls } from 'framer-motion';
 import type { TarotCard as TarotCardType } from '@/types';
 import TarotCardFace from './TarotCardFace';
 import { cn } from '@/lib/utils';
@@ -126,26 +126,16 @@ const TarotCard = memo(function TarotCard({
           </div>
         </motion.div>
       ) : (
-        /* 移动端：简单淡入，无 3D */
-        <div className="relative w-full h-full">
-          {showBack || !card ? (
-            <TarotCardFace
-              showBack
-              width={w}
-              height={h}
-              className="rounded-xl"
-            />
-          ) : (
-            <TarotCardFace
-              card={card}
-              width={w}
-              height={h}
-              reversed={reversed}
-              noText={noText}
-              className="rounded-xl"
-            />
-          )}
-        </div>
+        /* 移动端：单平面轻量翻牌（不用 preserve-3d，尊重 flipped 状态） */
+        <MobileFlip
+          card={card}
+          reversed={reversed}
+          flipped={isFlipped}
+          showBack={showBack}
+          width={w}
+          height={h}
+          noText={noText}
+        />
       )}
 
       {/* 光晕层 */}
@@ -179,3 +169,69 @@ const TarotCard = memo(function TarotCard({
 });
 
 export default TarotCard;
+
+/**
+ * 移动端翻牌：单平面 rotateY 转到侧面（90°）时切换正反面再转回，
+ * 避免 preserve-3d + backface-hidden 的移动端 GPU 开销，同时保留翻牌动画。
+ */
+function MobileFlip({
+  card,
+  reversed,
+  flipped,
+  showBack,
+  width,
+  height,
+  noText,
+}: {
+  card?: TarotCardType;
+  reversed: boolean;
+  flipped: boolean;
+  showBack: boolean;
+  width: number;
+  height: number;
+  noText: boolean;
+}) {
+  const [faceUp, setFaceUp] = useState(flipped);
+  const controls = useAnimationControls();
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      setFaceUp(flipped);
+      return;
+    }
+    if (faceUp === flipped) return;
+    let cancelled = false;
+    (async () => {
+      await controls.start({ rotateY: 90, transition: { duration: 0.16, ease: 'easeIn' } });
+      if (cancelled) return;
+      setFaceUp(flipped);
+      await controls.start({ rotateY: 0, transition: { duration: 0.24, ease: 'easeOut' } });
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flipped]);
+
+  const showFace = !showBack && !!card && faceUp;
+  return (
+    <div className="relative w-full h-full" style={{ perspective: 700 }}>
+      <motion.div className="relative w-full h-full" animate={controls} initial={{ rotateY: 0 }}>
+        {showFace ? (
+          <TarotCardFace
+            card={card}
+            width={width}
+            height={height}
+            reversed={reversed}
+            noText={noText}
+            className="rounded-xl"
+          />
+        ) : (
+          <TarotCardFace showBack width={width} height={height} className="rounded-xl" />
+        )}
+      </motion.div>
+    </div>
+  );
+}

@@ -118,7 +118,7 @@ export default function Tarot() {
         {filteredCards.length > 0 ? (
           <motion.div
             layout
-            className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4 md:gap-6"
+            className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-x-3 gap-y-6 sm:gap-x-4 sm:gap-y-7 md:gap-x-5"
           >
             {filteredCards.map((card, idx) => (
               <motion.button
@@ -131,7 +131,7 @@ export default function Tarot() {
                 className="group flex flex-col items-center"
               >
                 <div className="relative w-full" style={{ paddingTop: '160%' }}>
-                  <div className="absolute inset-0 transition-transform duration-300 group-hover:-translate-y-2">
+                  <div className="absolute inset-0 flex justify-center transition-transform duration-300 group-hover:-translate-y-2">
                     <TarotCard
                       card={card}
                       flipped

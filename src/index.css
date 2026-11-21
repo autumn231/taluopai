@@ -70,7 +70,8 @@
     --text-strong: #1a0f3d;
     --text-soft: #4a2d7c;
     --text-mute: #6e4ea3;
-    --text-faint: #9a82bf;
+    /* 白天底色上 #9a82bf 对比度仅约 2.6:1、小字不可读，与 mute 同值保底可读性 */
+    --text-faint: #6e4ea3;
 
     --border-soft: rgba(168, 132, 42, 0.2);
     --border-mid: rgba(168, 132, 42, 0.35);
@@ -94,7 +95,8 @@
     --panel-bg: rgba(255, 250, 240, 0.9);
     --panel-border: rgba(168, 132, 42, 0.5);
     --glow-rune: rgba(168, 132, 42, 0.6);
-    --accent: #a8842a;
+    /* 白天金色加深：#a8842a 在米白底约 3.4:1，#8a6d1f 约 4.9:1 */
+    --accent: #8a6d1f;
 
     --starfield-opacity: 0.35;
 

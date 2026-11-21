@@ -779,15 +779,7 @@ function ShuffleStage({ onComplete }: { onComplete: () => void }) {
   );
 }
 
-// === 3. Select 阶段：从厚牌堆抽牌（顶/中/底） ===
-type PickSource = 'top' | 'middle' | 'bottom';
-
-const PICK_LABELS: Record<PickSource, { title: string; hint: string }> = {
-  top: { title: '从最上面', hint: '跟随第一直觉' },
-  middle: { title: '从最中间', hint: '聆听内心深处' },
-  bottom: { title: '从最下面', hint: '挖掘隐藏真相' },
-};
-
+// === 3. Select 阶段：扇形牌阵点选抽牌 ===
 function SelectStage({
   cardCount,
   onSelect,
@@ -795,31 +787,35 @@ function SelectStage({
   cardCount: number;
   onSelect: (positions: number[]) => void;
 }) {
+  const isMobile = useIsMobile();
+  const FAN_COUNT = isMobile ? 9 : 13;
   const [selected, setSelected] = useState<number[]>([]);
-  const [picking, setPicking] = useState<PickSource | null>(null);
+  const [pickedFan, setPickedFan] = useState<number[]>([]);
+  const [pickingFan, setPickingFan] = useState<number | null>(null);
   const [flyingToSlot, setFlyingToSlot] = useState<number | null>(null);
 
-  // 牌堆厚度：越抽越薄
-  const DECK_FULL = 28;
-  const deckRemaining = Math.max(8, DECK_FULL - selected.length);
+  const busy = pickingFan !== null || flyingToSlot !== null;
 
-  // 抽牌：抽卡 → 飞向顶部槽位 → 落定
-  const handlePick = (source: PickSource) => {
-    if (picking || flyingToSlot !== null) return;
+  // 点选扇面中的一张：高亮 → 飞向顶部槽位 → 落定
+  const handleFanPick = (fanIdx: number) => {
+    if (busy) return;
+    if (pickedFan.includes(fanIdx)) return;
     if (selected.length >= cardCount) return;
-    setPicking(source);
+    setPickingFan(fanIdx);
     setTimeout(() => {
-      setPicking(null);
+      const newPicked = [...pickedFan, fanIdx];
+      setPickedFan(newPicked);
+      setPickingFan(null);
       const newSelected = [...selected, selected.length];
       setSelected(newSelected);
       setFlyingToSlot(newSelected.length - 1);
       setTimeout(() => {
         setFlyingToSlot(null);
         if (newSelected.length === cardCount) {
-          setTimeout(() => onSelect(newSelected), 500);
+          setTimeout(() => onSelect(newPicked), 500);
         }
       }, 550);
-    }, 550);
+    }, 380);
   };
 
   return (
@@ -834,10 +830,10 @@ function SelectStage({
 
         <div className="text-center mt-6 sm:mt-8 mb-6 sm:mb-10">
           <h2 className="font-display text-2xl sm:text-3xl md:text-4xl text-gold-gradient glow-text">
-            从牌堆中抽出你的牌
+            凭直觉点选你的牌
           </h2>
           <p className="mt-3 sm:mt-4 font-body italic text-sm sm:text-base text-midnight-200/80">
-            请凭直觉选择要抽的位置 · 还需 {cardCount - selected.length} 张
+            牌已摊开成扇 · 点哪张，哪张就是你的 · 还需 {cardCount - selected.length} 张
           </p>
         </div>
 
@@ -888,54 +884,59 @@ function SelectStage({
           </div>
         </div>
 
-        {/* 中间: 3D 厚牌堆 */}
-        <DeckView
-          remaining={deckRemaining}
-          picking={picking}
-          flying={flyingToSlot !== null}
-        />
-
-        {/* 底部: 3 个抽牌按钮 */}
-        <div className="mt-8 sm:mt-12 flex flex-col items-center gap-4">
-          <div className="text-[10px] sm:text-xs font-title text-mystic-gold/60 tracking-[0.3em]">
-            选择抽牌位置
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-2xl">
-            {(['top', 'middle', 'bottom'] as PickSource[]).map((source) => {
-              const label = PICK_LABELS[source];
-              return (
+        {/* 中间: 扇形牌阵（点选抽牌） */}
+        <div className="relative mx-auto h-[250px] sm:h-[320px] max-w-3xl select-none">
+          <div
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 sm:w-96 sm:h-96 rounded-full pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(circle, rgba(212, 175, 55, 0.22) 0%, rgba(110, 78, 163, 0.12) 40%, transparent 70%)',
+              filter: 'blur(20px)',
+            }}
+          />
+          {Array.from({ length: FAN_COUNT }).map((_, i) => {
+            const angle = -42 + (84 * i) / (FAN_COUNT - 1);
+            const taken = pickedFan.includes(i);
+            const isPicking = pickingFan === i;
+            return (
+              <div
+                key={i}
+                className="absolute left-1/2 top-4 sm:top-6"
+                style={{
+                  transform: `translateX(-50%) rotate(${angle}deg)`,
+                  transformOrigin: '50% 135%',
+                  zIndex: isPicking ? 30 : i + 1,
+                  opacity: taken ? 0 : 1,
+                  pointerEvents: taken ? 'none' : 'auto',
+                  transition: 'opacity 0.3s ease',
+                }}
+              >
                 <motion.button
-                  key={source}
                   type="button"
-                  disabled={picking !== null || flyingToSlot !== null || selected.length >= cardCount}
-                  onClick={() => handlePick(source)}
-                  whileHover={{ scale: 1.03, y: -3 }}
-                  whileTap={{ scale: 0.97 }}
+                  aria-label={`选择第 ${i + 1} 张牌`}
+                  disabled={busy || taken || selected.length >= cardCount}
+                  onClick={() => handleFanPick(i)}
+                  whileHover={busy ? undefined : { y: -16 }}
+                  whileTap={busy ? undefined : { scale: 0.96 }}
                   className={cn(
-                    'group relative px-4 sm:px-6 py-3 sm:py-4 rounded-xl border transition-all duration-300',
-                    'bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)]',
-                    'border-mystic-gold/30 hover:border-mystic-gold/60',
-                    'hover:shadow-gold-glow',
-                    picking === source && 'border-mystic-gold/80 shadow-gold-glow bg-[var(--bg-card-hover)]',
-                    'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-mystic-gold/30 disabled:hover:shadow-none',
+                    'block rounded-xl outline-none',
+                    isPicking && 'shadow-gold-glow brightness-125',
                   )}
                 >
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <PickIcon source={source} highlight={picking === source} />
-                    <span className="font-title text-sm sm:text-base text-mystic-lightgold tracking-widest">
-                      {label.title}
-                    </span>
-                  </div>
-                  <div className="text-[10px] sm:text-xs text-mystic-gold/85 italic font-medium">
-                    {label.hint}
-                  </div>
+                  <CardBack
+                    width={isMobile ? 84 : 104}
+                    height={isMobile ? 134 : 166}
+                    className="rounded-xl"
+                  />
                 </motion.button>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
+        </div>
 
-          {/* 进度指示 */}
-          <div className="mt-4 flex items-center gap-2">
+        {/* 底部: 进度指示 */}
+        <div className="mt-6 sm:mt-8 flex flex-col items-center gap-4">
+          <div className="flex items-center gap-2">
             {Array.from({ length: cardCount }).map((_, i) => (
               <motion.div
                 key={i}
@@ -959,144 +960,6 @@ function SelectStage({
         </div>
       </div>
     </motion.section>
-  );
-}
-
-// === 3D 厚牌堆视图 ===
-function DeckView({
-  remaining,
-  picking,
-  flying,
-}: {
-  remaining: number;
-  picking: PickSource | null;
-  flying: boolean;
-}) {
-  const isMobile = useIsMobile();
-  // 移动端减少可见层数
-  const maxLayers = isMobile ? 8 : 16;
-  const visibleLayers = Math.min(remaining, maxLayers);
-  const isPicking = picking !== null;
-
-  return (
-    <div className="relative h-[220px] sm:h-[280px] flex items-center justify-center my-2 sm:my-4">
-      {/* 中心能量光晕 */}
-      <motion.div
-        className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full pointer-events-none"
-        animate={{
-          scale: isPicking ? 1.4 : flying ? 1.2 : 1,
-          opacity: isPicking ? 0.7 : 0.35,
-        }}
-        transition={{ duration: 0.6 }}
-        style={{
-          background:
-            'radial-gradient(circle, rgba(212, 175, 55, 0.25) 0%, rgba(110, 78, 163, 0.15) 40%, transparent 70%)',
-          filter: 'blur(20px)',
-        }}
-      />
-
-      {/* 3D 牌堆 */}
-      <div
-        className="relative"
-        style={{ perspective: '1200px', perspectiveOrigin: '50% 40%' }}
-      >
-        <motion.div
-          className="relative"
-          style={{ transformStyle: 'preserve-3d', width: 100, height: 156 }}
-          animate={{
-            rotateX: isPicking ? (picking === 'top' ? -22 : picking === 'bottom' ? 22 : 0) : 0,
-            rotateY: isPicking && picking === 'middle' ? 18 : 0,
-            y: isPicking && picking === 'top' ? -20 : 0,
-          }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-        >
-          {Array.from({ length: visibleLayers }).map((_, i) => {
-            const depth = i;
-            const yShift = -depth * 0.6;
-            return (
-              <div
-                key={i}
-                className="absolute inset-0 rounded-lg overflow-hidden"
-                style={{
-                  transform: `translateY(${yShift}px) translateZ(${-depth}px)`,
-                  boxShadow: `0 ${2 + depth * 0.3}px ${4 + depth * 0.5}px rgba(0, 0, 0, ${0.3 + depth * 0.02})`,
-                  zIndex: visibleLayers - i,
-                }}
-              >
-                <CardBack width={100} height={156} />
-              </div>
-            );
-          })}
-
-          {/* 飞出的牌 */}
-          {isPicking && (
-            <motion.div
-              className="absolute inset-0 rounded-lg overflow-hidden z-50"
-              initial={{ y: picking === 'top' ? -10 : picking === 'bottom' ? 10 : 0, scale: 1, opacity: 1 }}
-              animate={{
-                y: picking === 'top' ? -180 : picking === 'bottom' ? 180 : -10,
-                rotateZ: picking === 'top' ? -8 : picking === 'bottom' ? 8 : 0,
-                scale: 1.1,
-                opacity: 0.7,
-              }}
-              transition={{ duration: 0.55, ease: 'easeOut' }}
-              style={{ boxShadow: '0 8px 24px rgba(212, 175, 55, 0.4)' }}
-            >
-              <CardBack width={100} height={156} />
-            </motion.div>
-          )}
-        </motion.div>
-
-        {/* 3 个位置的呼吸箭头提示 */}
-        <PickHint source="top" active={!isPicking && !flying} />
-        <PickHint source="bottom" active={!isPicking && !flying} />
-        <PickHint source="middle" active={!isPicking && !flying} />
-      </div>
-    </div>
-  );
-}
-
-function PickHint({ source, active }: { source: PickSource; active: boolean }) {
-  if (!active) return null;
-  const positions: Record<PickSource, { top?: string; left?: string; arrow: string }> = {
-    top: { top: '-10%', left: '50%', arrow: '↑' },
-    middle: { top: '50%', left: '102%', arrow: '→' },
-    bottom: { top: '92%', left: '50%', arrow: '↓' },
-  };
-  const pos = positions[source];
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.6 }}
-      animate={{ opacity: [0, 1, 0], scale: [0.6, 1, 0.6] }}
-      transition={{ duration: 2.5, repeat: Infinity, delay: source === 'top' ? 0 : source === 'bottom' ? 0.8 : 1.6 }}
-      className="absolute pointer-events-none text-mystic-lightgold text-lg sm:text-xl font-title"
-      style={{ top: pos.top, left: pos.left, transform: 'translateX(-50%)' }}
-    >
-      {pos.arrow}
-    </motion.div>
-  );
-}
-
-function PickIcon({ source, highlight }: { source: PickSource; highlight: boolean }) {
-  const cls = cn('transition-colors', highlight ? 'text-mystic-lightgold' : 'text-mystic-gold/70');
-  if (source === 'top') {
-    return (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={cls}>
-        <path d="M12 4 L12 20 M5 11 L12 4 L19 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (source === 'bottom') {
-    return (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={cls}>
-        <path d="M12 20 L12 4 M5 13 L12 20 L19 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={cls}>
-      <path d="M4 12 L20 12 M9 7 L4 12 L9 17 M15 7 L20 12 L15 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
 

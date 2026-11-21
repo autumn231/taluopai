@@ -162,7 +162,11 @@ export default function CardOfTheDay() {
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-mystic-gold/50 to-transparent" />
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-mystic-gold/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 sm:gap-10">
+          <div
+            className={`relative z-10 flex flex-col items-center gap-6 sm:gap-10 ${
+              revealed ? 'md:flex-row' : ''
+            }`}
+          >
             {/* 牌面 - 可点击翻牌 */}
             <button
               onClick={handleReveal}
@@ -191,12 +195,12 @@ export default function CardOfTheDay() {
             </button>
 
             {/* 解读 */}
-            <div className="flex-1 min-w-0 text-center md:text-left">
+            <div className={`flex-1 min-w-0 ${revealed ? 'text-center md:text-left' : 'text-center'}`}>
               {!revealed ? (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex flex-col items-center md:items-start gap-3"
+                  className="flex flex-col items-center gap-3"
                 >
                   <span className="text-[11px] font-title text-mystic-gold/80 tracking-widest">
                     ✦ 今日之牌已就位

@@ -14,7 +14,8 @@ export function useTheme() {
     } catch {
       // localStorage 不可用时静默回退
     }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    // 无已存偏好时默认黑夜模式——本站的设计语言（星空/辉光/鎏金）为深色而生
+    return 'dark';
   });
 
   useEffect(() => {

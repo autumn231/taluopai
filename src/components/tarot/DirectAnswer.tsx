@@ -18,10 +18,10 @@ const VERDICT_META: Record<
   positive: {
     label: '倾向明朗',
     icon: Check,
-    accent: 'text-emerald-300',
-    ring: 'border-emerald-400/50',
-    glow: 'shadow-[0_0_40px_-10px_rgba(52,211,153,0.45)]',
-    barFrom: 'from-emerald-400',
+    accent: 'text-mystic-lightgold',
+    ring: 'border-mystic-gold/50',
+    glow: 'shadow-[0_0_40px_-10px_rgba(212,175,55,0.45)]',
+    barFrom: 'from-mystic-lightgold',
     barTo: 'to-mystic-gold',
   },
   cautious: {

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { TarotCard as TarotCardType, Suit } from '@/types';
 import { ELEMENT_THEMES, SUIT_THEMES } from '@/data/tarotCards';
 import CardBack from './CardBack';
@@ -22,7 +23,7 @@ const SUIT_GLYPHS: Record<Suit, string> = {
 const MAJOR_GLYPHS: Record<number, string> = {
   0: '🌌', 1: '🜍', 2: '🌙', 3: '👑', 4: '♈', 5: '⚜',
   6: '💕', 7: '⚔', 8: '🦁', 9: '🏮', 10: '☸', 11: '⚖',
-  12: '🝎', 13: '💀', 14: '⚖', 15: '😈', 16: '🗼', 17: '⭐',
+  12: '🝎', 13: '💀', 14: '⚗', 15: '😈', 16: '🗼', 17: '⭐',
   18: '🌕', 19: '☀', 20: '📯', 21: '🌍',
 };
 
@@ -38,6 +39,7 @@ export default function TarotCardFace({
   reversed = false,
   noText = false,
 }: TarotCardProps) {
+  const [imgError, setImgError] = useState(false);
   if (showBack || !card) {
     return (
       <CardBack
@@ -45,6 +47,35 @@ export default function TarotCardFace({
         height={height}
         className={className}
       />
+    );
+  }
+
+  // 牌面优先使用 1909 年韦特牌画（公有领域，public/cards/rws-{id}.webp）；
+  // 图片加载失败时回退到下方符号化 SVG 牌面
+  if (!imgError) {
+    return (
+      <div
+        className={`relative overflow-hidden bg-[#0a0824] ${className}`}
+        style={{ width, height }}
+      >
+        <img
+          src={`/cards/rws-${card.id}.webp`}
+          alt={card.name.cn}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onError={() => setImgError(true)}
+          className="absolute inset-0 w-full h-full object-cover select-none"
+          style={{ transform: reversed ? 'rotate(180deg)' : undefined }}
+        />
+        <div
+          className="absolute inset-0 rounded-[inherit] pointer-events-none"
+          style={{
+            boxShadow:
+              'inset 0 0 0 2px rgba(212,175,55,0.55), inset 0 0 0 5px rgba(10,8,36,0.30), inset 0 0 24px rgba(0,0,0,0.45)',
+          }}
+        />
+      </div>
     );
   }
 
