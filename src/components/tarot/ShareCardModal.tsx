@@ -102,11 +102,11 @@ const THEME_DIM: Record<string, 'love' | 'career' | 'wealth'> = {
 
 const SITE_DOMAIN = 'taluopai.tbit.xin';
 
-// 固定画布尺寸
+// 画布尺寸：宽度固定；高度只作下限，内容更高时画布随之长高（根治底部截断）
 const PORTRAIT_W = 750;
-const PORTRAIT_H = 1200;
+const PORTRAIT_MIN_H = 1200;
 const LANDSCAPE_W = 1200;
-const LANDSCAPE_H = 750;
+const LANDSCAPE_MIN_H = 750;
 
 // ============================================================
 // 数据接口
@@ -160,10 +160,12 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   const palette = posterStyle === 'dark' ? DARK : LIGHT;
   const isPortrait = orientation === 'portrait';
   const canvasW = isPortrait ? PORTRAIT_W : LANDSCAPE_W;
-  const canvasH = isPortrait ? PORTRAIT_H : LANDSCAPE_H;
+  const canvasMinH = isPortrait ? PORTRAIT_MIN_H : LANDSCAPE_MIN_H;
   const previewW = isPortrait ? 280 : 380;
   const scale = previewW / canvasW;
-  const previewH = canvasH * scale;
+  // 海报实际高度由内容决定（不低于 canvasMinH）：实测节点 offsetHeight 后驱动预览高度
+  const [naturalH, setNaturalH] = useState(canvasMinH);
+  const previewH = naturalH * scale;
 
   // 释放上一个 Blob URL，避免内存泄漏
   const revokeImageUrl = useCallback(() => {
@@ -210,6 +212,19 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
     setDownloadHint(null);
   }, [posterStyle, orientation, revokeImageUrl]);
 
+  // 实测海报节点自然高度（offsetHeight 是布局高度，不受预览缩放 transform 影响），供预览容器定高
+  useEffect(() => {
+    if (!open) return;
+    const node = cardRef.current;
+    if (!node) return;
+    const measure = () => setNaturalH(node.offsetHeight);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, [open, orientation, posterStyle]);
+
   const handleGenerate = useCallback(async () => {
     const node = cardRef.current;
     if (!node) return;
@@ -221,11 +236,13 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
       // 不能用 html-to-image 的 toBlob —— 它内部用 fetch(dataUrl) 转 Blob，
       // 夸克浏览器拦截 fetch('data:image/...') 返回空 body，导致 Blob 为 0B
       const fontEmbedCSS = await loadFontEmbedCSS(node);
+      // 导出高度用点击时的实测自然高度：内容多高就出多高，不再按固定画布截断
+      const exportH = node.offsetHeight;
       const dataUrl = await toPng(node, {
         pixelRatio: 2,
         fontEmbedCSS,
         width: canvasW,
-        height: canvasH,
+        height: exportH,
         backgroundColor: palette.bg,
         style: { transform: 'none', margin: '0' },
       });
@@ -257,7 +274,7 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
       console.error('生成图片失败', err);
       setStatus('error');
     }
-  }, [canvasW, canvasH, palette.bg]);
+  }, [canvasW, palette.bg]);
 
   /**
    * 手机端保存图片 - 新窗口手动下载（最兼容模式）
@@ -432,7 +449,7 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
                     palette={palette}
                     orientation={orientation}
                     width={canvasW}
-                    height={canvasH}
+                    minHeight={canvasMinH}
                   />
                 </PosterPreview>
               </div>
@@ -559,18 +576,18 @@ function OptionButton({ active, onClick, icon, label }: { active: boolean; onCli
 }
 
 // ============================================================
-// 海报本体：固定画布 + 按牌数分发
+// 海报本体：宽度固定、高度随内容自适应（minHeight 为下限）+ 按牌数分发
 // ============================================================
 
 interface ShareCardProps extends ShareCardData {
   palette: Palette;
   orientation: PosterOrientation;
   width: number;
-  height: number;
+  minHeight: number;
 }
 
 const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
-  { question, drawnCards, positions, spreadName, theme, directAnswer, actionPlan, closingText, palette, orientation, width, height },
+  { question, drawnCards, positions, spreadName, theme, directAnswer, actionPlan, closingText, palette, orientation, width, minHeight },
   ref,
 ) {
   const dateStr = formatDate(new Date());
@@ -580,7 +597,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
   const themeDim = THEME_DIM[theme.label] || 'general';
 
   const rootStyle: CSSProperties = {
-    width, height,
+    width, minHeight,
     background: `linear-gradient(160deg, ${palette.bg} 0%, ${palette.bg} 60%, ${palette.bg} 100%)`,
     fontFamily: "'Cormorant Garamond', 'Noto Serif SC', serif",
     color: palette.textBase,
@@ -664,8 +681,10 @@ function SinglePortrait({ ctx }: { ctx: CardCtx }) {
           background: `linear-gradient(180deg, ${palette.panel}, ${palette.borderSoft})`,
           border: `1px solid ${palette.border}`, textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center',
         }}>
-          <div style={{ fontSize: 48, color: palette.gold, lineHeight: 1, marginBottom: 8 }}>{c.card.symbol || '✦'}</div>
-          <div style={{ fontSize: 24, color: palette.lightgold, fontWeight: 600, lineHeight: 1.3 }}>{c.card.name.cn}</div>
+          <div style={{ fontSize: 36, color: palette.lightgold, fontWeight: 600, lineHeight: 1.3 }}>{c.card.name.cn}</div>
+          {c.card.symbol && (
+            <div style={{ fontSize: 14, color: palette.textSoft, marginTop: 6, lineHeight: 1.5 }}>{c.card.symbol}</div>
+          )}
           <div style={{ fontSize: 13, color: c.reversed ? palette.rose : palette.textMute, marginTop: 6 }}>
             {c.reversed ? '逆位' : '正位'} · {ELEMENT_LABEL[c.card.element || 'spirit'] || '灵'}
           </div>
@@ -683,18 +702,19 @@ function SinglePortrait({ ctx }: { ctx: CardCtx }) {
         </div>
       </div>
 
-      <Spacer flex={1} minHeight={12} />
+      <div style={{ height: 24 }} />
 
       <ResponseBlock palette={palette} directAnswer={directAnswer} verdictColor={verdictColor} energyPct={energyPct}
         withDivider titleSize={17} titleMt={14} verdictSize="md" verdictMt={10}
         headlineSize={19} headlineMax={70} headlineLh={1.55} headlineMt={12} />
 
-      <Spacer flex={1} minHeight={12} />
+      <div style={{ height: 24 }} />
 
       <ActionsBlock palette={palette} actionPlan={actionPlan} titleSize={17} titleMt={14} listSize="md" listMt={10} />
 
-      <Spacer flex={1} minHeight={12} />
-      <Footer palette={palette} closingText={closingText} align="center" />
+      <div style={{ marginTop: 'auto', paddingTop: 24 }}>
+        <Footer palette={palette} closingText={closingText} align="center" />
+      </div>
     </div>
   );
 }
@@ -728,8 +748,10 @@ function ThreePortrait({ ctx }: { ctx: CardCtx }) {
               <div style={{ fontSize: 13, color: palette.gold, fontFamily: "'Cinzel', serif", letterSpacing: '0.1em', marginBottom: 4 }}>
                 {pos?.name || `第${i + 1}张`}
               </div>
-              <div style={{ fontSize: 32, color: palette.gold, lineHeight: 1, margin: '4px 0' }}>{c.card.symbol || '✦'}</div>
-              <div style={{ fontSize: 19, color: palette.lightgold, fontWeight: 600, lineHeight: 1.3 }}>{c.card.name.cn}</div>
+              <div style={{ fontSize: 21, color: palette.lightgold, fontWeight: 600, lineHeight: 1.3 }}>{c.card.name.cn}</div>
+              {c.card.symbol && (
+                <div style={{ fontSize: 12, color: palette.textSoft, marginTop: 4, lineHeight: 1.4 }}>{c.card.symbol}</div>
+              )}
               <div style={{ fontSize: 12, color: c.reversed ? palette.rose : palette.textMute, marginTop: 4 }}>
                 {c.reversed ? '逆位' : '正位'}
               </div>
@@ -741,19 +763,20 @@ function ThreePortrait({ ctx }: { ctx: CardCtx }) {
         })}
       </div>
 
-      <Spacer flex={1} minHeight={12} />
+      <div style={{ height: 24 }} />
 
       <ResponseBlock palette={palette} directAnswer={directAnswer} verdictColor={verdictColor} energyPct={energyPct}
         withDivider titleSize={17} titleMt={14} verdictSize="md" verdictMt={10}
         headlineSize={19} headlineMax={64} headlineLh={1.55} headlineMt={12}
         reasoning={{ size: 14, max: 80, lh: 1.7, mt: 10 }} />
 
-      <Spacer flex={1} minHeight={12} />
+      <div style={{ height: 24 }} />
 
       <ActionsBlock palette={palette} actionPlan={actionPlan} titleSize={17} titleMt={14} listSize="md" listMt={10} />
 
-      <Spacer flex={1} minHeight={12} />
-      <Footer palette={palette} closingText={closingText} align="center" />
+      <div style={{ marginTop: 'auto', paddingTop: 24 }}>
+        <Footer palette={palette} closingText={closingText} align="center" />
+      </div>
     </div>
   );
 }
@@ -783,12 +806,11 @@ function CelticPortrait({ ctx }: { ctx: CardCtx }) {
               backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`,
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
-              <span style={{ fontSize: 20, color: palette.gold, flexShrink: 0 }}>{c.card.symbol || '✦'}</span>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: 11, color: palette.textMute, fontFamily: "'Cinzel', serif", letterSpacing: '0.06em' }}>
                   {pos?.name || `第${i + 1}张`}
                 </div>
-                <div style={{ fontSize: 14, color: palette.lightgold, fontWeight: 600, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 15, color: palette.lightgold, fontWeight: 600, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {c.card.name.cn}{c.reversed ? '·逆' : ''}
                 </div>
               </div>
@@ -797,19 +819,20 @@ function CelticPortrait({ ctx }: { ctx: CardCtx }) {
         })}
       </div>
 
-      <Spacer flex={1} minHeight={10} />
+      <div style={{ height: 24 }} />
 
       <ResponseBlock palette={palette} directAnswer={directAnswer} verdictColor={verdictColor} energyPct={energyPct}
         withDivider titleSize={16} titleMt={12} verdictSize="sm" verdictMt={8}
         headlineSize={17} headlineMax={60} headlineLh={1.5} headlineMt={10}
         reasoning={{ size: 13, max: 90, lh: 1.7, mt: 8 }} />
 
-      <Spacer flex={1} minHeight={10} />
+      <div style={{ height: 24 }} />
 
       <ActionsBlock palette={palette} actionPlan={actionPlan} titleSize={16} titleMt={12} listSize="sm" listMt={8} />
 
-      <Spacer flex={1} minHeight={10} />
-      <Footer palette={palette} closingText={closingText} align="center" />
+      <div style={{ marginTop: 'auto', paddingTop: 24 }}>
+        <Footer palette={palette} closingText={closingText} align="center" />
+      </div>
     </div>
   );
 }
@@ -833,16 +856,19 @@ function SingleLandscape({ ctx }: { ctx: CardCtx }) {
 
         {/* Hero 牌 */}
         <div style={{ marginTop: 16, padding: '16px 12px', borderRadius: 12, background: `linear-gradient(180deg, ${palette.panel}, ${palette.borderSoft})`, border: `1px solid ${palette.border}`, textAlign: 'center' }}>
-          <div style={{ fontSize: 40, color: palette.gold, lineHeight: 1, marginBottom: 6 }}>{c.card.symbol || '✦'}</div>
-          <div style={{ fontSize: 22, color: palette.lightgold, fontWeight: 600, lineHeight: 1.3 }}>{c.card.name.cn}</div>
+          <div style={{ fontSize: 34, color: palette.lightgold, fontWeight: 600, lineHeight: 1.3 }}>{c.card.name.cn}</div>
+          {c.card.symbol && (
+            <div style={{ fontSize: 14, color: palette.textSoft, marginTop: 5, lineHeight: 1.5 }}>{c.card.symbol}</div>
+          )}
           <div style={{ fontSize: 12, color: c.reversed ? palette.rose : palette.textMute, marginTop: 5 }}>
             {c.reversed ? '逆位' : '正位'} · {ELEMENT_LABEL[c.card.element || 'spirit'] || '灵'} · {pos?.name || ''}
           </div>
           <div style={{ fontSize: 11, color: palette.textSoft, marginTop: 6 }}>{c.card.keywords.slice(0, 3).join(' · ')}</div>
         </div>
 
-        <Spacer flex={1} minHeight={8} />
-        <Footer palette={palette} closingText={closingText} align="left" />
+        <div style={{ marginTop: 'auto', paddingTop: 18 }}>
+          <Footer palette={palette} closingText={closingText} align="left" />
+        </div>
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingLeft: 24 }}>
@@ -855,12 +881,9 @@ function SingleLandscape({ ctx }: { ctx: CardCtx }) {
           withDivider titleSize={15} titleMt={12} verdictSize="sm" verdictMt={8}
           headlineSize={17} headlineMax={60} headlineLh={1.5} headlineMt={10} />
 
-        <Spacer flex={1} minHeight={8} />
+        <div style={{ height: 18 }} />
 
         <ActionsBlock palette={palette} actionPlan={actionPlan} titleSize={15} titleMt={12} listSize="sm" listMt={8} />
-
-        <Spacer flex={1} minHeight={8} />
-        <Footer palette={palette} closingText="" align="right" domainOnly />
       </div>
     </div>
   );
@@ -887,10 +910,15 @@ function ThreeLandscape({ ctx }: { ctx: CardCtx }) {
             const dimText = dimTextFor(themeDim, c);
             return (
               <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 12px', borderRadius: 10, backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`, alignItems: 'center' }}>
-                <span style={{ fontSize: 26, color: palette.gold, flexShrink: 0 }}>{c.card.symbol || '✦'}</span>
+                <div style={{ flexShrink: 0, fontSize: 24, color: palette.lightgold, fontWeight: 600, lineHeight: 1.2 }}>
+                  {c.card.name.cn}
+                  <span style={{ fontSize: 11, fontWeight: 400, color: c.reversed ? palette.rose : palette.textMute, marginLeft: 6 }}>{c.reversed ? '逆位' : '正位'}</span>
+                </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 12, color: palette.gold, fontFamily: "'Cinzel', serif", letterSpacing: '0.08em' }}>{pos?.name || `第${i + 1}张`}</div>
-                  <div style={{ fontSize: 16, color: palette.lightgold, fontWeight: 600, lineHeight: 1.2 }}>{c.card.name.cn}<span style={{ fontSize: 11, color: c.reversed ? palette.rose : palette.textMute, marginLeft: 6 }}>{c.reversed ? '逆位' : '正位'}</span></div>
+                  {c.card.symbol && (
+                    <div style={{ fontSize: 12, color: palette.textSoft, marginTop: 2, lineHeight: 1.4 }}>{c.card.symbol}</div>
+                  )}
                   <div style={{ fontSize: 11, color: palette.textSoft, marginTop: 2, lineHeight: 1.4 }}>{truncate(dimText, 22)}</div>
                 </div>
               </div>
@@ -898,8 +926,9 @@ function ThreeLandscape({ ctx }: { ctx: CardCtx }) {
           })}
         </div>
 
-        <Spacer flex={1} minHeight={8} />
-        <Footer palette={palette} closingText={closingText} align="left" />
+        <div style={{ marginTop: 'auto', paddingTop: 18 }}>
+          <Footer palette={palette} closingText={closingText} align="left" />
+        </div>
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingLeft: 24 }}>
@@ -908,12 +937,9 @@ function ThreeLandscape({ ctx }: { ctx: CardCtx }) {
           headlineSize={17} headlineMax={60} headlineLh={1.5} headlineMt={10}
           reasoning={{ size: 13, max: 90, lh: 1.7, mt: 10 }} />
 
-        <Spacer flex={1} minHeight={8} />
+        <div style={{ height: 18 }} />
 
         <ActionsBlock palette={palette} actionPlan={actionPlan} titleSize={15} titleMt={12} listSize="sm" listMt={8} />
-
-        <Spacer flex={1} minHeight={8} />
-        <Footer palette={palette} closingText="" align="right" domainOnly />
       </div>
     </div>
   );
@@ -939,17 +965,17 @@ function CelticLandscape({ ctx }: { ctx: CardCtx }) {
             const pos = positions[c.position];
             return (
               <div key={i} style={{ padding: '7px 5px', borderRadius: 7, backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`, textAlign: 'center' }}>
-                <div style={{ fontSize: 18, color: palette.gold, lineHeight: 1 }}>{c.card.symbol || '✦'}</div>
                 <div style={{ fontSize: 10, color: palette.textMute, marginTop: 2, fontFamily: "'Cinzel', serif" }}>{pos?.name || `${i + 1}`}</div>
-                <div style={{ fontSize: 12, color: palette.lightgold, fontWeight: 600, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.card.name.cn}</div>
+                <div style={{ fontSize: 13, color: palette.lightgold, fontWeight: 600, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.card.name.cn}</div>
                 <div style={{ fontSize: 9, color: c.reversed ? palette.rose : palette.textMute }}>{c.reversed ? '逆' : '正'}</div>
               </div>
             );
           })}
         </div>
 
-        <Spacer flex={1} minHeight={8} />
-        <Footer palette={palette} closingText={closingText} align="left" />
+        <div style={{ marginTop: 'auto', paddingTop: 18 }}>
+          <Footer palette={palette} closingText={closingText} align="left" />
+        </div>
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingLeft: 22 }}>
@@ -958,12 +984,9 @@ function CelticLandscape({ ctx }: { ctx: CardCtx }) {
           headlineSize={16} headlineMax={56} headlineLh={1.5} headlineMt={8}
           reasoning={{ size: 12, max: 110, lh: 1.65, mt: 8 }} />
 
-        <Spacer flex={1} minHeight={8} />
+        <div style={{ height: 18 }} />
 
         <ActionsBlock palette={palette} actionPlan={actionPlan} titleSize={14} titleMt={10} listSize="sm" listMt={6} />
-
-        <Spacer flex={1} minHeight={8} />
-        <Footer palette={palette} closingText="" align="right" domainOnly />
       </div>
     </div>
   );
@@ -1080,10 +1103,6 @@ function Divider({ palette }: { palette: Palette }) {
   return <div style={{ height: 1, marginTop: 12, background: `linear-gradient(90deg, transparent, ${palette.border}, transparent)` }} />;
 }
 
-function Spacer({ flex, minHeight }: { flex: number; minHeight: number }) {
-  return <div style={{ flex, minHeight }} />;
-}
-
 function VerdictBar({ verdict, verdictColor, energyPct, palette, size, marginTop }: { verdict: Verdict; verdictColor: string; energyPct: number; palette: Palette; size: 'sm' | 'md'; marginTop: number }) {
   const pad = size === 'md' ? '7px 20px' : '5px 16px';
   const fs = size === 'md' ? 17 : 14;
@@ -1129,25 +1148,21 @@ function ActionList({ items, palette, size, max, marginTop }: { items: ActionIte
   );
 }
 
-function Footer({ palette, closingText, align, domainOnly }: { palette: Palette; closingText: string; align: 'left' | 'center' | 'right'; domainOnly?: boolean }) {
+function Footer({ palette, closingText, align }: { palette: Palette; closingText: string; align: 'left' | 'center' | 'right' }) {
   return (
     <div style={{ textAlign: align }}>
-      {!domainOnly && closingText && (
-        <p style={{ fontFamily: "'Cinzel', 'Noto Serif SC', serif", fontSize: 15, color: palette.gold, letterSpacing: '0.12em', marginBottom: 8, fontWeight: 500 }}>
-          ✦ {truncate(closingText, 20)} ✦
+      {closingText && (
+        <p style={{ fontFamily: "'Cinzel', 'Noto Serif SC', serif", fontSize: 15, color: palette.gold, letterSpacing: '0.12em', lineHeight: 1.6, marginBottom: 8, fontWeight: 500 }}>
+          ✦ {closingText} ✦
         </p>
       )}
-      {!domainOnly && (
-        <p style={{ fontSize: 11, color: palette.textMute, lineHeight: 1.5, fontStyle: 'italic', marginBottom: 10 }}>塔罗不预测命运，而是照亮当下。</p>
-      )}
+      <p style={{ fontSize: 11, color: palette.textMute, lineHeight: 1.5, fontStyle: 'italic', marginBottom: 10 }}>塔罗不预测命运，而是照亮当下。</p>
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, padding: '7px 18px', borderRadius: 999, border: `1px solid ${palette.border}`, backgroundColor: 'rgba(212,175,55,0.08)' }}>
         <span style={{ fontSize: 14, color: palette.gold, marginRight: 6 }}>✧</span>
         <span style={{ fontSize: 14, color: palette.lightgold, fontFamily: "'Inter', sans-serif", fontWeight: 600, letterSpacing: '0.08em' }}>{SITE_DOMAIN}</span>
         <span style={{ fontSize: 14, color: palette.gold, marginLeft: 6 }}>✧</span>
       </div>
-      {!domainOnly && (
-        <p style={{ fontSize: 10, color: palette.textMute, marginTop: 8, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}>扫码或访问 · 开启你的专属占卜</p>
-      )}
+      <p style={{ fontSize: 10, color: palette.textMute, marginTop: 8, fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}>扫码或访问 · 开启你的专属占卜</p>
     </div>
   );
 }
