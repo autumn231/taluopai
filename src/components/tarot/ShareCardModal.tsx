@@ -7,7 +7,7 @@ import {
   type CSSProperties,
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toPng } from 'html-to-image';
+import { toPng, getFontEmbedCSS } from 'html-to-image';
 import { X, Download, Loader2, ImageDown, Check, Sun, Moon, Smartphone, Monitor } from 'lucide-react';
 import type { DrawnCard, SpreadPosition } from '@/types';
 import type { QuestionTheme } from '@/data/questionThemes';
@@ -36,6 +36,7 @@ interface Palette {
   textMute: string;
   border: string;
   borderSoft: string;
+  track: string;
   emerald: string;
   rose: string;
   amber: string;
@@ -52,6 +53,7 @@ const DARK: Palette = {
   textMute: '#9a82bf',
   border: 'rgba(212, 175, 55, 0.32)',
   borderSoft: 'rgba(212, 175, 55, 0.16)',
+  track: 'rgba(255,255,255,0.08)',
   emerald: '#34d399',
   rose: '#fb7185',
   amber: '#eab308',
@@ -68,13 +70,14 @@ const LIGHT: Palette = {
   textMute: '#9a8a66',
   border: 'rgba(166, 124, 0, 0.35)',
   borderSoft: 'rgba(166, 124, 0, 0.18)',
+  track: 'rgba(60,45,10,0.14)',
   emerald: '#2d8659',
   rose: '#c0392b',
   amber: '#b8860b',
 };
 
 const VERDICT_COLOR: Record<Verdict, keyof Palette> = {
-  positive: 'emerald',
+  positive: 'lightgold',
   cautious: 'rose',
   neutral: 'amber',
 };
@@ -123,6 +126,19 @@ export interface ShareCardData {
 interface ShareCardModalProps extends ShareCardData {
   open: boolean;
   onClose: () => void;
+}
+
+// 字体嵌入 CSS 只取决于页面字体、与海报内容无关：模块级懒加载，跨次生成只算一次
+// （toPng 默认每次都会重新解析样式并内嵌字体，是生成耗时的大头）
+let fontEmbedCSSPromise: Promise<string> | null = null;
+function loadFontEmbedCSS(node: HTMLElement): Promise<string> {
+  if (!fontEmbedCSSPromise) {
+    fontEmbedCSSPromise = getFontEmbedCSS(node).catch((err) => {
+      fontEmbedCSSPromise = null; // 失败不缓存，允许下次重试
+      throw err;
+    });
+  }
+  return fontEmbedCSSPromise;
 }
 
 // ============================================================
@@ -204,24 +220,30 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
       // 用 toPng 得到 data URL，再手动 base64 解码为 Blob
       // 不能用 html-to-image 的 toBlob —— 它内部用 fetch(dataUrl) 转 Blob，
       // 夸克浏览器拦截 fetch('data:image/...') 返回空 body，导致 Blob 为 0B
+      const fontEmbedCSS = await loadFontEmbedCSS(node);
       const dataUrl = await toPng(node, {
         pixelRatio: 2,
-        cacheBust: true,
+        fontEmbedCSS,
         width: canvasW,
         height: canvasH,
         backgroundColor: palette.bg,
         style: { transform: 'none', margin: '0' },
       });
-      // 手动 base64 → ArrayBuffer → Blob，完全绕过 fetch(data:)
+      // 手动 base64 → Blob，完全绕过 fetch(data:)（理由见上）
+      // 按 32,768 字符分块解码，再由 parts 数组一次构造 Blob
       const commaIdx = dataUrl.indexOf(',');
       const mime = dataUrl.slice(0, commaIdx).match(/:(.*?);/)![1];
       const base64 = dataUrl.slice(commaIdx + 1);
-      const binaryStr = atob(base64);
-      const bytes = new Uint8Array(binaryStr.length);
-      for (let i = 0; i < binaryStr.length; i++) {
-        bytes[i] = binaryStr.charCodeAt(i);
+      const parts: BlobPart[] = [];
+      for (let offset = 0; offset < base64.length; offset += 32768) {
+        const binaryStr = atob(base64.slice(offset, offset + 32768));
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        parts.push(bytes);
       }
-      const blob = new Blob([bytes], { type: mime });
+      const blob = new Blob(parts, { type: mime });
       // 释放旧的 Blob URL（用 ref 读取，避免依赖 imageUrl 导致循环触发）
       const oldUrl = imageUrlRef.current;
       if (oldUrl) URL.revokeObjectURL(oldUrl);
@@ -371,128 +393,126 @@ export default function ShareCardModal({ open, onClose, ...data }: ShareCardModa
   }, [imageUrl, openMobileDownloadWindow]);
 
   return (
-    <>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ backgroundColor: 'rgba(5, 3, 20, 0.85)', backdropFilter: 'blur(8px)' }}
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(5, 3, 20, 0.85)', backdropFilter: 'blur(8px)' }}
+          onClick={onClose}
+        >
+          <button
             onClick={onClose}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full flex items-center justify-center hover:bg-mystic-gold/15"
+            style={{ backgroundColor: 'rgba(30, 18, 64, 0.6)', border: `1px solid ${DARK.border}`, color: DARK.textSoft }}
+            aria-label="关闭"
           >
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full flex items-center justify-center hover:bg-mystic-gold/15"
-              style={{ backgroundColor: 'rgba(30, 18, 64, 0.6)', border: `1px solid ${DARK.border}`, color: DARK.textSoft }}
-              aria-label="关闭"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <X className="w-5 h-5" />
+          </button>
 
-            <motion.div
-              initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl"
-              style={{ backgroundColor: DARK.bg, border: `1px solid ${DARK.border}` }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center gap-2 px-5 py-3.5 sticky top-0 z-10" style={{ borderBottom: `1px solid ${DARK.borderSoft}`, backgroundColor: DARK.bg }}>
-                <ImageDown className="w-4 h-4" style={{ color: DARK.lightgold }} />
-                <span className="font-title text-sm tracking-widest" style={{ color: DARK.lightgold }}>生成分享海报</span>
+          <motion.div
+            initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="relative w-full max-w-4xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl"
+            style={{ backgroundColor: DARK.bg, border: `1px solid ${DARK.border}` }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 px-5 py-3.5 sticky top-0 z-10" style={{ borderBottom: `1px solid ${DARK.borderSoft}`, backgroundColor: DARK.bg }}>
+              <ImageDown className="w-4 h-4" style={{ color: DARK.lightgold }} />
+              <span className="font-title text-sm tracking-widest" style={{ color: DARK.lightgold }}>生成分享海报</span>
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-5 p-5">
+              <div className="flex-shrink-0 mx-auto lg:mx-0">
+                <PosterPreview previewW={previewW} previewH={previewH} scale={scale}>
+                  <ShareCard
+                    ref={cardRef}
+                    {...data}
+                    palette={palette}
+                    orientation={orientation}
+                    width={canvasW}
+                    height={canvasH}
+                  />
+                </PosterPreview>
               </div>
 
-              <div className="flex flex-col lg:flex-row gap-5 p-5">
-                <div className="flex-shrink-0 mx-auto lg:mx-0">
-                  <PosterPreview previewW={previewW} previewH={previewH} scale={scale}>
-                    <ShareCard
-                      ref={cardRef}
-                      {...data}
-                      palette={palette}
-                      orientation={orientation}
-                      width={canvasW}
-                      height={canvasH}
-                    />
-                  </PosterPreview>
+              <div className="flex-1 flex flex-col gap-4 min-w-0">
+                <div>
+                  <h3 className="font-display text-xl mb-1.5" style={{ color: DARK.lightgold }}>一键生成分享海报</h3>
+                  <p className="text-sm leading-relaxed" style={{ color: DARK.textSoft }}>
+                    选择样式与方向，将本次占卜凝练为精美图片。
+                  </p>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-4 min-w-0">
-                  <div>
-                    <h3 className="font-display text-xl mb-1.5" style={{ color: DARK.lightgold }}>一键生成分享海报</h3>
-                    <p className="text-sm leading-relaxed" style={{ color: DARK.textSoft }}>
-                      选择样式与方向，将本次占卜凝练为精美图片。
-                    </p>
+                <OptionGroup label="海报样式">
+                  <OptionButton active={posterStyle === 'dark'} onClick={() => setPosterStyle('dark')} icon={<Moon className="w-3.5 h-3.5" />} label="黑夜" />
+                  <OptionButton active={posterStyle === 'light'} onClick={() => setPosterStyle('light')} icon={<Sun className="w-3.5 h-3.5" />} label="白天" />
+                </OptionGroup>
+
+                <OptionGroup label="海报方向">
+                  <OptionButton active={orientation === 'portrait'} onClick={() => setOrientation('portrait')} icon={<Smartphone className="w-3.5 h-3.5" />} label="竖屏" />
+                  <OptionButton active={orientation === 'landscape'} onClick={() => setOrientation('landscape')} icon={<Monitor className="w-3.5 h-3.5" />} label="横屏" />
+                </OptionGroup>
+
+                {status === 'done' && imageUrl && (
+                  <div className="rounded-xl p-3 flex items-center gap-2.5" style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.35)' }}>
+                    <Check className="w-4 h-4 shrink-0" style={{ color: DARK.emerald }} />
+                    <span className="text-sm" style={{ color: DARK.emerald }}>图片已生成，点击下方按钮保存</span>
                   </div>
+                )}
+                {status === 'error' && (
+                  <div className="rounded-xl p-3 text-sm" style={{ backgroundColor: 'rgba(251, 113, 133, 0.1)', border: '1px solid rgba(251, 113, 133, 0.35)', color: DARK.rose }}>
+                    生成失败，请重试。
+                  </div>
+                )}
 
-                  <OptionGroup label="海报样式">
-                    <OptionButton active={posterStyle === 'dark'} onClick={() => setPosterStyle('dark')} icon={<Moon className="w-3.5 h-3.5" />} label="黑夜" />
-                    <OptionButton active={posterStyle === 'light'} onClick={() => setPosterStyle('light')} icon={<Sun className="w-3.5 h-3.5" />} label="白天" />
-                  </OptionGroup>
-
-                  <OptionGroup label="海报方向">
-                    <OptionButton active={orientation === 'portrait'} onClick={() => setOrientation('portrait')} icon={<Smartphone className="w-3.5 h-3.5" />} label="竖屏" />
-                    <OptionButton active={orientation === 'landscape'} onClick={() => setOrientation('landscape')} icon={<Monitor className="w-3.5 h-3.5" />} label="横屏" />
-                  </OptionGroup>
-
-                  {status === 'done' && imageUrl && (
-                    <div className="rounded-xl p-3 flex items-center gap-2.5" style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid rgba(52, 211, 153, 0.35)' }}>
-                      <Check className="w-4 h-4 shrink-0" style={{ color: DARK.emerald }} />
-                      <span className="text-sm" style={{ color: DARK.emerald }}>图片已生成，点击下方按钮保存</span>
-                    </div>
+                <div className="flex flex-col gap-2.5">
+                  {status !== 'done' && (
+                    <button
+                      onClick={handleGenerate}
+                      disabled={status === 'generating'}
+                      className="w-full py-3 rounded-full font-title text-sm tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                      style={{
+                        background: status === 'generating' ? DARK.panel : 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)',
+                        color: status === 'generating' ? DARK.textSoft : '#0a0824',
+                        border: `1px solid ${DARK.border}`,
+                        cursor: status === 'generating' ? 'wait' : 'pointer',
+                      }}
+                    >
+                      {status === 'generating' ? <><Loader2 className="w-4 h-4 animate-spin" />正在生成…</> : <><ImageDown className="w-4 h-4" />生成海报</>}
+                    </button>
                   )}
-                  {status === 'error' && (
-                    <div className="rounded-xl p-3 text-sm" style={{ backgroundColor: 'rgba(251, 113, 133, 0.1)', border: '1px solid rgba(251, 113, 133, 0.35)', color: DARK.rose }}>
-                      生成失败，请重试。
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-2.5">
-                    {status !== 'done' && (
+                  {status === 'done' && (
+                    <>
                       <button
-                        onClick={handleGenerate}
-                        disabled={status === 'generating'}
-                        className="w-full py-3 rounded-full font-title text-sm tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-                        style={{
-                          background: status === 'generating' ? DARK.panel : 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)',
-                          color: status === 'generating' ? DARK.textSoft : '#0a0824',
-                          border: `1px solid ${DARK.border}`,
-                          cursor: status === 'generating' ? 'wait' : 'pointer',
-                        }}
+                        onClick={handleDownload}
+                        className="w-full py-3 rounded-full font-title text-sm tracking-widest transition-all flex items-center justify-center gap-2 hover:brightness-110"
+                        style={{ background: 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)', color: '#0a0824', border: `1px solid ${DARK.border}`, cursor: 'pointer' }}
                       >
-                        {status === 'generating' ? <><Loader2 className="w-4 h-4 animate-spin" />正在生成…</> : <><ImageDown className="w-4 h-4" />生成海报</>}
+                        <Download className="w-4 h-4" />保存图片
                       </button>
-                    )}
-                    {status === 'done' && (
-                      <>
-                        <button
-                          onClick={handleDownload}
-                          className="w-full py-3 rounded-full font-title text-sm tracking-widest transition-all flex items-center justify-center gap-2 hover:brightness-110"
-                          style={{ background: 'linear-gradient(135deg, #f4d03f 0%, #d4af37 100%)', color: '#0a0824', border: `1px solid ${DARK.border}`, cursor: 'pointer' }}
-                        >
-                          <Download className="w-4 h-4" />保存图片
-                        </button>
-                        {downloadHint && (
-                          <div className="rounded-lg p-2.5 text-xs leading-relaxed text-center" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', border: `1px solid ${DARK.borderSoft}`, color: DARK.lightgold }}>
-                            {downloadHint}
-                          </div>
-                        )}
-                        <button
-                          onClick={() => { revokeImageUrl(); setStatus('idle'); setDownloadHint(null); }}
-                          className="w-full py-2.5 rounded-full font-title text-xs tracking-widest transition-all hover:bg-mystic-gold/10"
-                          style={{ backgroundColor: 'transparent', color: DARK.textSoft, border: `1px solid ${DARK.borderSoft}`, cursor: 'pointer' }}
-                        >
-                          重新生成
-                        </button>
-                      </>
-                    )}
-                  </div>
+                      {downloadHint && (
+                        <div className="rounded-lg p-2.5 text-xs leading-relaxed text-center" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', border: `1px solid ${DARK.borderSoft}`, color: DARK.lightgold }}>
+                          {downloadHint}
+                        </div>
+                      )}
+                      <button
+                        onClick={() => { revokeImageUrl(); setStatus('idle'); setDownloadHint(null); }}
+                        className="w-full py-2.5 rounded-full font-title text-xs tracking-widest transition-all hover:bg-mystic-gold/10"
+                        style={{ backgroundColor: 'transparent', color: DARK.textSoft, border: `1px solid ${DARK.borderSoft}`, cursor: 'pointer' }}
+                      >
+                        重新生成
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-            </motion.div>
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -627,19 +647,15 @@ function SinglePortrait({ ctx }: { ctx: CardCtx }) {
   const { question, drawnCards, positions, spreadName, theme, directAnswer, actionPlan, closingText, palette, verdictColor, energyPct, dateStr, themeDim } = ctx;
   const c = drawnCards[0];
   const pos = positions[c.position];
-  const reading = c.reversed ? c.card.reversed : c.card.upright;
-  const dimText = (themeDim !== 'general' ? (reading as any)[themeDim] : '') || reading.general;
+  const dimText = dimTextFor(themeDim, c);
 
   return (
     <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', padding: '36px 44px 28px' }}>
       <Header palette={palette} dateStr={dateStr} size={28} dateSize={15} />
       <Divider palette={palette} />
 
-      <SectionTitle text="你所问" palette={palette} size={17} marginTop={16} />
-      <p style={{ fontSize: 22, lineHeight: 1.5, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '10px 0 0' }}>
-        {question ? `「${truncate(question, 50)}」` : '— 静心冥想此刻的疑问 —'}
-      </p>
-      <Tag palette={palette} marginTop={10}>{theme.label}主题 · {spreadName}</Tag>
+      <QuestionBlock palette={palette} question={question} tagText={`${theme.label}主题 · ${spreadName}`}
+        titleSize={17} titleMt={16} questionSize={22} questionMax={50} questionLh={1.5} questionMt={10} tagMt={10} />
 
       {/* Hero 牌 */}
       <div style={{ marginTop: 18, display: 'flex', gap: 18, alignItems: 'stretch' }}>
@@ -669,22 +685,13 @@ function SinglePortrait({ ctx }: { ctx: CardCtx }) {
 
       <Spacer flex={1} minHeight={12} />
 
-      <Divider palette={palette} />
-      <SectionTitle text="塔罗师的回应" palette={palette} size={17} marginTop={14} />
-      <VerdictBar verdict={directAnswer.verdict} verdictColor={verdictColor} energyPct={energyPct} palette={palette} size="md" marginTop={10} />
-      <p style={{ fontSize: 19, lineHeight: 1.55, color: palette.textStrong, fontWeight: 500, margin: '12px 0 0' }}>
-        {truncate(directAnswer.headline, 70)}
-      </p>
+      <ResponseBlock palette={palette} directAnswer={directAnswer} verdictColor={verdictColor} energyPct={energyPct}
+        withDivider titleSize={17} titleMt={14} verdictSize="md" verdictMt={10}
+        headlineSize={19} headlineMax={70} headlineLh={1.55} headlineMt={12} />
 
       <Spacer flex={1} minHeight={12} />
 
-      {actionPlan.length > 0 && (
-        <>
-          <Divider palette={palette} />
-          <SectionTitle text="行动指引" palette={palette} size={17} marginTop={14} />
-          <ActionList items={actionPlan} palette={palette} size="md" max={2} marginTop={10} />
-        </>
-      )}
+      <ActionsBlock palette={palette} actionPlan={actionPlan} titleSize={17} titleMt={14} listSize="md" listMt={10} />
 
       <Spacer flex={1} minHeight={12} />
       <Footer palette={palette} closingText={closingText} align="center" />
@@ -704,18 +711,14 @@ function ThreePortrait({ ctx }: { ctx: CardCtx }) {
       <Header palette={palette} dateStr={dateStr} size={28} dateSize={15} />
       <Divider palette={palette} />
 
-      <SectionTitle text="你所问" palette={palette} size={17} marginTop={14} />
-      <p style={{ fontSize: 21, lineHeight: 1.5, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '10px 0 0' }}>
-        {question ? `「${truncate(question, 44)}」` : '— 静心冥想此刻的疑问 —'}
-      </p>
-      <Tag palette={palette} marginTop={10}>{theme.label}主题 · {spreadName}</Tag>
+      <QuestionBlock palette={palette} question={question} tagText={`${theme.label}主题 · ${spreadName}`}
+        titleSize={17} titleMt={14} questionSize={21} questionMax={44} questionLh={1.5} questionMt={10} tagMt={10} />
 
       {/* 三牌横排 */}
       <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
         {drawnCards.map((c, i) => {
           const pos = positions[c.position];
-          const reading = c.reversed ? c.card.reversed : c.card.upright;
-          const dimText = (themeDim !== 'general' ? (reading as any)[themeDim] : '') || reading.general;
+          const dimText = dimTextFor(themeDim, c);
           return (
             <div key={i} style={{
               flex: '1 1 0', padding: '14px 10px', borderRadius: 12,
@@ -740,27 +743,14 @@ function ThreePortrait({ ctx }: { ctx: CardCtx }) {
 
       <Spacer flex={1} minHeight={12} />
 
-      <Divider palette={palette} />
-      <SectionTitle text="塔罗师的回应" palette={palette} size={17} marginTop={14} />
-      <VerdictBar verdict={directAnswer.verdict} verdictColor={verdictColor} energyPct={energyPct} palette={palette} size="md" marginTop={10} />
-      <p style={{ fontSize: 19, lineHeight: 1.55, color: palette.textStrong, fontWeight: 500, margin: '12px 0 0' }}>
-        {truncate(directAnswer.headline, 64)}
-      </p>
-      {directAnswer.reasoning && (
-        <p style={{ fontSize: 14, lineHeight: 1.7, color: palette.textSoft, margin: '10px 0 0', fontStyle: 'italic' }}>
-          {truncate(directAnswer.reasoning, 80)}
-        </p>
-      )}
+      <ResponseBlock palette={palette} directAnswer={directAnswer} verdictColor={verdictColor} energyPct={energyPct}
+        withDivider titleSize={17} titleMt={14} verdictSize="md" verdictMt={10}
+        headlineSize={19} headlineMax={64} headlineLh={1.55} headlineMt={12}
+        reasoning={{ size: 14, max: 80, lh: 1.7, mt: 10 }} />
 
       <Spacer flex={1} minHeight={12} />
 
-      {actionPlan.length > 0 && (
-        <>
-          <Divider palette={palette} />
-          <SectionTitle text="行动指引" palette={palette} size={17} marginTop={14} />
-          <ActionList items={actionPlan} palette={palette} size="md" max={2} marginTop={10} />
-        </>
-      )}
+      <ActionsBlock palette={palette} actionPlan={actionPlan} titleSize={17} titleMt={14} listSize="md" listMt={10} />
 
       <Spacer flex={1} minHeight={12} />
       <Footer palette={palette} closingText={closingText} align="center" />
@@ -780,11 +770,8 @@ function CelticPortrait({ ctx }: { ctx: CardCtx }) {
       <Header palette={palette} dateStr={dateStr} size={26} dateSize={14} />
       <Divider palette={palette} />
 
-      <SectionTitle text="你所问" palette={palette} size={16} marginTop={12} />
-      <p style={{ fontSize: 19, lineHeight: 1.45, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '8px 0 0' }}>
-        {question ? `「${truncate(question, 36)}」` : '— 静心冥想此刻的疑问 —'}
-      </p>
-      <Tag palette={palette} marginTop={8}>{theme.label}主题 · {spreadName}</Tag>
+      <QuestionBlock palette={palette} question={question} tagText={`${theme.label}主题 · ${spreadName}`}
+        titleSize={16} titleMt={12} questionSize={19} questionMax={36} questionLh={1.45} questionMt={8} tagMt={8} />
 
       {/* 10 牌 2×5 网格 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}>
@@ -812,27 +799,14 @@ function CelticPortrait({ ctx }: { ctx: CardCtx }) {
 
       <Spacer flex={1} minHeight={10} />
 
-      <Divider palette={palette} />
-      <SectionTitle text="塔罗师的回应" palette={palette} size={16} marginTop={12} />
-      <VerdictBar verdict={directAnswer.verdict} verdictColor={verdictColor} energyPct={energyPct} palette={palette} size="sm" marginTop={8} />
-      <p style={{ fontSize: 17, lineHeight: 1.5, color: palette.textStrong, fontWeight: 500, margin: '10px 0 0' }}>
-        {truncate(directAnswer.headline, 60)}
-      </p>
-      {directAnswer.reasoning && (
-        <p style={{ fontSize: 13, lineHeight: 1.7, color: palette.textSoft, margin: '8px 0 0', fontStyle: 'italic' }}>
-          {truncate(directAnswer.reasoning, 90)}
-        </p>
-      )}
+      <ResponseBlock palette={palette} directAnswer={directAnswer} verdictColor={verdictColor} energyPct={energyPct}
+        withDivider titleSize={16} titleMt={12} verdictSize="sm" verdictMt={8}
+        headlineSize={17} headlineMax={60} headlineLh={1.5} headlineMt={10}
+        reasoning={{ size: 13, max: 90, lh: 1.7, mt: 8 }} />
 
       <Spacer flex={1} minHeight={10} />
 
-      {actionPlan.length > 0 && (
-        <>
-          <Divider palette={palette} />
-          <SectionTitle text="行动指引" palette={palette} size={16} marginTop={12} />
-          <ActionList items={actionPlan} palette={palette} size="sm" max={2} marginTop={8} />
-        </>
-      )}
+      <ActionsBlock palette={palette} actionPlan={actionPlan} titleSize={16} titleMt={12} listSize="sm" listMt={8} />
 
       <Spacer flex={1} minHeight={10} />
       <Footer palette={palette} closingText={closingText} align="center" />
@@ -848,18 +822,14 @@ function SingleLandscape({ ctx }: { ctx: CardCtx }) {
   const { question, drawnCards, positions, spreadName, theme, directAnswer, actionPlan, closingText, palette, verdictColor, energyPct, dateStr, themeDim } = ctx;
   const c = drawnCards[0];
   const pos = positions[c.position];
-  const reading = c.reversed ? c.card.reversed : c.card.upright;
-  const dimText = (themeDim !== 'general' ? (reading as any)[themeDim] : '') || reading.general;
+  const dimText = dimTextFor(themeDim, c);
 
   return (
     <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', padding: '28px 40px 22px' }}>
       <div style={{ flex: '0 0 38%', display: 'flex', flexDirection: 'column', paddingRight: 24, borderRight: `1px solid ${palette.borderSoft}` }}>
         <Header palette={palette} dateStr={dateStr} size={24} dateSize={13} />
-        <SectionTitle text="你所问" palette={palette} size={15} marginTop={14} />
-        <p style={{ fontSize: 18, lineHeight: 1.4, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '8px 0 0' }}>
-          {question ? `「${truncate(question, 36)}」` : '— 静心冥想此刻的疑问 —'}
-        </p>
-        <Tag palette={palette} marginTop={8}>{theme.label}主题 · {spreadName}</Tag>
+        <QuestionBlock palette={palette} question={question} tagText={`${theme.label}主题 · ${spreadName}`}
+          titleSize={15} titleMt={14} questionSize={18} questionMax={36} questionLh={1.4} questionMt={8} tagMt={8} />
 
         {/* Hero 牌 */}
         <div style={{ marginTop: 16, padding: '16px 12px', borderRadius: 12, background: `linear-gradient(180deg, ${palette.panel}, ${palette.borderSoft})`, border: `1px solid ${palette.border}`, textAlign: 'center' }}>
@@ -881,22 +851,13 @@ function SingleLandscape({ ctx }: { ctx: CardCtx }) {
           {truncate(dimText, 100)}
         </p>
 
-        <Divider palette={palette} />
-        <SectionTitle text="塔罗师的回应" palette={palette} size={15} marginTop={12} />
-        <VerdictBar verdict={directAnswer.verdict} verdictColor={verdictColor} energyPct={energyPct} palette={palette} size="sm" marginTop={8} />
-        <p style={{ fontSize: 17, lineHeight: 1.5, color: palette.textStrong, fontWeight: 500, margin: '10px 0 0' }}>
-          {truncate(directAnswer.headline, 60)}
-        </p>
+        <ResponseBlock palette={palette} directAnswer={directAnswer} verdictColor={verdictColor} energyPct={energyPct}
+          withDivider titleSize={15} titleMt={12} verdictSize="sm" verdictMt={8}
+          headlineSize={17} headlineMax={60} headlineLh={1.5} headlineMt={10} />
 
         <Spacer flex={1} minHeight={8} />
 
-        {actionPlan.length > 0 && (
-          <>
-            <Divider palette={palette} />
-            <SectionTitle text="行动指引" palette={palette} size={15} marginTop={12} />
-            <ActionList items={actionPlan} palette={palette} size="sm" max={2} marginTop={8} />
-          </>
-        )}
+        <ActionsBlock palette={palette} actionPlan={actionPlan} titleSize={15} titleMt={12} listSize="sm" listMt={8} />
 
         <Spacer flex={1} minHeight={8} />
         <Footer palette={palette} closingText="" align="right" domainOnly />
@@ -916,18 +877,14 @@ function ThreeLandscape({ ctx }: { ctx: CardCtx }) {
     <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', padding: '28px 40px 22px' }}>
       <div style={{ flex: '0 0 44%', display: 'flex', flexDirection: 'column', paddingRight: 24, borderRight: `1px solid ${palette.borderSoft}` }}>
         <Header palette={palette} dateStr={dateStr} size={24} dateSize={13} />
-        <SectionTitle text="你所问" palette={palette} size={15} marginTop={12} />
-        <p style={{ fontSize: 17, lineHeight: 1.4, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '8px 0 0' }}>
-          {question ? `「${truncate(question, 32)}」` : '— 静心冥想此刻的疑问 —'}
-        </p>
-        <Tag palette={palette} marginTop={8}>{theme.label}主题 · {spreadName}</Tag>
+        <QuestionBlock palette={palette} question={question} tagText={`${theme.label}主题 · ${spreadName}`}
+          titleSize={15} titleMt={12} questionSize={17} questionMax={32} questionLh={1.4} questionMt={8} tagMt={8} />
 
         {/* 三牌纵向 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
           {drawnCards.map((c, i) => {
             const pos = positions[c.position];
-            const reading = c.reversed ? c.card.reversed : c.card.upright;
-            const dimText = (themeDim !== 'general' ? (reading as any)[themeDim] : '') || reading.general;
+            const dimText = dimTextFor(themeDim, c);
             return (
               <div key={i} style={{ display: 'flex', gap: 10, padding: '10px 12px', borderRadius: 10, backgroundColor: palette.panel, border: `1px solid ${palette.borderSoft}`, alignItems: 'center' }}>
                 <span style={{ fontSize: 26, color: palette.gold, flexShrink: 0 }}>{c.card.symbol || '✦'}</span>
@@ -946,26 +903,14 @@ function ThreeLandscape({ ctx }: { ctx: CardCtx }) {
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingLeft: 24 }}>
-        <SectionTitle text="塔罗师的回应" palette={palette} size={15} marginTop={0} />
-        <VerdictBar verdict={directAnswer.verdict} verdictColor={verdictColor} energyPct={energyPct} palette={palette} size="sm" marginTop={8} />
-        <p style={{ fontSize: 17, lineHeight: 1.5, color: palette.textStrong, fontWeight: 500, margin: '10px 0 0' }}>
-          {truncate(directAnswer.headline, 60)}
-        </p>
-        {directAnswer.reasoning && (
-          <p style={{ fontSize: 13, lineHeight: 1.7, color: palette.textSoft, margin: '10px 0 0', fontStyle: 'italic' }}>
-            {truncate(directAnswer.reasoning, 90)}
-          </p>
-        )}
+        <ResponseBlock palette={palette} directAnswer={directAnswer} verdictColor={verdictColor} energyPct={energyPct}
+          titleSize={15} titleMt={0} verdictSize="sm" verdictMt={8}
+          headlineSize={17} headlineMax={60} headlineLh={1.5} headlineMt={10}
+          reasoning={{ size: 13, max: 90, lh: 1.7, mt: 10 }} />
 
         <Spacer flex={1} minHeight={8} />
 
-        {actionPlan.length > 0 && (
-          <>
-            <Divider palette={palette} />
-            <SectionTitle text="行动指引" palette={palette} size={15} marginTop={12} />
-            <ActionList items={actionPlan} palette={palette} size="sm" max={2} marginTop={8} />
-          </>
-        )}
+        <ActionsBlock palette={palette} actionPlan={actionPlan} titleSize={15} titleMt={12} listSize="sm" listMt={8} />
 
         <Spacer flex={1} minHeight={8} />
         <Footer palette={palette} closingText="" align="right" domainOnly />
@@ -985,11 +930,8 @@ function CelticLandscape({ ctx }: { ctx: CardCtx }) {
     <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', padding: '26px 36px 20px' }}>
       <div style={{ flex: '0 0 46%', display: 'flex', flexDirection: 'column', paddingRight: 22, borderRight: `1px solid ${palette.borderSoft}` }}>
         <Header palette={palette} dateStr={dateStr} size={22} dateSize={12} />
-        <SectionTitle text="你所问" palette={palette} size={14} marginTop={10} />
-        <p style={{ fontSize: 15, lineHeight: 1.35, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: '6px 0 0' }}>
-          {question ? `「${truncate(question, 28)}」` : '— 静心冥想此刻的疑问 —'}
-        </p>
-        <Tag palette={palette} marginTop={6}>{theme.label} · {spreadName}</Tag>
+        <QuestionBlock palette={palette} question={question} tagText={`${theme.label} · ${spreadName}`}
+          titleSize={14} titleMt={10} questionSize={15} questionMax={28} questionLh={1.35} questionMt={6} tagMt={6} />
 
         {/* 10 牌 5×2 网格 */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginTop: 12 }}>
@@ -1011,26 +953,14 @@ function CelticLandscape({ ctx }: { ctx: CardCtx }) {
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingLeft: 22 }}>
-        <SectionTitle text="塔罗师的回应" palette={palette} size={14} marginTop={0} />
-        <VerdictBar verdict={directAnswer.verdict} verdictColor={verdictColor} energyPct={energyPct} palette={palette} size="sm" marginTop={6} />
-        <p style={{ fontSize: 16, lineHeight: 1.5, color: palette.textStrong, fontWeight: 500, margin: '8px 0 0' }}>
-          {truncate(directAnswer.headline, 56)}
-        </p>
-        {directAnswer.reasoning && (
-          <p style={{ fontSize: 12, lineHeight: 1.65, color: palette.textSoft, margin: '8px 0 0', fontStyle: 'italic' }}>
-            {truncate(directAnswer.reasoning, 110)}
-          </p>
-        )}
+        <ResponseBlock palette={palette} directAnswer={directAnswer} verdictColor={verdictColor} energyPct={energyPct}
+          titleSize={14} titleMt={0} verdictSize="sm" verdictMt={6}
+          headlineSize={16} headlineMax={56} headlineLh={1.5} headlineMt={8}
+          reasoning={{ size: 12, max: 110, lh: 1.65, mt: 8 }} />
 
         <Spacer flex={1} minHeight={8} />
 
-        {actionPlan.length > 0 && (
-          <>
-            <Divider palette={palette} />
-            <SectionTitle text="行动指引" palette={palette} size={14} marginTop={10} />
-            <ActionList items={actionPlan} palette={palette} size="sm" max={2} marginTop={6} />
-          </>
-        )}
+        <ActionsBlock palette={palette} actionPlan={actionPlan} titleSize={14} titleMt={10} listSize="sm" listMt={6} />
 
         <Spacer flex={1} minHeight={8} />
         <Footer palette={palette} closingText="" align="right" domainOnly />
@@ -1042,6 +972,80 @@ function CelticLandscape({ ctx }: { ctx: CardCtx }) {
 // ============================================================
 // 共享子组件
 // ============================================================
+
+function QuestionBlock({ palette, question, tagText, titleSize, titleMt, questionSize, questionMax, questionLh, questionMt, tagMt }: {
+  palette: Palette;
+  question: string;
+  tagText: string;
+  titleSize: number;
+  titleMt: number;
+  questionSize: number;
+  questionMax: number;
+  questionLh: number;
+  questionMt: number;
+  tagMt: number;
+}) {
+  return (
+    <>
+      <SectionTitle text="你所问" palette={palette} size={titleSize} marginTop={titleMt} />
+      <p style={{ fontSize: questionSize, lineHeight: questionLh, color: palette.textStrong, fontStyle: 'italic', fontWeight: 500, margin: `${questionMt}px 0 0` }}>
+        {question ? `「${truncate(question, questionMax)}」` : '— 静心冥想此刻的疑问 —'}
+      </p>
+      <Tag palette={palette} marginTop={tagMt}>{tagText}</Tag>
+    </>
+  );
+}
+
+function ResponseBlock({ palette, directAnswer, verdictColor, energyPct, withDivider, titleSize, titleMt, verdictSize, verdictMt, headlineSize, headlineMax, headlineLh, headlineMt, reasoning }: {
+  palette: Palette;
+  directAnswer: DirectAnswerType;
+  verdictColor: string;
+  energyPct: number;
+  withDivider?: boolean;
+  titleSize: number;
+  titleMt: number;
+  verdictSize: 'sm' | 'md';
+  verdictMt: number;
+  headlineSize: number;
+  headlineMax: number;
+  headlineLh: number;
+  headlineMt: number;
+  reasoning?: { size: number; max: number; lh: number; mt: number };
+}) {
+  return (
+    <>
+      {withDivider && <Divider palette={palette} />}
+      <SectionTitle text="塔罗师的回应" palette={palette} size={titleSize} marginTop={titleMt} />
+      <VerdictBar verdict={directAnswer.verdict} verdictColor={verdictColor} energyPct={energyPct} palette={palette} size={verdictSize} marginTop={verdictMt} />
+      <p style={{ fontSize: headlineSize, lineHeight: headlineLh, color: palette.textStrong, fontWeight: 500, margin: `${headlineMt}px 0 0` }}>
+        {truncate(directAnswer.headline, headlineMax)}
+      </p>
+      {reasoning && directAnswer.reasoning && (
+        <p style={{ fontSize: reasoning.size, lineHeight: reasoning.lh, color: palette.textSoft, margin: `${reasoning.mt}px 0 0`, fontStyle: 'italic' }}>
+          {truncate(directAnswer.reasoning, reasoning.max)}
+        </p>
+      )}
+    </>
+  );
+}
+
+function ActionsBlock({ palette, actionPlan, titleSize, titleMt, listSize, listMt }: {
+  palette: Palette;
+  actionPlan: ActionItem[];
+  titleSize: number;
+  titleMt: number;
+  listSize: 'sm' | 'md';
+  listMt: number;
+}) {
+  if (actionPlan.length === 0) return null;
+  return (
+    <>
+      <Divider palette={palette} />
+      <SectionTitle text="行动指引" palette={palette} size={titleSize} marginTop={titleMt} />
+      <ActionList items={actionPlan} palette={palette} size={listSize} max={2} marginTop={listMt} />
+    </>
+  );
+}
 
 function Header({ palette, dateStr, size, dateSize }: { palette: Palette; dateStr: string; size: number; dateSize: number }) {
   return (
@@ -1095,7 +1099,7 @@ function VerdictBar({ verdict, verdictColor, energyPct, palette, size, marginTop
           <span>能量值</span>
           <span style={{ color: palette.lightgold, fontWeight: 600, fontSize: valFs }}>{energyPct}</span>
         </div>
-        <div style={{ height: 5, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+        <div style={{ height: 5, borderRadius: 999, backgroundColor: palette.track, overflow: 'hidden' }}>
           <div style={{ width: `${energyPct}%`, height: '100%', borderRadius: 999, background: `linear-gradient(90deg, ${verdictColor}, ${palette.gold})` }} />
         </div>
       </div>
@@ -1160,6 +1164,11 @@ function BackgroundDecor({ palette }: { palette: Palette }) {
 // ============================================================
 // 工具函数
 // ============================================================
+
+function dimTextFor(themeDim: 'love' | 'career' | 'wealth' | 'general', drawnCard: DrawnCard): string {
+  const reading = drawnCard.reversed ? drawnCard.card.reversed : drawnCard.card.upright;
+  return (themeDim !== 'general' ? (reading as any)[themeDim] : '') || reading.general;
+}
 
 function truncate(text: string, max: number): string {
   if (!text) return '';
