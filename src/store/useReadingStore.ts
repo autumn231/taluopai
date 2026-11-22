@@ -54,7 +54,7 @@ export const useReadingStore = create<ReadingState>()(
 
       startSelect: () => set({ stage: 'select' }),
 
-      selectCards: (positions) => {
+      selectCards: (_positions) => {
         const { spreadType } = get();
         const spread = getSpread(spreadType);
 
@@ -64,7 +64,10 @@ export const useReadingStore = create<ReadingState>()(
         const drawn: DrawnCard[] = newDeck.map((card, idx) => ({
           card,
           reversed: shouldReverse(),
-          position: positions[idx] ?? idx,
+          // position 是牌阵位置序号：第 idx 张抽到的牌对应牌阵第 idx 个位置。
+          // 入参 positions 是用户在扇面上点选的扇位序号，与牌阵位置无关，
+          // 曾误存为 position，导致位置名错位、扇位 ≥ 牌阵长度时位置名缺失。
+          position: idx,
         }));
         set({ stage: 'done', drawnCards: drawn });
       },
